@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "598546039758",
+    "project_id": "burhank-6839e",
+    "storage_bucket": "burhank-6839e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:598546039758:android:3157d233a5205451c0619f",
+        "android_client_info": {
+          "package_name": "com.burhank.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWeOWp1pVejNF9rPQFi9jFH4l0YA1EYlw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:598546039758:android:4f031be64f7d7fa7c0619f",
+        "android_client_info": {
+          "package_name": "com.rami.burhank"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWeOWp1pVejNF9rPQFi9jFH4l0YA1EYlw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

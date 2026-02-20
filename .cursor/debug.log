@@ -1,0 +1,6 @@
+{"location":"adkhar.tsx","message":"counterTap: advancing","data":{"hypothesisId":"H1,H2,H3","currentIndex":0,"nextIndex":1,"scrollIndex":19,"isRtl":true,"itemsLength":21,"listWidth":354,"skipSet":true},"timestamp":1771354609757}
+{"location":"adkhar.tsx","message":"onMomentumScrollEnd","data":{"hypothesisId":"H1,H2","callNumber":1,"offset":6726,"rawIndex":19,"index":1,"isRtl":true,"skipBefore":true,"willUpdate":false},"timestamp":1771354610148}
+{"location":"adkhar.tsx","message":"counterTap: advancing","data":{"hypothesisId":"H1,H2,H3","currentIndex":1,"nextIndex":2,"scrollIndex":18,"isRtl":true,"itemsLength":21,"listWidth":354,"skipSet":true},"timestamp":1771354610789}
+{"location":"adkhar.tsx","message":"onMomentumScrollEnd","data":{"hypothesisId":"H1,H2","callNumber":2,"offset":6372,"rawIndex":18,"index":2,"isRtl":true,"skipBefore":true,"willUpdate":false},"timestamp":1771354611154}
+{"location":"adkhar.tsx","message":"counterTap: advancing","data":{"hypothesisId":"H1,H2,H3","currentIndex":2,"nextIndex":3,"scrollIndex":17,"isRtl":true,"itemsLength":21,"listWidth":354,"skipSet":true},"timestamp":1771354612104}
+{"location":"adkhar.tsx","message":"onMomentumScrollEnd","data":{"hypothesisId":"H1,H2","callNumber":3,"offset":6018,"rawIndex":17,"index":3,"isRtl":true,"skipBefore":true,"willUpdate":false},"timestamp":1771354612438}

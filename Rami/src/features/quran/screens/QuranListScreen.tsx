@@ -1,0 +1,481 @@
+/**
+ * Reading Sanctuary — Quran list with soft glass cards and serene typography.
+ */
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  FlatList,
+  ActivityIndicator,
+  Alert,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  Platform,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { useTheme } from '../../../theme/ThemeContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
+import { useDockVisibility } from '../../../components/SacredDock';
+import { ScreenWrapper } from '../../../components/ScreenWrapper';
+import { BackToHomeBar } from '../../../components/BackToHomeBar';
+import { GlassCard } from '../../../components/GlassCard';
+import { loadLastRead, loadSelectedReciter } from '../storage/quranStorage';
+import { SURAH_LIST, searchSurahs, type SurahMeta } from '../data/surahs';
+import { downloadFullQuranText, isQuranTextDownloaded } from '../utils/quranTextCache';
+import { downloadFullQuranAudio, isFullQuranAudioDownloaded } from '../utils/quranAudioCache';
+import { getString, getReciterLabel } from '../../../constants/i18n';
+import { spacing, radius } from '../../../theme/spacing';
+import { fontSize, fontWeight, fontFamily, lineHeight } from '../../../theme/typography';
+
+const SCROLL_UP_THRESHOLD = 30;
+const lastScrollY = { current: 0 };
+
+export function QuranListScreen() {
+  const { colors, pageBackground, style: themeStyle } = useTheme();
+  const isRoyal = themeStyle === 'royal';
+  const { language } = useLanguage();
+  const { showDock } = useDockVisibility();
+  const router = useRouter();
+  const [lastRead, setLastRead] = useState<{ surah: number; ayah: number } | null>(null);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [pendingSurah, setPendingSurah] = useState<number | null>(null);
+  const [quranDownloaded, setQuranDownloaded] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [audioDownloaded, setAudioDownloaded] = useState(false);
+  const [audioDownloading, setAudioDownloading] = useState(false);
+  const [audioProgress, setAudioProgress] = useState<{ done: number; total: number } | null>(null);
+  const [selectedReciter, setSelectedReciter] = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([
+      loadLastRead().then((lr) => {
+        if (lr) setLastRead({ surah: lr.surah, ayah: lr.ayah });
+      }),
+      isQuranTextDownloaded().then(setQuranDownloaded),
+      loadSelectedReciter().then((reciter) => {
+        setSelectedReciter(reciter);
+        return isFullQuranAudioDownloaded(reciter).then(setAudioDownloaded);
+      }),
+    ]).finally(() => setLoading(false));
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      setPendingSurah(null);
+      loadSelectedReciter().then((r) => {
+        setSelectedReciter(r);
+        return isFullQuranAudioDownloaded(r).then(setAudioDownloaded);
+      });
+    }, [])
+  );
+
+  const onScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const y = e.nativeEvent.contentOffset.y;
+      if (y < lastScrollY.current - SCROLL_UP_THRESHOLD && y > 50) showDock();
+      lastScrollY.current = y;
+    },
+    [showDock]
+  );
+
+  const list = search.trim() ? searchSurahs(search, language) : SURAH_LIST;
+  const lastReadSurah = lastRead ? SURAH_LIST.find((s) => s.number === lastRead.surah) : null;
+
+  const handleDownloadAudio = useCallback(async () => {
+    if (audioDownloading || audioDownloaded) return;
+    Alert.alert(
+      getString(language, 'downloadQuranAudioFull'),
+      getString(language, 'downloadQuranAudioFullConfirm'),
+      [
+        { text: getString(language, 'cancel'), style: 'cancel' },
+        {
+          text: getString(language, 'download'),
+          onPress: async () => {
+            const reciter = await loadSelectedReciter();
+            setAudioDownloading(true);
+            setAudioProgress({ done: 0, total: 6236 });
+            downloadFullQuranAudio(reciter, (done, total) => setAudioProgress({ done, total }))
+              .then((result) => {
+                setAudioProgress(null);
+                if (result.success) {
+                  setAudioDownloaded(true);
+                  Alert.alert(
+                    getString(language, 'quranAudioFullDownloaded'),
+                    getString(language, 'downloadQuranAudioFullDone')
+                  );
+                } else {
+                  Alert.alert(
+                    getString(language, 'error'),
+                    result.error ?? getString(language, 'downloadQuranAudioError')
+                  );
+                }
+              })
+              .finally(() => {
+                setAudioDownloading(false);
+                setAudioProgress(null);
+              });
+          },
+        },
+      ]
+    );
+  }, [audioDownloading, audioDownloaded, language]);
+
+  const handleDownloadQuran = useCallback(() => {
+    if (downloading || quranDownloaded) return;
+    setDownloading(true);
+    setDownloadProgress({ done: 0, total: 114 });
+    downloadFullQuranText((completed, total) => {
+      setDownloadProgress({ done: completed, total });
+    })
+      .then((result) => {
+        setDownloadProgress(null);
+        if (result.success) {
+          setQuranDownloaded(true);
+          Alert.alert(
+            getString(language, 'quranDownloaded'),
+            getString(language, 'downloadQuranDone')
+          );
+        } else {
+          Alert.alert(
+            getString(language, 'error'),
+            result.error ?? getString(language, 'downloadQuranError')
+          );
+        }
+      })
+      .finally(() => {
+        setDownloading(false);
+        setDownloadProgress(null);
+      });
+  }, [downloading, quranDownloaded, language]);
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: SurahMeta; index: number }) => (
+      <Animated.View entering={FadeIn.delay(index * 30).duration(280)}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => {
+            if (pendingSurah !== null) return;
+            setPendingSurah(item.number);
+            setTimeout(() => {
+              router.push(`/quran/${item.number}` as const);
+            }, 0);
+          }}
+          style={styles.surahTouch}
+          disabled={pendingSurah === item.number}
+        >
+          <GlassCard
+            padding="md"
+            rounded="lg"
+            style={styles.surahCard}
+            fillColor={pendingSurah === item.number ? colors.highlightGlow : undefined}
+            strokeColor={pendingSurah === item.number ? colors.highlight : undefined}
+          >
+            <View style={styles.surahRow}>
+              <View style={styles.surahNumWrap}>
+                <Text style={[styles.surahNum, { color: colors.highlight }]}>{item.number}</Text>
+              </View>
+              <View style={styles.surahNames}>
+                <Text style={[styles.surahName, { color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text }]}>
+                  {language === 'ar' ? item.nameAr : item.nameEn}
+                </Text>
+                <Text style={[styles.surahAyahs, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>
+                  {item.ayahCount} {getString(language, 'verses')}
+                </Text>
+              </View>
+              <View style={styles.chevronWrap}>
+                {pendingSurah === item.number ? (
+                  <ActivityIndicator size="small" color={isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted} />
+                ) : (
+                  <Text style={[styles.chevron, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>›</Text>
+                )}
+              </View>
+            </View>
+          </GlassCard>
+        </TouchableOpacity>
+      </Animated.View>
+    ),
+    [language, router, colors, pendingSurah]
+  );
+
+  if (loading) {
+    return (
+      <ScreenWrapper>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.highlight} />
+        </View>
+      </ScreenWrapper>
+    );
+  }
+
+  return (
+    <ScreenWrapper>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxl + 72 }]}
+        keyboardShouldPersistTaps="handled"
+        onScroll={onScroll}
+        scrollEventThrottle={80}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <BackToHomeBar />
+          <Text style={[styles.title, { color: colors.text }]}>{getString(language, 'readingSanctuary')}</Text>
+        </View>
+        {lastReadSurah && lastRead && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => router.push(`/quran/${lastRead!.surah}?ayah=${lastRead!.ayah}` as const)}
+            style={styles.continueWrap}
+          >
+            <GlassCard padding="lg" rounded="lg" fillColor={colors.highlightGlow} strokeColor={colors.highlight}>
+              <Text style={[styles.continueLabel, { color: isRoyal ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>{getString(language, 'continueReading')}</Text>
+              <Text style={[styles.continueSurah, { color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text }]}>
+                {language === 'ar'
+                  ? `${lastReadSurah.nameAr} — ${getString(language, 'ayah')} ${lastRead.ayah}`
+                  : `${lastReadSurah.nameEn} — ${getString(language, 'ayah')} ${lastRead.ayah}`}
+              </Text>
+            </GlassCard>
+          </TouchableOpacity>
+        )}
+        <TextInput
+          style={[
+            styles.search,
+            {
+              backgroundColor: isRoyal ? 'rgba(10, 25, 18, 0.72)' : colors.surfaceGlass,
+              color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text,
+              borderColor: isRoyal ? 'rgba(230, 194, 122, 0.28)' : colors.border,
+            },
+          ]}
+          placeholder={getString(language, 'search')}
+          placeholderTextColor={isRoyal ? 'rgba(255,255,255,0.5)' : colors.textMuted}
+          value={search}
+          onChangeText={setSearch}
+        />
+        <GlassCard padding="lg" rounded="lg" style={styles.downloadCard}>
+          <Text style={[styles.downloadCardTitle, { color: isRoyal ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>
+            {getString(language, 'downloadForOffline')}
+          </Text>
+
+          {/* Text row */}
+          <TouchableOpacity
+            style={styles.downloadRow}
+            onPress={handleDownloadQuran}
+            disabled={downloading || quranDownloaded}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="document-text"
+              size={24}
+              color={quranDownloaded ? colors.highlight : (isRoyal ? 'rgba(255,255,255,0.5)' : colors.textMuted)}
+              style={styles.downloadRowIcon}
+            />
+            <View style={styles.downloadRowContent}>
+              <Text style={[styles.downloadRowLabel, { color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text }]}>
+                {getString(language, 'downloadLabelText')}
+              </Text>
+              <Text style={[styles.downloadRowSize, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>
+                {getString(language, 'downloadQuranSize')}
+              </Text>
+            </View>
+            {downloading ? (
+              <ActivityIndicator size="small" color={colors.highlight} />
+            ) : quranDownloaded ? (
+              <Ionicons name="checkmark-circle" size={24} color={colors.highlight} />
+            ) : (
+              <Text style={[styles.downloadRowAction, { color: colors.highlight }]}>
+                {getString(language, 'download')}
+              </Text>
+            )}
+          </TouchableOpacity>
+          {downloading && (
+            <View style={[styles.progressBarTrack, { backgroundColor: isRoyal ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)' }]}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: `${((downloadProgress?.done ?? 0) / (downloadProgress?.total ?? 114)) * 100}%`,
+                    backgroundColor: colors.highlight,
+                  },
+                ]}
+              />
+            </View>
+          )}
+
+          {/* Audio row */}
+          <TouchableOpacity
+            style={[styles.downloadRow, styles.downloadRowBorder, { borderTopColor: isRoyal ? 'rgba(255,255,255,0.12)' : colors.border }]}
+            onPress={handleDownloadAudio}
+            disabled={audioDownloading || audioDownloaded}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="musical-notes"
+              size={24}
+              color={audioDownloaded ? colors.highlight : (isRoyal ? 'rgba(255,255,255,0.5)' : colors.textMuted)}
+              style={styles.downloadRowIcon}
+            />
+            <View style={styles.downloadRowContent}>
+              <Text style={[styles.downloadRowLabel, { color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text }]}>
+                {getString(language, 'downloadLabelAudio')}
+              </Text>
+              <Text style={[styles.downloadRowSize, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>
+                {selectedReciter ? `${getReciterLabel(language, selectedReciter)} • ` : ''}{getString(language, 'downloadQuranAudioFullSize')}
+              </Text>
+            </View>
+            {audioDownloading ? (
+              <ActivityIndicator size="small" color={colors.highlight} />
+            ) : audioDownloaded ? (
+              <Ionicons name="checkmark-circle" size={24} color={colors.highlight} />
+            ) : (
+              <Text style={[styles.downloadRowAction, { color: colors.highlight }]}>
+                {getString(language, 'download')}
+              </Text>
+            )}
+          </TouchableOpacity>
+          {audioDownloading && (
+            <View style={[styles.progressBarTrack, { backgroundColor: isRoyal ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)' }]}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: `${Math.min(100, ((audioProgress?.done ?? 0) / (audioProgress?.total ?? 1)) * 100)}%`,
+                    backgroundColor: colors.highlight,
+                  },
+                ]}
+              />
+            </View>
+          )}
+        </GlassCard>
+        <FlatList
+          data={list}
+          keyExtractor={(item) => String(item.number)}
+          renderItem={renderItem}
+          extraData={pendingSurah}
+          scrollEnabled={false}
+          ListEmptyComponent={
+            <Text style={[styles.empty, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>{getString(language, 'noResults')}</Text>
+          }
+        />
+      </ScrollView>
+    </ScreenWrapper>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { paddingTop: spacing.lg, paddingBottom: spacing.sm },
+  title: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.regular,
+    fontFamily: fontFamily.heading,
+  },
+  scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+  continueWrap: { marginBottom: spacing.lg },
+  continueLabel: { fontSize: fontSize.xs, marginBottom: spacing.xxs },
+  continueSurah: { fontSize: fontSize.md, fontWeight: fontWeight.semibold },
+  search: {
+    marginBottom: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    fontSize: fontSize.md,
+  },
+  downloadCard: {
+    marginBottom: spacing.lg,
+  },
+  downloadCardTitle: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    marginBottom: spacing.md,
+  },
+  downloadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    minHeight: 44,
+  },
+  downloadRowBorder: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.08)',
+    marginTop: spacing.xs,
+  },
+  downloadRowIcon: {
+    marginRight: spacing.md,
+  },
+  downloadRowContent: {
+    flex: 1,
+  },
+  downloadRowLabel: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+  },
+  downloadRowSize: {
+    fontSize: fontSize.xs,
+    marginTop: 2,
+  },
+  downloadRowAction: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+  },
+  progressBarTrack: {
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  surahTouch: { marginBottom: Platform.OS === 'android' ? spacing.xxs : spacing.xs },
+  surahCard: {},
+  surahRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  surahCardPending: {},
+  surahNumWrap: {
+    width: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  surahNum: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    lineHeight: Math.round(fontSize.md * lineHeight.tight),
+    textAlign: 'center',
+  },
+  surahNames: {
+    flex: 1,
+    marginLeft: spacing.sm,
+    justifyContent: 'center',
+  },
+  surahName: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    lineHeight: Math.round(fontSize.md * lineHeight.tight),
+  },
+  surahAyahs: {
+    fontSize: fontSize.xs,
+    marginTop: 4,
+    lineHeight: Math.round(fontSize.xs * lineHeight.tight),
+  },
+  chevronWrap: {
+    width: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chevron: { fontSize: fontSize.lg },
+  empty: { marginTop: spacing.lg, fontSize: fontSize.sm },
+});
