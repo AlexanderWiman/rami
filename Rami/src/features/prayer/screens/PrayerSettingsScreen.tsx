@@ -180,9 +180,19 @@ export function PrayerSettingsScreen() {
     if (value) {
       const { status: existing } = await Notifications.getPermissionsAsync();
       let final = existing;
-      if (existing !== 'granted') {
+      if (existing === 'undetermined') {
         const { status } = await Notifications.requestPermissionsAsync();
         final = status;
+      } else if (existing === 'denied') {
+        Alert.alert(
+          t('enableNotifications'),
+          t('notificationPermissionRequired'),
+          [
+            { text: t('openSettings'), onPress: () => Linking.openSettings() },
+            { text: t('back'), style: 'cancel' },
+          ]
+        );
+        return;
       }
       if (final !== 'granted') {
         Alert.alert(
@@ -197,7 +207,11 @@ export function PrayerSettingsScreen() {
       }
       setNotificationPermissionGranted(true);
     }
-    await updateSettings({ ...settings, notificationsEnabled: value });
+    try {
+      await updateSettings({ ...settings, notificationsEnabled: value });
+    } catch (e) {
+      Alert.alert(t('error'), e instanceof Error ? e.message : 'Failed to update');
+    }
   };
 
   return (
@@ -233,14 +247,20 @@ export function PrayerSettingsScreen() {
             <Text style={[styles.label, { color: textPrimary }]}>{t('enableNotifications')}</Text>
             <Switch
               value={settings.notificationsEnabled && (notificationPermissionGranted !== false)}
-              onValueChange={handleNotificationsToggle}
+              onValueChange={(v) => void handleNotificationsToggle(v)}
               trackColor={{ false: isRoyal ? 'rgba(255,255,255,0.2)' : colors.border, true: colors.highlight }}
               thumbColor={isRoyal ? '#fff' : colors.background}
             />
           </View>
+          {!settings.notificationsEnabled && notificationPermissionGranted && (
+            <TouchableOpacity style={styles.revokeHint} onPress={() => Linking.openSettings()}>
+              <Text style={[styles.revokeHintText, { color: textMuted }]}>{t('notificationRevokeHint')}</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.refreshScheduleBtn} onPress={refreshSchedule}>
             <Text style={[styles.refreshScheduleBtnText, { color: colors.highlight }]}>{t('refreshSchedule')}</Text>
           </TouchableOpacity>
+          <Text style={[styles.refreshScheduleHint, { color: textMuted }]}>{t('refreshScheduleHint')}</Text>
         </GlassCard>
 
         {/* Azan */}
@@ -402,10 +422,11 @@ export function PrayerSettingsScreen() {
           <TouchableOpacity style={styles.refreshScheduleBtn} onPress={refreshSchedule}>
             <Text style={[styles.refreshScheduleBtnText, { color: colors.highlight }]}>{t('refreshSchedule')}</Text>
           </TouchableOpacity>
+          <Text style={[styles.refreshScheduleHint, { color: textMuted }]}>{t('refreshScheduleHint')}</Text>
         </GlassCard>
 
         {/* Info */}
-        <GlassCard padding="lg" rounded="lg" style={styles.section}>
+        <GlassCard padding="lg" rounded="lg" fillContent={false} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: textSecondary }]}>{t('sectionInfo')}</Text>
           <Text style={[styles.knownLimitationsTitle, { color: textPrimary }]}>{t('knownLimitations')}</Text>
           <Text style={[styles.knownLimitationsText, { color: textMuted }]}>{t('knownLimitationsText')}</Text>
@@ -458,7 +479,7 @@ export function PrayerSettingsScreen() {
         </GlassCard>
 
         <Text style={[styles.versionText, { color: textMuted }]}>
-          v{Constants.expoConfig?.version ?? Constants.manifest?.version ?? '?'}
+          v{Constants.expoConfig?.version ?? '?'}
         </Text>
       </ScrollView>
     </ScreenWrapper>
@@ -512,10 +533,13 @@ const styles = StyleSheet.create({
   testBtn: { paddingVertical: spacing.md, borderRadius: radius.lg, alignItems: 'center', marginTop: spacing.md },
   testBtnDisabled: { opacity: 0.6 },
   testBtnText: { fontSize: fontSize.md, fontWeight: fontWeight.semibold },
+  revokeHint: { paddingVertical: spacing.xs, paddingHorizontal: 0 },
+  revokeHintText: { fontSize: 12 },
   refreshScheduleBtn: { paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.xs },
+  refreshScheduleHint: { fontSize: 11, marginTop: -spacing.xs },
   refreshScheduleBtnText: { fontSize: fontSize.md, fontWeight: fontWeight.semibold },
   knownLimitationsTitle: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, marginBottom: spacing.xs },
-  knownLimitationsText: { fontSize: fontSize.sm, lineHeight: 20, marginBottom: spacing.xs },
+  knownLimitationsText: { fontSize: fontSize.sm, lineHeight: 20, paddingBottom: radius.lg },
   langRow: { flexDirection: 'column', gap: spacing.sm, marginTop: spacing.sm },
   langRowInner: { flexDirection: 'row', gap: spacing.xs },
   langBtn: {

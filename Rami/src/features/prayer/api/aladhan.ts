@@ -53,45 +53,65 @@ export function applyPrayerOffsets(
   });
 }
 
+const RETRY_ATTEMPTS = 5;
+const RETRY_BASE_DELAY_MS = 1500;
+
+/** Sleep helper for retry backoff */
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 /**
  * Fetches prayer times from AlAdhan API (raw). Caller applies offsets.
+ * Retries on 5xx (server temporarily unavailable).
  */
 export async function getPrayerTimes(params: GetPrayerTimesParams): Promise<PrayerTimesForDay> {
   const { date, lat, lon, method, school, latitudeAdjustmentMethod } = params;
   const timestamp = Math.floor(date.getTime() / 1000);
   const url = `${ALADHAN_BASE}/timings/${timestamp}?latitude=${lat}&longitude=${lon}&method=${method}&school=${school}&latitudeAdjustmentMethod=${latitudeAdjustmentMethod}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`AlAdhan API error: ${res.status}`);
-  }
-  const data = (await res.json()) as {
-    data?: {
-      timings?: Record<string, string>;
-      date?: { readable?: string };
-    };
-  };
-  const timings = data?.data?.timings;
-  if (!timings) {
-    throw new Error('Invalid response from AlAdhan API');
-  }
-  const dateKey = toDateKey(date);
-  const names: PrayerName[] = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-  const times: PrayerTime[] = names.map((name) => {
-    const raw = timings[name];
-    if (!raw) {
-      throw new Error(`Missing timing for ${name}`);
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < RETRY_ATTEMPTS; attempt++) {
+    const res = await fetch(url);
+    if (res.ok) {
+      lastError = null;
+      const data = (await res.json()) as {
+        data?: {
+          timings?: Record<string, string>;
+          date?: { readable?: string };
+        };
+      };
+      const timings = data?.data?.timings;
+      if (!timings) {
+        throw new Error('Invalid response from AlAdhan API');
+      }
+      const dateKey = toDateKey(date);
+      const names: PrayerName[] = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+      const times: PrayerTime[] = names.map((name) => {
+        const raw = timings[name];
+        if (!raw) {
+          throw new Error(`Missing timing for ${name}`);
+        }
+        const timeStr = raw.split(' ')[0];
+        const time = parseTime(dateKey, timeStr);
+        return { name, time, dateKey };
+      });
+      let sunrise: Date | null = null;
+      const sunriseRaw = timings['Sunrise'];
+      if (sunriseRaw) {
+        const timeStr = sunriseRaw.split(' ')[0];
+        sunrise = parseTime(dateKey, timeStr);
+      }
+      return { dateKey, times, sunrise };
     }
-    const timeStr = raw.split(' ')[0];
-    const time = parseTime(dateKey, timeStr);
-    return { name, time, dateKey };
-  });
-  let sunrise: Date | null = null;
-  const sunriseRaw = timings['Sunrise'];
-  if (sunriseRaw) {
-    const timeStr = sunriseRaw.split(' ')[0];
-    sunrise = parseTime(dateKey, timeStr);
+    lastError = new Error(`AlAdhan API error: ${res.status}`);
+    if (res.status >= 500 && res.status < 600 && attempt < RETRY_ATTEMPTS - 1) {
+      const delayMs = RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
+      await sleep(delayMs);
+    } else {
+      throw lastError;
+    }
   }
-  return { dateKey, times, sunrise };
+  throw lastError ?? new Error('Failed to fetch prayer times');
 }
 
 /** Build API params from PrayerSettings. */

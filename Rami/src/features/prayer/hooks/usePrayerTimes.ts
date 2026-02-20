@@ -26,6 +26,7 @@ import {
   type CachedLocation,
 } from '../storage/prayerSettings';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { getString } from '../../../constants/i18n';
 import {
   scheduleTodayNotifications,
   cancelAllPrayerNotifications,
@@ -423,14 +424,46 @@ export function usePrayerTimes() {
         // Prefetch 7 days ahead (fire-and-forget; fails silently when offline)
         prefetchPrayerTimesForWeek().catch(() => {});
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to fetch prayer times');
+        const apiError = e instanceof Error ? e.message : '';
+        const isApiError = /AlAdhan API error: 5\d{2}/.test(apiError) || apiError.includes('Failed to fetch');
+        if (isApiError) {
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayKey = toDateKey(yesterday);
+          const yesterdayCached = await getCachedPrayerTimes(yesterdayKey, lat, lon, method, school, latitudeAdjustmentMethod);
+          if (yesterdayCached) {
+            try {
+              const parsed = JSON.parse(yesterdayCached) as PrayerTimesForDay;
+              const today = new Date();
+              const todayTimes = parsed.times.map((t) => {
+                const d = new Date(t.time);
+                return { name: t.name, time: new Date(today.getFullYear(), today.getMonth(), today.getDate(), d.getHours(), d.getMinutes(), 0, 0), dateKey };
+              });
+              const sunriseAdj = parsed.sunrise
+                ? (() => {
+                    const sd = new Date(parsed.sunrise!);
+                    return new Date(today.getFullYear(), today.getMonth(), today.getDate(), sd.getHours(), sd.getMinutes(), 0, 0);
+                  })()
+                : null;
+              const fallback = { dateKey, times: todayTimes, sunrise: sunriseAdj };
+              const next = applyOffsetsAndSet(fallback);
+              if (!next) fetchAndSetTomorrow(lat, lon, s);
+            } catch {
+              setError(getString(language, 'prayerTimesServiceUnavailable'));
+            }
+          } else {
+            setError(getString(language, 'prayerTimesServiceUnavailable'));
+          }
+        } else {
+          setError(apiError || getString(language, 'error'));
+        }
       }
     } else {
       // Used cache; still try prefetch (may have stale cache, fails silently when offline)
       prefetchPrayerTimesForWeek().catch(() => {});
     }
     setLoading(false);
-  }, [dateKey, settings?.calculationMethod, settings?.asrMethod, settings?.highLatitudeRule, fetchAndSetTomorrow]);
+  }, [dateKey, language, settings?.calculationMethod, settings?.asrMethod, settings?.highLatitudeRule, fetchAndSetTomorrow]);
 
   useEffect(() => {
     loadPrayerSettings().then((s) => {

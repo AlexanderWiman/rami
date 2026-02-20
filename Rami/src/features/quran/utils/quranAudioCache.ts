@@ -11,6 +11,7 @@ import { SURAH_LIST } from '../data/surahs';
 const CACHE_INDEX_KEY = '@rami/quran_audio_cache_index';
 const JUZ_AMMA_DOWNLOADED_KEY = '@rami/quran_audio_juz_amma';
 const FULL_QURAN_DOWNLOADED_KEY = '@rami/quran_audio_full';
+const DOWNLOADED_SURAHS_KEY = '@rami/quran_audio_downloaded_surahs';
 const MAX_CACHED_AYAHS = 150;
 
 /** Prefer documentDirectory for persistence; cacheDirectory may be cleared by OS. */
@@ -175,16 +176,106 @@ export async function downloadJuzAmmaAudio(
 
 const TOTAL_AYAHS = 6236;
 
+/** Get set of surah numbers downloaded for a reciter. */
+export async function getDownloadedSurahs(reciterId: string): Promise<Set<number>> {
+  try {
+    const raw = await AsyncStorage.getItem(DOWNLOADED_SURAHS_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as Record<string, number[]>;
+    const arr = parsed[reciterId];
+    return Array.isArray(arr) ? new Set(arr) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+async function saveDownloadedSurahs(reciterId: string, surahs: Set<number>): Promise<void> {
+  try {
+    const raw = await AsyncStorage.getItem(DOWNLOADED_SURAHS_KEY);
+    const parsed: Record<string, number[]> = raw ? (JSON.parse(raw) as Record<string, number[]>) : {};
+    parsed[reciterId] = Array.from(surahs);
+    await AsyncStorage.setItem(DOWNLOADED_SURAHS_KEY, JSON.stringify(parsed));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Check if a surah is downloaded for a reciter. Uses cached set first, then verifies first ayah. */
+export async function isSurahAudioDownloaded(reciterId: string, surahNumber: number): Promise<boolean> {
+  const downloaded = await getDownloadedSurahs(reciterId);
+  if (downloaded.has(surahNumber)) return true;
+  const surah = SURAH_LIST.find((s) => s.number === surahNumber);
+  if (!surah) return false;
+  const cacheDir = getCacheDir();
+  const firstPath = cacheDir + `${reciterId.replace(/[^a-z0-9._-]/gi, '_')}_${getGlobalAyahNumber(surahNumber, 1)}.mp3`;
+  const firstExists = await FileSystem.getInfoAsync(firstPath);
+  if (!firstExists.exists) return false;
+  const lastPath = cacheDir + `${reciterId.replace(/[^a-z0-9._-]/gi, '_')}_${getGlobalAyahNumber(surahNumber, surah.ayahCount)}.mp3`;
+  const lastExists = await FileSystem.getInfoAsync(lastPath);
+  return lastExists.exists;
+}
+
+/**
+ * Download one surah's audio for offline playback.
+ * ~0.5–8 MB per surah depending on length.
+ */
+export async function downloadSurahAudio(
+  reciterId: string,
+  surahNumber: number,
+  onProgress?: (done: number, total: number) => void
+): Promise<{ success: boolean; error?: string }> {
+  const surah = SURAH_LIST.find((s) => s.number === surahNumber);
+  if (!surah) return { success: false, error: 'Invalid surah' };
+  await ensureCacheDir();
+  const cacheDir = getCacheDir();
+  const total = surah.ayahCount;
+  let done = 0;
+
+  for (let ayah = 1; ayah <= surah.ayahCount; ayah++) {
+    try {
+      const globalAyah = getGlobalAyahNumber(surahNumber, ayah);
+      const cacheFileName = `${reciterId.replace(/[^a-z0-9._-]/gi, '_')}_${globalAyah}.mp3`;
+      const cachePath = cacheDir + cacheFileName;
+      const exists = await FileSystem.getInfoAsync(cachePath);
+      if (exists.exists) {
+        done++;
+        onProgress?.(done, total);
+        continue;
+      }
+      const url = getAyahAudioUrl(surahNumber, ayah, reciterId);
+      const url64 = url.includes('/128/') ? getAyahAudioUrl(surahNumber, ayah, reciterId, 64) : url;
+      let result = await FileSystem.downloadAsync(url, cachePath);
+      if (result.status !== 200 && url64 !== url) {
+        await FileSystem.deleteAsync(cachePath, { idempotent: true });
+        result = await FileSystem.downloadAsync(url64, cachePath);
+      }
+      if (result.status !== 200) throw new Error(`HTTP ${result.status}`);
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Download failed' };
+    }
+    done++;
+    onProgress?.(done, total);
+  }
+
+  const downloaded = await getDownloadedSurahs(reciterId);
+  downloaded.add(surahNumber);
+  await saveDownloadedSurahs(reciterId, downloaded);
+  return { success: true };
+}
+
 /** Check if full Quran audio is downloaded for a reciter. */
 export async function isFullQuranAudioDownloaded(reciterId: string): Promise<boolean> {
   const raw = await AsyncStorage.getItem(FULL_QURAN_DOWNLOADED_KEY);
-  if (!raw) return false;
-  try {
-    const parsed = JSON.parse(raw) as string[];
-    return Array.isArray(parsed) && parsed.includes(reciterId);
-  } catch {
-    return false;
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as string[];
+      if (Array.isArray(parsed) && parsed.includes(reciterId)) return true;
+    } catch {
+      /* ignore */
+    }
   }
+  const downloaded = await getDownloadedSurahs(reciterId);
+  return downloaded.size >= 114;
 }
 
 /**
@@ -242,5 +333,7 @@ export async function downloadFullQuranAudio(
     reciters.push(reciterId);
     await AsyncStorage.setItem(FULL_QURAN_DOWNLOADED_KEY, JSON.stringify(reciters));
   }
+  const allSurahs = new Set(SURAH_LIST.map((s) => s.number));
+  await saveDownloadedSurahs(reciterId, allSurahs);
   return { success: true };
 }

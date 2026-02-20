@@ -17,6 +17,7 @@ import {
   PRAYER_CHANNEL_ID,
   getPrayerChannelIdForSound,
   ensureAndroidNotificationChannels,
+  ensurePrayerChannelForSound,
 } from './channels';
 
 /** Sound name for notification (matches assets/sounds/{key}_notification.wav — underscore for Android). */
@@ -36,9 +37,10 @@ export async function scheduleTodayNotifications(
 ): Promise<void> {
   if (!settings.notificationsEnabled) return;
   await ensureAndroidNotificationChannels();
+  const useCustomSound = settings.playAzanSound && isAzanSoundKey(settings.selectedSound);
+  if (useCustomSound) await ensurePrayerChannelForSound(settings.selectedSound);
   const now = Date.now();
   const muteUntil = await loadMuteNextPrayerUntil();
-  const useCustomSound = settings.playAzanSound && isAzanSoundKey(settings.selectedSound);
   const channelId =
     Platform.OS === 'android'
       ? useCustomSound
@@ -84,6 +86,7 @@ export async function cancelAllPrayerNotifications(): Promise<void> {
 export async function scheduleTestNotification(settings: PrayerSettings): Promise<void> {
   await ensureAndroidNotificationChannels();
   const useCustomSound = settings.playAzanSound && isAzanSoundKey(settings.selectedSound);
+  if (useCustomSound) await ensurePrayerChannelForSound(settings.selectedSound);
   const channelId =
     Platform.OS === 'android'
       ? useCustomSound

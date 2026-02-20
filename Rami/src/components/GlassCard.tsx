@@ -22,6 +22,8 @@ type GlassCardProps = {
   strokeColor?: string;
   /** If true, use classic theme colors even in Royal mode */
   forceClassic?: boolean;
+  /** If false, content sizes to children (for cards in ScrollView). Default true for flex layouts. */
+  fillContent?: boolean;
 };
 
 export function GlassCard({
@@ -32,6 +34,7 @@ export function GlassCard({
   fillColor,
   strokeColor,
   forceClassic = false,
+  fillContent = true,
 }: GlassCardProps) {
   const { colors, style: themeStyle } = useTheme();
   const isRoyal = themeStyle === 'royal' && !forceClassic;
@@ -57,7 +60,7 @@ export function GlassCard({
           strokeWidth={isRoyal ? 1 : StyleSheet.hairlineWidth}
         />
       </Svg>
-      <View style={[styles.content, { padding: spacing[padding] }]}>{children}</View>
+      <View style={[styles.content, fillContent && styles.contentFill, { padding: spacing[padding] }]}>{children}</View>
     </View>
   );
 }
@@ -78,7 +81,8 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  content: {
+  content: { alignSelf: 'stretch' },
+  contentFill: {
     flex: 1,
     flexShrink: 0,
     minHeight: 0,

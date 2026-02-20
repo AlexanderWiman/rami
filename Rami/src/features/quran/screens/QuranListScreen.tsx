@@ -28,8 +28,14 @@ import { BackToHomeBar } from '../../../components/BackToHomeBar';
 import { GlassCard } from '../../../components/GlassCard';
 import { loadLastRead, loadSelectedReciter } from '../storage/quranStorage';
 import { SURAH_LIST, searchSurahs, type SurahMeta } from '../data/surahs';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { downloadFullQuranText, isQuranTextDownloaded } from '../utils/quranTextCache';
-import { downloadFullQuranAudio, isFullQuranAudioDownloaded } from '../utils/quranAudioCache';
+import {
+  downloadSurahAudio,
+  downloadFullQuranAudio,
+  isFullQuranAudioDownloaded,
+  getDownloadedSurahs,
+} from '../utils/quranAudioCache';
 import { getString, getReciterLabel } from '../../../constants/i18n';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize, fontWeight, fontFamily, lineHeight } from '../../../theme/typography';
@@ -54,6 +60,9 @@ export function QuranListScreen() {
   const [audioDownloading, setAudioDownloading] = useState(false);
   const [audioProgress, setAudioProgress] = useState<{ done: number; total: number } | null>(null);
   const [selectedReciter, setSelectedReciter] = useState<string | null>(null);
+  const [downloadedSurahs, setDownloadedSurahs] = useState<Set<number>>(new Set());
+  const [downloadingSurah, setDownloadingSurah] = useState<number | null>(null);
+  const [surahProgress, setSurahProgress] = useState<{ done: number; total: number } | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -61,9 +70,12 @@ export function QuranListScreen() {
         if (lr) setLastRead({ surah: lr.surah, ayah: lr.ayah });
       }),
       isQuranTextDownloaded().then(setQuranDownloaded),
-      loadSelectedReciter().then((reciter) => {
+      loadSelectedReciter().then(async (reciter) => {
         setSelectedReciter(reciter);
-        return isFullQuranAudioDownloaded(reciter).then(setAudioDownloaded);
+        const full = await isFullQuranAudioDownloaded(reciter);
+        setAudioDownloaded(full);
+        const surahs = await getDownloadedSurahs(reciter);
+        setDownloadedSurahs(full ? new Set(SURAH_LIST.map((s) => s.number)) : surahs);
       }),
     ]).finally(() => setLoading(false));
   }, []);
@@ -71,9 +83,12 @@ export function QuranListScreen() {
   useFocusEffect(
     useCallback(() => {
       setPendingSurah(null);
-      loadSelectedReciter().then((r) => {
+      loadSelectedReciter().then(async (r) => {
         setSelectedReciter(r);
-        return isFullQuranAudioDownloaded(r).then(setAudioDownloaded);
+        const full = await isFullQuranAudioDownloaded(r);
+        setAudioDownloaded(full);
+        const surahs = await getDownloadedSurahs(r);
+        setDownloadedSurahs(full ? new Set(SURAH_LIST.map((s) => s.number)) : surahs);
       });
     }, [])
   );
@@ -103,11 +118,13 @@ export function QuranListScreen() {
             const reciter = await loadSelectedReciter();
             setAudioDownloading(true);
             setAudioProgress({ done: 0, total: 6236 });
+            await activateKeepAwakeAsync('quran-audio-download');
             downloadFullQuranAudio(reciter, (done, total) => setAudioProgress({ done, total }))
               .then((result) => {
                 setAudioProgress(null);
                 if (result.success) {
                   setAudioDownloaded(true);
+                  setDownloadedSurahs(new Set(SURAH_LIST.map((s) => s.number)));
                   Alert.alert(
                     getString(language, 'quranAudioFullDownloaded'),
                     getString(language, 'downloadQuranAudioFullDone')
@@ -120,6 +137,7 @@ export function QuranListScreen() {
                 }
               })
               .finally(() => {
+                deactivateKeepAwake('quran-audio-download');
                 setAudioDownloading(false);
                 setAudioProgress(null);
               });
@@ -128,6 +146,29 @@ export function QuranListScreen() {
       ]
     );
   }, [audioDownloading, audioDownloaded, language]);
+
+  const handleDownloadSurah = useCallback(
+    async (surahNumber: number) => {
+      if (downloadingSurah || !selectedReciter || downloadedSurahs.has(surahNumber)) return;
+      setDownloadingSurah(surahNumber);
+      setSurahProgress({ done: 0, total: SURAH_LIST.find((s) => s.number === surahNumber)?.ayahCount ?? 0 });
+      await activateKeepAwakeAsync('quran-surah-download');
+      const result = await downloadSurahAudio(selectedReciter, surahNumber, (done, total) =>
+        setSurahProgress({ done, total })
+      );
+      deactivateKeepAwake('quran-surah-download');
+      setDownloadingSurah(null);
+      setSurahProgress(null);
+      if (result.success) {
+        setDownloadedSurahs((prev) => new Set([...prev, surahNumber]));
+        const full = await isFullQuranAudioDownloaded(selectedReciter);
+        setAudioDownloaded(full);
+      } else {
+        Alert.alert(getString(language, 'error'), result.error ?? getString(language, 'downloadQuranAudioError'));
+      }
+    },
+    [downloadingSurah, selectedReciter, downloadedSurahs, language]
+  );
 
   const handleDownloadQuran = useCallback(() => {
     if (downloading || quranDownloaded) return;
@@ -158,52 +199,80 @@ export function QuranListScreen() {
   }, [downloading, quranDownloaded, language]);
 
   const renderItem = useCallback(
-    ({ item, index }: { item: SurahMeta; index: number }) => (
-      <Animated.View entering={FadeIn.delay(index * 30).duration(280)}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => {
-            if (pendingSurah !== null) return;
-            setPendingSurah(item.number);
-            setTimeout(() => {
-              router.push(`/quran/${item.number}` as const);
-            }, 0);
-          }}
-          style={styles.surahTouch}
-          disabled={pendingSurah === item.number}
-        >
-          <GlassCard
-            padding="md"
-            rounded="lg"
-            style={styles.surahCard}
-            fillColor={pendingSurah === item.number ? colors.highlightGlow : undefined}
-            strokeColor={pendingSurah === item.number ? colors.highlight : undefined}
+    ({ item, index }: { item: SurahMeta; index: number }) => {
+      const isDownloaded = downloadedSurahs.has(item.number);
+      const isDownloading = downloadingSurah === item.number;
+      const progress = isDownloading && surahProgress ? `${surahProgress.done}/${surahProgress.total}` : null;
+      return (
+        <Animated.View entering={FadeIn.delay(index * 30).duration(280)}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              if (pendingSurah !== null || isDownloading) return;
+              setPendingSurah(item.number);
+              setTimeout(() => {
+                router.push(`/quran/${item.number}` as const);
+              }, 0);
+            }}
+            style={styles.surahTouch}
+            disabled={pendingSurah === item.number}
           >
-            <View style={styles.surahRow}>
-              <View style={styles.surahNumWrap}>
-                <Text style={[styles.surahNum, { color: colors.highlight }]}>{item.number}</Text>
+            <GlassCard
+              padding="md"
+              rounded="lg"
+              style={styles.surahCard}
+              fillColor={pendingSurah === item.number ? colors.highlightGlow : undefined}
+              strokeColor={pendingSurah === item.number ? colors.highlight : undefined}
+            >
+              <View style={styles.surahRow}>
+                <View style={styles.surahNumWrap}>
+                  <Text style={[styles.surahNum, { color: colors.highlight }]}>{item.number}</Text>
+                </View>
+                <View style={styles.surahNames}>
+                  <Text style={[styles.surahName, { color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text }]}>
+                    {language === 'ar' ? item.nameAr : item.nameEn}
+                  </Text>
+                  <Text style={[styles.surahAyahs, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>
+                    {item.ayahCount} {getString(language, 'verses')}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.downloadSurahBtn}
+                  onPress={() => void handleDownloadSurah(item.number)}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  disabled={isDownloading || isDownloaded}
+                >
+                  {isDownloading ? (
+                    <View style={styles.downloadSurahProgress}>
+                      <ActivityIndicator size="small" color={colors.highlight} />
+                      {progress && (
+                        <Text style={[styles.downloadSurahProgressText, { color: colors.textMuted }]}>{progress}</Text>
+                      )}
+                    </View>
+                  ) : isDownloaded ? (
+                    <Ionicons name="checkmark-circle" size={22} color={colors.highlight} />
+                  ) : (
+                    <Ionicons
+                      name="cloud-download-outline"
+                      size={22}
+                      color={isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted}
+                    />
+                  )}
+                </TouchableOpacity>
+                <View style={styles.chevronWrap}>
+                  {pendingSurah === item.number ? (
+                    <ActivityIndicator size="small" color={isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted} />
+                  ) : (
+                    <Text style={[styles.chevron, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>›</Text>
+                  )}
+                </View>
               </View>
-              <View style={styles.surahNames}>
-                <Text style={[styles.surahName, { color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text }]}>
-                  {language === 'ar' ? item.nameAr : item.nameEn}
-                </Text>
-                <Text style={[styles.surahAyahs, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>
-                  {item.ayahCount} {getString(language, 'verses')}
-                </Text>
-              </View>
-              <View style={styles.chevronWrap}>
-                {pendingSurah === item.number ? (
-                  <ActivityIndicator size="small" color={isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted} />
-                ) : (
-                  <Text style={[styles.chevron, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>›</Text>
-                )}
-              </View>
-            </View>
-          </GlassCard>
-        </TouchableOpacity>
-      </Animated.View>
-    ),
-    [language, router, colors, pendingSurah]
+            </GlassCard>
+          </TouchableOpacity>
+        </Animated.View>
+      );
+    },
+    [language, router, colors, pendingSurah, downloadedSurahs, downloadingSurah, surahProgress, handleDownloadSurah, isRoyal]
   );
 
   if (loading) {
@@ -309,13 +378,8 @@ export function QuranListScreen() {
             </View>
           )}
 
-          {/* Audio row */}
-          <TouchableOpacity
-            style={[styles.downloadRow, styles.downloadRowBorder, { borderTopColor: isRoyal ? 'rgba(255,255,255,0.12)' : colors.border }]}
-            onPress={handleDownloadAudio}
-            disabled={audioDownloading || audioDownloaded}
-            activeOpacity={0.7}
-          >
+          {/* Audio – per-surah download */}
+          <View style={[styles.downloadRow, styles.downloadRowBorder, { borderTopColor: isRoyal ? 'rgba(255,255,255,0.12)' : colors.border }]}>
             <Ionicons
               name="musical-notes"
               size={24}
@@ -327,38 +391,46 @@ export function QuranListScreen() {
                 {getString(language, 'downloadLabelAudio')}
               </Text>
               <Text style={[styles.downloadRowSize, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>
-                {selectedReciter ? `${getReciterLabel(language, selectedReciter)} • ` : ''}{getString(language, 'downloadQuranAudioFullSize')}
+                {selectedReciter ? `${getReciterLabel(language, selectedReciter)} • ` : ''}{getString(language, 'downloadSurahHint')}
               </Text>
             </View>
-            {audioDownloading ? (
-              <ActivityIndicator size="small" color={colors.highlight} />
-            ) : audioDownloaded ? (
-              <Ionicons name="checkmark-circle" size={24} color={colors.highlight} />
-            ) : (
-              <Text style={[styles.downloadRowAction, { color: colors.highlight }]}>
-                {getString(language, 'download')}
+            {audioDownloaded && <Ionicons name="checkmark-circle" size={24} color={colors.highlight} />}
+          </View>
+          {!audioDownloaded && (
+            <TouchableOpacity
+              style={styles.downloadAllLink}
+              onPress={() => void handleDownloadAudio()}
+              disabled={audioDownloading}
+            >
+              <Text style={[styles.downloadAllLinkText, { color: colors.highlight }]}>
+                {getString(language, 'downloadQuranAudioFull')} (~500 MB)
               </Text>
-            )}
-          </TouchableOpacity>
+            </TouchableOpacity>
+          )}
           {audioDownloading && (
-            <View style={[styles.progressBarTrack, { backgroundColor: isRoyal ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)' }]}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  {
-                    width: `${Math.min(100, ((audioProgress?.done ?? 0) / (audioProgress?.total ?? 1)) * 100)}%`,
-                    backgroundColor: colors.highlight,
-                  },
-                ]}
-              />
-            </View>
+            <>
+              <View style={[styles.progressBarTrack, { backgroundColor: isRoyal ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)' }]}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    {
+                      width: `${Math.min(100, ((audioProgress?.done ?? 0) / (audioProgress?.total ?? 1)) * 100)}%`,
+                      backgroundColor: colors.highlight,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={[styles.downloadHint, { color: isRoyal ? 'rgba(255,255,255,0.5)' : colors.textMuted }]}>
+                {getString(language, 'downloadKeepAppOpen')}
+              </Text>
+            </>
           )}
         </GlassCard>
         <FlatList
           data={list}
           keyExtractor={(item) => String(item.number)}
           renderItem={renderItem}
-          extraData={pendingSurah}
+          extraData={{ pendingSurah, downloadedSurahs, downloadingSurah, surahProgress }}
           scrollEnabled={false}
           ListEmptyComponent={
             <Text style={[styles.empty, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>{getString(language, 'noResults')}</Text>
@@ -438,6 +510,11 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 2,
   },
+  downloadHint: {
+    fontSize: 11,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
   surahTouch: { marginBottom: Platform.OS === 'android' ? spacing.xxs : spacing.xs },
   surahCard: {},
   surahRow: {
@@ -470,6 +547,27 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     marginTop: 4,
     lineHeight: Math.round(fontSize.xs * lineHeight.tight),
+  },
+  downloadSurahBtn: {
+    padding: spacing.xs,
+    marginRight: spacing.sm,
+  },
+  downloadSurahProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  downloadSurahProgressText: {
+    fontSize: 11,
+  },
+  downloadAllLink: {
+    paddingVertical: spacing.xs,
+    paddingLeft: 24 + spacing.md,
+    marginTop: -spacing.xs,
+  },
+  downloadAllLinkText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   chevronWrap: {
     width: 24,

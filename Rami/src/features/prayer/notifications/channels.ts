@@ -67,15 +67,25 @@ async function ensureCustomAzanChannel(selectedSound: string): Promise<void> {
 }
 
 /**
- * Boot step: ensure all Android notification channels exist with sound + vibration.
+ * Boot step: ensure the default Android prayer channel exists.
  * Call on app start, before scheduling any notifications.
+ * Custom azan channels are created on-demand when scheduling.
  * Safe for iOS (no-op).
  */
 export async function ensureAndroidNotificationChannels(): Promise<void> {
   if (Platform.OS !== 'android') return;
   await ensureDefaultPrayerChannel();
-  const { AZAN_SOUND_KEYS } = await import('../constants/azan');
-  for (const key of AZAN_SOUND_KEYS) {
-    await ensureCustomAzanChannel(key);
+}
+
+/**
+ * Ensures the channel for the given sound exists. Call before scheduling when using custom azan.
+ * Idempotent.
+ */
+export async function ensurePrayerChannelForSound(selectedSound: string): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  if (isAzanSoundKey(selectedSound)) {
+    await ensureCustomAzanChannel(selectedSound);
+  } else {
+    await ensureDefaultPrayerChannel();
   }
 }

@@ -78,7 +78,15 @@
         }
       ],
       "expo-font",
-      ["expo-build-properties", {"android": {"enableMinifyInReleaseBuilds": true}}]
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true
+          }
+        }
+      ],
+      "expo-video"
     ],
     "extra": {
       "router": {},

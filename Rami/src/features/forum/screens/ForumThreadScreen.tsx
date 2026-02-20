@@ -15,7 +15,7 @@ import {
   Linking,
   Alert,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { EmbeddedVideo } from '../../../components/EmbeddedVideo';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '../../../theme/ThemeContext';
@@ -274,13 +274,7 @@ export function ForumThreadScreen() {
               </TouchableOpacity>
             ) : (
               <View style={styles.videoContainer}>
-                <Video
-                  source={{ uri: content.content }}
-                  style={styles.videoPlayer}
-                  useNativeControls
-                  resizeMode={ResizeMode.CONTAIN}
-                  shouldPlay={false}
-                />
+                <EmbeddedVideo uri={content.content} style={styles.videoPlayer} />
               </View>
             )}
           </Animated.View>
