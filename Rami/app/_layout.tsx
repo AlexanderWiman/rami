@@ -10,6 +10,7 @@ import { Platform } from 'react-native';
 import { setAudioModeAsync } from 'expo-audio';
 import { ensureAndroidNotificationChannels } from '../src/features/prayer/notifications/channels';
 import { setPendingPlayAzanFromNotification } from '../src/features/prayer/notificationResponse';
+import { isOnboardingDone } from '../src/features/onboarding/storage';
 import { ThemeProvider } from '../src/theme/ThemeContext';
 import { LanguageProvider } from '../src/contexts/LanguageContext';
 import { AdminProvider } from '../src/features/admin/AdminContext';
@@ -68,16 +69,26 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
+    type NotificationPayload = {
+      title?: string | null;
+      data?: { screen?: string; playAzan?: boolean | string } | null;
+    };
     const isPlayAzan = (d: { playAzan?: boolean | string } | undefined) => d?.playAzan === true || d?.playAzan === 'true';
-    const isPrayerNotificationByTitle = (title: string | undefined) =>
+    const isPrayerNotificationByTitle = (title: string | null | undefined) =>
       (title?.includes('Böneutrop') ?? false) || (title?.includes('time for') ?? false) || /حان وقت/.test(title ?? '');
-    const shouldPlayAzan = (content: { title?: string; data?: { screen?: string; playAzan?: boolean | string } }) =>
+    const shouldPlayAzan = (content: NotificationPayload) =>
       (content.data?.screen === '/' && isPlayAzan(content.data)) ||
       (Platform.OS === 'android' && !content.data && isPrayerNotificationByTitle(content.title));
     async function handleNotificationResponse(response: Notifications.NotificationResponse) {
       const content = response.notification.request.content;
       const data = content.data as { screen?: string; playAzan?: boolean | string } | undefined;
       if (data?.screen === '/' || (Platform.OS === 'android' && isPrayerNotificationByTitle(content.title))) {
+        const onboardingDone = await isOnboardingDone();
+        if (!onboardingDone) {
+          // Never jump into tabs before onboarding is completed.
+          router.replace('/onboarding');
+          return;
+        }
         if (shouldPlayAzan(content)) {
           const { loadPrayerSettings } = await import('../src/features/prayer/storage/prayerSettings');
           const s = await loadPrayerSettings();

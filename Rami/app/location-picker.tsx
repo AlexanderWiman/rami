@@ -11,14 +11,13 @@ import {
   FlatList,
   ActivityIndicator,
   Keyboard,
-  Platform,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../src/theme/ThemeContext';
 import { useLanguage } from '../src/contexts/LanguageContext';
 import { ScreenWrapper } from '../src/components/ScreenWrapper';
-import { BackToHomeBar } from '../src/components/BackToHomeBar';
+import { BackBar } from '../src/components/BackBar';
 import { GlassCard } from '../src/components/GlassCard';
 import { getString } from '../src/constants/i18n';
 import { saveLocation, saveMunicipalityLabel } from '../src/features/prayer/storage/prayerSettings';
@@ -142,7 +141,10 @@ export default function LocationPickerScreen() {
       const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
       let label = '';
       try {
-        const addrs = await Location.reverseGeocodeAsync(coords);
+        const addrs = await Location.reverseGeocodeAsync({
+          latitude: coords.lat,
+          longitude: coords.lon,
+        });
         const first = addrs[0];
         if (first) {
           const locality = first.city || first.subregion || first.district || first.region;
@@ -212,7 +214,7 @@ export default function LocationPickerScreen() {
     <ScreenWrapper>
       <View style={styles.container}>
         <View style={styles.header}>
-          <BackToHomeBar />
+          <BackBar />
           <GlassCard padding="md" rounded="lg" style={styles.titleCard} fillColor={cardBg} strokeColor={cardBorder}>
             <Text style={[styles.title, { color: textPrimary }]}>{getString(language, 'setLocationManually')}</Text>
           </GlassCard>
@@ -304,7 +306,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: fontSize.md,
     paddingVertical: spacing.md,
-    ...Platform.select({ web: { outlineStyle: 'none' as const } }),
   },
   searchBtn: {
     paddingVertical: spacing.sm,

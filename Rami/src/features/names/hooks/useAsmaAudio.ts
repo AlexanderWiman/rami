@@ -66,35 +66,6 @@ export function useAsmaAudio() {
   /** didJustFinish fires twice per track. Block duplicate within 150ms. */
   const lastAdvanceRef = useRef(0);
 
-  const playNextInQueue = useCallback(() => {
-    const now = Date.now();
-    if (now - lastAdvanceRef.current < 150) return;
-    lastAdvanceRef.current = now;
-
-    const q = queueRef.current;
-    if (!q) return;
-    if (advanceTimeoutRef.current) {
-      clearTimeout(advanceTimeoutRef.current);
-      advanceTimeoutRef.current = null;
-    }
-
-    const currentIndex = ASMA_UL_HUSNA.findIndex((n) => n.id === q.fromId);
-    const nextIndex = currentIndex + 1;
-    if (nextIndex >= ASMA_UL_HUSNA.length) {
-      queueRef.current = null;
-      setState((s) => ({ ...s, isPlaying: false, isPaused: false, currentId: null, isLoading: false }));
-      cleanup();
-      return;
-    }
-
-    const next = ASMA_UL_HUSNA[nextIndex]!;
-    queueRef.current = { fromId: next.id };
-    setState((s) => ({ ...s, currentId: next.id }));
-
-    const uri = getUrl(next.id, next.audio);
-    setupPlayer(uri, () => playNextInQueue(), next.id, next.transliteration);
-  }, [cleanup, setupPlayer, getUrl]);
-
   const setupPlayer = useCallback(
     (uri: string, onFinish: () => void, nameId: number, transliteration: string, clearLoadTimeout?: () => void, retryCount = 0) => {
       subscriptionRef.current?.remove();
@@ -190,6 +161,35 @@ export function useAsmaAudio() {
     },
     []
   );
+
+  const playNextInQueue = useCallback(() => {
+    const now = Date.now();
+    if (now - lastAdvanceRef.current < 150) return;
+    lastAdvanceRef.current = now;
+
+    const q = queueRef.current;
+    if (!q) return;
+    if (advanceTimeoutRef.current) {
+      clearTimeout(advanceTimeoutRef.current);
+      advanceTimeoutRef.current = null;
+    }
+
+    const currentIndex = ASMA_UL_HUSNA.findIndex((n) => n.id === q.fromId);
+    const nextIndex = currentIndex + 1;
+    if (nextIndex >= ASMA_UL_HUSNA.length) {
+      queueRef.current = null;
+      setState((s) => ({ ...s, isPlaying: false, isPaused: false, currentId: null, isLoading: false }));
+      cleanup();
+      return;
+    }
+
+    const next = ASMA_UL_HUSNA[nextIndex]!;
+    queueRef.current = { fromId: next.id };
+    setState((s) => ({ ...s, currentId: next.id }));
+
+    const uri = getUrl(next.id, next.audio);
+    setupPlayer(uri, () => playNextInQueue(), next.id, next.transliteration);
+  }, [cleanup, setupPlayer, getUrl]);
 
   const playName = useCallback(
     (nameId: number) => {

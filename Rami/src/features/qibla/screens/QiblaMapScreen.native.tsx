@@ -1,33 +1,36 @@
 /**
- * Qibla map fallback: when compass accuracy < threshold or sensor missing,
- * show "Show on map". Uses expo-location + react-native-maps: user pin,
- * line/arrow to Kaaba, bearing in degrees.
+ * Qibla map: fullscreen map with user location and line to Kaaba.
+ * Only UI we add is the back button (floating over the map).
  */
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useTheme } from '../../../theme/ThemeContext';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
+import { BackBar } from '../../../components/BackBar';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { useTheme } from '../../../theme/ThemeContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
+import { getString } from '../../../constants/i18n';
+import { spacing } from '../../../theme/spacing';
+import { fontSize } from '../../../theme/typography';
 import { KAABA_LAT, KAABA_LON } from '../constants';
-import { getBearing } from '../utils/bearing';
 
 export function QiblaMapScreen() {
-  const router = useRouter();
-  const { pageBackground } = useTheme();
+  const { colors, style: themeStyle } = useTheme();
+  const isRoyal = themeStyle === 'royal';
+  const { language } = useLanguage();
   const [lat, setLat] = useState<number | null>(null);
   const [lon, setLon] = useState<number | null>(null);
-  const [bearing, setBearing] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mapHeight, setMapHeight] = useState(0);
 
   useEffect(() => {
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          setError('Location permission denied');
+          setError(getString(language, 'locationPermissionNeeded'));
           setLoading(false);
           return;
         }
@@ -36,20 +39,30 @@ export function QiblaMapScreen() {
         const lo = pos.coords.longitude;
         setLat(la);
         setLon(lo);
-        setBearing(getBearing(la, lo, KAABA_LAT, KAABA_LON));
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Could not get location');
+        setError(e instanceof Error ? e.message : getString(language, 'couldNotGetDirection'));
       }
       setLoading(false);
     })();
+  }, [language]);
+
+  // Fallback: show map after short delay if onLayout never fires with height (some devices)
+  useEffect(() => {
+    const t = setTimeout(() => setMapHeight((h) => (h > 0 ? h : 300)), 150);
+    return () => clearTimeout(t);
   }, []);
 
   if (loading) {
     return (
       <ScreenWrapper>
+        <View style={styles.backOverlay}>
+          <BackBar />
+        </View>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#1a472a" />
-          <Text style={styles.loadingText}>Getting location…</Text>
+          <ActivityIndicator size="large" color={isRoyal ? '#E6C27A' : colors.accent} />
+          <Text style={[styles.hint, { color: isRoyal ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>
+            {getString(language, 'findingDirection')}
+          </Text>
         </View>
       </ScreenWrapper>
     );
@@ -58,24 +71,25 @@ export function QiblaMapScreen() {
   if (error || lat == null || lon == null) {
     return (
       <ScreenWrapper>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Qibla</Text>
+        <View style={styles.backOverlay}>
+          <BackBar />
         </View>
         <View style={styles.centered}>
-          <Text style={styles.errorText}>{error ?? 'No location'}</Text>
+          <Text style={[styles.hint, { color: isRoyal ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>
+            {error ?? getString(language, 'noLocation')}
+          </Text>
         </View>
       </ScreenWrapper>
     );
   }
 
+  const latDelta = Math.min(180, Math.max(1, Math.abs(lat - KAABA_LAT) * 3, 20));
+  const lonDelta = Math.min(360, Math.max(1, Math.abs(lon - KAABA_LON) * 3, 20));
   const region = {
     latitude: (lat + KAABA_LAT) / 2,
     longitude: (lon + KAABA_LON) / 2,
-    latitudeDelta: Math.max(20, Math.abs(lat - KAABA_LAT) * 3),
-    longitudeDelta: Math.max(20, Math.abs(lon - KAABA_LON) * 3),
+    latitudeDelta: latDelta,
+    longitudeDelta: lonDelta,
   };
   const line = [
     { latitude: lat, longitude: lon },
@@ -83,51 +97,41 @@ export function QiblaMapScreen() {
   ];
 
   return (
-    <ScreenWrapper>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Qibla</Text>
+    <ScreenWrapper disableBackground>
+      <View style={StyleSheet.absoluteFill}>
+        <View
+          style={styles.mapContainer}
+          onLayout={(e) => setMapHeight(e.nativeEvent.layout.height)}
+        >
+          {mapHeight > 0 && (
+            <MapView
+              style={StyleSheet.absoluteFill}
+              initialRegion={region}
+              showsUserLocation
+              showsMyLocationButton
+              mapType="standard"
+            >
+              <Marker coordinate={{ latitude: KAABA_LAT, longitude: KAABA_LON }} title="Kaaba" />
+              <Polyline coordinates={line} strokeColor={isRoyal ? '#E6C27A' : '#1a472a'} strokeWidth={3} />
+            </MapView>
+          )}
+        </View>
+        <View style={styles.backOverlay} pointerEvents="box-none">
+          <BackBar />
+        </View>
       </View>
-      <View style={styles.bearingBar}>
-        <Text style={styles.bearingLabel}>Bearing to Kaaba:</Text>
-        <Text style={styles.bearingValue}>{bearing != null ? `${Math.round(bearing)}°` : '—'}</Text>
-      </View>
-      <MapView style={styles.map} initialRegion={region} showsUserLocation showsMyLocationButton>
-        <Marker coordinate={{ latitude: KAABA_LAT, longitude: KAABA_LON }} title="Kaaba" />
-        <Polyline coordinates={line} strokeColor="#1a472a" strokeWidth={3} />
-      </MapView>
     </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 14, color: '#555' },
-  errorText: { fontSize: 16, color: '#c62828', textAlign: 'center', marginHorizontal: 24 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ddd',
-    backgroundColor: '#fff',
+  hint: { fontSize: fontSize.md, marginTop: spacing.md, textAlign: 'center', marginHorizontal: spacing.lg },
+  backOverlay: {
+    position: 'absolute',
+    top: spacing.lg,
+    left: spacing.lg,
+    right: spacing.lg,
   },
-  backBtn: { paddingVertical: 8, paddingRight: 16 },
-  backBtnText: { fontSize: 18, color: '#1a472a', fontWeight: '600' },
-  title: { fontSize: 20, fontWeight: '700', color: '#111' },
-  bearingBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    backgroundColor: '#1a472a',
-    gap: 8,
-  },
-  bearingLabel: { fontSize: 14, color: 'rgba(255,255,255,0.9)' },
-  bearingValue: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  map: { flex: 1, width: '100%' },
+  mapContainer: { flex: 1 },
 });

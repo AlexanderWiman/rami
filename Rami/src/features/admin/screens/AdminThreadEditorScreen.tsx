@@ -19,6 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { useTheme } from '../../../theme/ThemeContext';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
+import { BackBar } from '../../../components/BackBar';
 import { GlassCard } from '../../../components/GlassCard';
 import { useAdmin } from '../AdminContext';
 import { getThread, createThread, updateThread, uploadFile } from '../../forum/api';
@@ -90,7 +91,7 @@ export function AdminThreadEditorScreen() {
     }
   };
 
-  const addBlock = (type: 'text' | 'image' | 'video') => {
+  const addBlock = (type: 'text' | 'image' | 'video' | 'file') => {
     setBlocks((prev) => [
       ...prev,
       { id: Date.now().toString(), type, content: '' },
@@ -444,15 +445,7 @@ export function AdminThreadEditorScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={[
-              styles.backPill,
-              { backgroundColor: isRoyal ? 'rgba(230, 194, 122, 0.2)' : colors.surfaceGlass, borderColor: isRoyal ? '#E6C27A' : colors.border },
-            ]}
-          >
-            <Text style={[styles.backPillText, { color: isRoyal ? '#E6C27A' : colors.text }]}>← Cancel</Text>
-          </TouchableOpacity>
+          <BackBar />
           <Text style={[styles.title, { color: colors.text }]}>
             {isEditing ? 'Edit Thread' : 'New Thread'}
           </Text>
@@ -536,14 +529,6 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { marginBottom: spacing.lg },
-  backPill: {
-    alignSelf: 'flex-start',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  backPillText: { fontSize: fontSize.sm, fontWeight: '600' },
   title: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.semibold,

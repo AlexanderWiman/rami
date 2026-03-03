@@ -11,20 +11,21 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Dimensions,
+  Image,
 } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
+  withRepeat,
+  withSequence,
   useDerivedValue,
   runOnJS,
 } from 'react-native-reanimated';
-import Svg, { Circle, Path, Defs, LinearGradient, Stop, G } from 'react-native-svg';
-import { useRouter } from 'expo-router';
+import Svg, { Path, Defs, LinearGradient, Stop, G, Circle } from 'react-native-svg';
 import * as Location from 'expo-location';
 import { useTheme } from '../../../theme/ThemeContext';
-import { useDockVisibility } from '../../../components/SacredDock';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
 import { BackToHomeBar } from '../../../components/BackToHomeBar';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -32,7 +33,7 @@ import { getString, formatNumber } from '../../../constants/i18n';
 import { hapticMedium } from '../../../utils/haptics';
 import { getBearing } from '../utils/bearing';
 import { KAABA_LAT, KAABA_LON } from '../constants';
-import { spacing } from '../../../theme/spacing';
+import { spacing, radius } from '../../../theme/spacing';
 import { fontSize, fontWeight, fontFamily } from '../../../theme/typography';
 
 const { width } = Dimensions.get('window');
@@ -59,8 +60,6 @@ function shortestDelta(from: number, to: number): number {
 export function QiblaScreen() {
   const { colors, scheme, pageBackground, style: themeStyle } = useTheme();
   const isRoyal = themeStyle === 'royal';
-  const { showDock } = useDockVisibility();
-  const router = useRouter();
   const { language } = useLanguage();
 
   const [bearing, setBearing] = useState<number | null>(null);
@@ -76,6 +75,19 @@ export function QiblaScreen() {
   const prevHeading = useSharedValue(0);
   const alignedAnim = useSharedValue(0);
   const wasAlignedRef = useRef(false);
+  const centerPulse = useSharedValue(1);
+
+  // Gentle breathing pulse on center dot
+  useEffect(() => {
+    centerPulse.value = withRepeat(
+      withSequence(
+        withTiming(1.12, { duration: 1500 }),
+        withTiming(1, { duration: 1500 })
+      ),
+      -1,
+      true
+    );
+  }, [centerPulse]);
 
   // Get location and bearing
   useEffect(() => {
@@ -226,8 +238,13 @@ export function QiblaScreen() {
 
   // Glow intensity based on alignment
   const glowStyle = useAnimatedStyle(() => ({
-    opacity: alignedAnim.value * 0.6,
+    opacity: alignedAnim.value * 0.75,
   }));
+
+  // Layered halo rings for "burning circle" when aligned
+  const haloStyle1 = useAnimatedStyle(() => ({ opacity: alignedAnim.value * 0.15 }));
+  const haloStyle2 = useAnimatedStyle(() => ({ opacity: alignedAnim.value * 0.3 }));
+  const haloStyle3 = useAnimatedStyle(() => ({ opacity: alignedAnim.value * 0.5 }));
 
   // Status text style
   const statusStyle = useAnimatedStyle(() => {
@@ -238,10 +255,14 @@ export function QiblaScreen() {
     };
   });
 
+  const centerDotPulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: centerPulse.value }],
+  }));
+
   const accentColor = colors.accent;
   const highlightColor = colors.highlight;
   const mutedColor = colors.textMuted;
-  const ringColor = scheme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+  const ringColor = scheme === 'dark' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.32)';
   const tickColor = scheme === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
 
   if (loading) {
@@ -268,14 +289,6 @@ export function QiblaScreen() {
         </View>
         <View style={styles.centered}>
           <Text style={[styles.hint, { color: isRoyal ? 'rgba(255,255,255,0.7)' : mutedColor }]}>{error}</Text>
-          <TouchableOpacity
-            onPress={() => router.push('/qibla/map')}
-            style={[styles.mapBtn, { backgroundColor: isRoyal ? 'rgba(10, 25, 18, 0.72)' : colors.highlightGlow, borderColor: isRoyal ? 'rgba(230, 194, 122, 0.28)' : highlightColor }]}
-          >
-            <Text style={[styles.mapBtnText, { color: isRoyal ? 'rgba(255,255,255,0.9)' : colors.text }]}>
-              {getString(language, 'showOnMap')}
-            </Text>
-          </TouchableOpacity>
         </View>
       </ScreenWrapper>
     );
@@ -283,30 +296,75 @@ export function QiblaScreen() {
 
   return (
     <ScreenWrapper>
-      <View style={[styles.header, styles.headerAboveOverlay]} pointerEvents="box-none">
+      <View style={styles.header}>
         <BackToHomeBar />
       </View>
 
-      <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={showDock} />
-
       <View style={styles.compassContainer} pointerEvents="box-none">
-        {/* Alignment glow */}
-        <Animated.View style={[styles.glowRing, glowStyle, { borderColor: accentColor }]} />
+        {/* Fixed Kaaba + Mecka label at top (target direction) */}
+        <View style={styles.kaabaFixedTarget} pointerEvents="none">
+          <View style={styles.kaabaImageWrapper}>
+            <Image
+              source={require('../../../../assets/kaaba_icon.png')}
+              style={styles.kaabaFixedImage}
+              resizeMode="contain"
+            />
+          </View>
+          <View style={[styles.kaabaLabel, { backgroundColor: isRoyal ? 'rgba(10, 25, 18, 0.85)' : colors.surface, borderColor: isRoyal ? 'rgba(230, 194, 122, 0.35)' : ringColor }]}>
+            <Text style={[styles.kaabaLabelText, { color: isRoyal ? accentColor : colors.text }]}>{getString(language, 'mecca')}</Text>
+          </View>
+        </View>
 
-        {/* Compass ring rotates with device heading */}
+        {/* Alignment glow — layered halo for "burning circle" when aligned (SVG for smooth edges) */}
+        <View style={styles.glowStack} pointerEvents="none">
+          <Animated.View style={[styles.glowHaloWrap, haloStyle1]}>
+            <Svg width={COMPASS_SIZE + 60} height={COMPASS_SIZE + 60} viewBox={`0 0 ${COMPASS_SIZE + 60} ${COMPASS_SIZE + 60}`}>
+              <Circle cx={(COMPASS_SIZE + 60) / 2} cy={(COMPASS_SIZE + 60) / 2} r={(COMPASS_SIZE + 60) / 2 - 8} stroke={accentColor} strokeWidth={16} fill="none" strokeLinecap="round" />
+            </Svg>
+          </Animated.View>
+          <Animated.View style={[styles.glowHaloWrap, haloStyle2]}>
+            <Svg width={COMPASS_SIZE + 60} height={COMPASS_SIZE + 60} viewBox={`0 0 ${COMPASS_SIZE + 60} ${COMPASS_SIZE + 60}`}>
+              <Circle cx={(COMPASS_SIZE + 60) / 2} cy={(COMPASS_SIZE + 60) / 2} r={(COMPASS_SIZE + 40) / 2 - 9} stroke={accentColor} strokeWidth={18} fill="none" strokeLinecap="round" />
+            </Svg>
+          </Animated.View>
+          <Animated.View style={[styles.glowHaloWrap, haloStyle3]}>
+            <Svg width={COMPASS_SIZE + 60} height={COMPASS_SIZE + 60} viewBox={`0 0 ${COMPASS_SIZE + 60} ${COMPASS_SIZE + 60}`}>
+              <Circle cx={(COMPASS_SIZE + 60) / 2} cy={(COMPASS_SIZE + 60) / 2} r={(COMPASS_SIZE + 20) / 2 - 7} stroke={accentColor} strokeWidth={14} fill="none" strokeLinecap="round" />
+            </Svg>
+          </Animated.View>
+          <Animated.View style={[styles.glowHaloWrap, glowStyle]}>
+            <Svg width={COMPASS_SIZE + 60} height={COMPASS_SIZE + 60} viewBox={`0 0 ${COMPASS_SIZE + 60} ${COMPASS_SIZE + 60}`}>
+              <Circle cx={(COMPASS_SIZE + 60) / 2} cy={(COMPASS_SIZE + 60) / 2} r={(COMPASS_SIZE + 40) / 2 - 10} stroke={accentColor} strokeWidth={20} fill="none" strokeLinecap="round" />
+            </Svg>
+          </Animated.View>
+        </View>
+
+        {/* Compass ring rotates with device heading - ring and N/E/S/W in same layer */}
         <Animated.View style={[styles.compassRing, compassStyle]}>
-          <Svg width={COMPASS_SIZE} height={COMPASS_SIZE} viewBox={`0 0 ${COMPASS_SIZE} ${COMPASS_SIZE}`}>
-            {/* Outer ring */}
+          {/* Outer and inner rings as SVG for smoother edges */}
+          <Svg width={COMPASS_SIZE} height={COMPASS_SIZE} viewBox={`0 0 ${COMPASS_SIZE} ${COMPASS_SIZE}`} style={StyleSheet.absoluteFill}>
             <Circle
               cx={COMPASS_RADIUS}
               cy={COMPASS_RADIUS}
-              r={COMPASS_RADIUS - RING_STROKE}
-              stroke={ringColor}
+              r={COMPASS_RADIUS - RING_STROKE / 2}
+              stroke={aligned ? accentColor : ringColor}
               strokeWidth={RING_STROKE}
               fill="none"
+              strokeLinecap="round"
             />
-
-            {/* Degree ticks */}
+            <Circle
+              cx={COMPASS_RADIUS}
+              cy={COMPASS_RADIUS}
+              r={COMPASS_SIZE * 0.28}
+              stroke={aligned ? accentColor : ringColor}
+              strokeWidth={1}
+              fill="none"
+              strokeLinecap="round"
+              opacity={0.6}
+            />
+          </Svg>
+          <Svg width={COMPASS_SIZE} height={COMPASS_SIZE} viewBox={`0 0 ${COMPASS_SIZE} ${COMPASS_SIZE}`} style={styles.compassTicksSvg}>
+            {/* Degree ticks only */}
             <G>
               {Array.from({ length: 72 }).map((_, i) => {
                 const angle = i * 5;
@@ -358,22 +416,20 @@ export function QiblaScreen() {
                 <Stop offset="100%" stopColor={accentColor} stopOpacity="0.3" />
               </LinearGradient>
             </Defs>
-            {/* Needle pointing up */}
+            {/* Needle pointing toward Qibla (no Kaaba on tip) */}
             <Path
               d={`M${COMPASS_RADIUS - 8},${COMPASS_RADIUS} 
                   L${COMPASS_RADIUS},${COMPASS_RADIUS - COMPASS_RADIUS + 36} 
                   L${COMPASS_RADIUS + 8},${COMPASS_RADIUS} Z`}
               fill="url(#needleGrad)"
             />
-            {/* Kaaba icon at tip */}
-            <Circle cx={COMPASS_RADIUS} cy={40} r={6} fill={accentColor} />
           </Svg>
         </Animated.View>
 
-        {/* Center point */}
-        <View style={[styles.centerDot, { backgroundColor: colors.surface, borderColor: ringColor }]}>
+        {/* Center point with gentle pulse */}
+        <Animated.View style={[styles.centerDot, { backgroundColor: colors.surface, borderColor: ringColor }, centerDotPulseStyle]}>
           <View style={[styles.centerDotInner, { backgroundColor: highlightColor }]} />
-        </View>
+        </Animated.View>
       </View>
 
       {/* Status footer */}
@@ -391,15 +447,6 @@ export function QiblaScreen() {
           {bearing != null ? `${formatNumber(language, Math.round(bearing))}° ${getString(language, 'fromNorth')}` : '—'}
         </Text>
 
-        {/* Map link - inside footer to stay above dock */}
-        <TouchableOpacity
-          style={[styles.mapLink, { backgroundColor: 'rgba(10, 25, 18, 0.72)', borderColor: 'rgba(230, 194, 122, 0.28)' }]}
-          onPress={() => router.push('/qibla/map')}
-        >
-          <Text style={[styles.mapLinkText, { color: 'rgba(255,255,255,0.9)' }]}>
-            {getString(language, 'viewOnMap')}
-          </Text>
-        </TouchableOpacity>
       </View>
     </ScreenWrapper>
   );
@@ -411,15 +458,8 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
-  },
-  headerAboveOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   centered: {
     flex: 1,
@@ -435,18 +475,60 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  glowRing: {
+  kaabaFixedTarget: {
     position: 'absolute',
-    width: COMPASS_SIZE + 40,
-    height: COMPASS_SIZE + 40,
-    borderRadius: (COMPASS_SIZE + 40) / 2,
-    borderWidth: 20,
+    top: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  kaabaImageWrapper: {
+    width: 68,
+    height: 68,
+    marginBottom: 2,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  kaabaFixedImage: {
+    width: 68,
+    height: 68,
+    opacity: 0.78,
+  },
+  kaabaLabel: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+  },
+  kaabaLabelText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+  },
+  glowStack: {
+    position: 'absolute',
+    width: COMPASS_SIZE + 60,
+    height: COMPASS_SIZE + 60,
+    top: '50%',
+    left: '50%',
+    marginTop: -(COMPASS_SIZE + 60) / 2,
+    marginLeft: -(COMPASS_SIZE + 60) / 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  glowHaloWrap: {
+    position: 'absolute',
+    width: COMPASS_SIZE + 60,
+    height: COMPASS_SIZE + 60,
   },
   compassRing: {
     width: COMPASS_SIZE,
     height: COMPASS_SIZE,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  compassTicksSvg: {
+    position: 'absolute',
   },
   needleContainer: {
     position: 'absolute',
@@ -503,27 +585,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   degreesText: {
-    fontSize: fontSize.sm,
-  },
-  mapBtn: {
-    marginTop: spacing.lg,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  mapBtnText: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-  },
-  mapLink: {
-    marginTop: spacing.lg,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  mapLinkText: {
     fontSize: fontSize.sm,
   },
 });

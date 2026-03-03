@@ -5,7 +5,8 @@
     "start": "cd Rami && npm start",
     "android": "cd Rami && npm run android",
     "ios": "cd Rami && npm run ios",
-    "web": "cd Rami && npm run web"
+    "web": "cd Rami && npm run web",
+    "eas": "cd Rami && eas"
   },
   "dependencies": {
     "expo": "~54.0.33",

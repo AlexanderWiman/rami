@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Modal,
   Share,
+  Alert,
   Platform,
   useWindowDimensions,
 } from 'react-native';
@@ -52,6 +53,7 @@ import { useTheme } from '../../../theme/ThemeContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getString, getReciterLabel } from '../../../constants/i18n';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
+import { BackBar } from '../../../components/BackBar';
 import { fontFamily } from '../../../theme/typography';
 
 const ARABIC_FONT = 'Amiri_400Regular';
@@ -128,7 +130,7 @@ export function QuranReaderScreen() {
   const surahNum = parseInt(params.surah ?? '1', 10);
   const startAyah = params.ayah ? parseInt(params.ayah, 10) : 1;
   const surah = SURAH_LIST.find((s) => s.number === surahNum) ?? SURAH_LIST[0];
-  const { playAyah, playFromAyah, pause, resume, stop, state: audioState } = useQuranAudioContext();
+  const { playAyah, playFromAyah, pause, resume, stop, clearError, state: audioState } = useQuranAudioContext();
   const [selectedReciter, setSelectedReciter] = useState<ReciterId | null>(null);
   const [showReciterModal, setShowReciterModal] = useState(false);
   const [bookmarks, setBookmarks] = useState<{ surah: number; ayah: number }[]>([]);
@@ -161,6 +163,16 @@ export function QuranReaderScreen() {
       if (!shown) setShowTapHint(true);
     });
   }, []);
+
+  useEffect(() => {
+    if (audioState.error === 'fullSurahNotAvailable') {
+      Alert.alert(
+        getString(language, 'playRecitation'),
+        getString(language, 'fullSurahNotAvailable'),
+        [{ text: 'OK', onPress: clearError }]
+      );
+    }
+  }, [audioState.error, language, clearError]);
 
   useEffect(() => {
     if (
@@ -270,10 +282,10 @@ export function QuranReaderScreen() {
       } else if (isThisVerse && audioState.isPaused) {
         resume();
       } else {
-        playFromAyah(surahNum, ayah);
+        playAyah(surahNum, ayah);
       }
     },
-    [audioState.currentSurah, audioState.currentAyah, audioState.isPlaying, audioState.isPaused, surahNum, playFromAyah, pause, resume]
+    [audioState.currentSurah, audioState.currentAyah, audioState.isPlaying, audioState.isPaused, surahNum, playAyah, pause, resume]
   );
 
   const dismissTapHint = useCallback(() => {
@@ -410,11 +422,9 @@ export function QuranReaderScreen() {
           <Text style={styles.reciterChipChevron}>▾</Text>
         </TouchableOpacity>
         <View style={[styles.header, DEBUG_BORDERS && styles.debugHeaderInner]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <View style={styles.backBtnPill}>
-              <Text style={styles.backBtnText}>←</Text>
-            </View>
-          </TouchableOpacity>
+          <View style={styles.backBtn}>
+            <BackBar />
+          </View>
           <View style={[styles.headerCenter, DEBUG_BORDERS && styles.debugHeaderCenter]}>
             <View style={styles.headerOrnament}>
               <Svg width={16} height={16} viewBox="0 0 24 24">
@@ -427,7 +437,10 @@ export function QuranReaderScreen() {
             <Text style={[styles.headerTitleArabic, { fontFamily: arabicFontFamily }]}>{surah.nameAr}</Text>
             <Text style={styles.headerTitleLatin}>{surah.nameEn}</Text>
           </View>
-          <View style={[styles.headerRight, styles.playerBar, DEBUG_BORDERS && styles.debugHeaderRight]}>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={[styles.playerBarRow, DEBUG_BORDERS && styles.debugHeaderRight]}>
+          <View style={styles.playerBar}>
             <TouchableOpacity
               onPress={() => {
                 if (audioState.isPaused && audioState.currentSurah === surahNum) {
@@ -508,7 +521,7 @@ export function QuranReaderScreen() {
             onPress={dismissTapHint}
           >
             <Text style={[styles.headerHintText, { color: isRoyal ? 'rgba(245,241,230,0.8)' : colors.textMuted }]}>
-              {language === 'ar' ? 'انقر على رقم الآية للتلاوة' : 'Tap verse number to play'}
+              {getString(language, 'tapVerseHint')}
             </Text>
           </Pressable>
         )}
@@ -529,7 +542,7 @@ export function QuranReaderScreen() {
           <View style={styles.textStatus}>
             <ActivityIndicator size="small" color={isRoyal ? GOLD : colors.highlight} />
             <Text style={[styles.textStatusText, { color: isRoyal ? 'rgba(255,255,255,0.8)' : colors.textMuted }]}>
-              Hämtar text…
+              {getString(language, 'loadingQuranText')}
             </Text>
           </View>
         )}
@@ -631,9 +644,10 @@ export function QuranReaderScreen() {
             >
               {ayahs.map((ayah) => {
                 const isThisAyahPlaying =
+                  !audioState.isFullSurahPlaying &&
                   audioState.currentSurah === surahNum &&
                   audioState.currentAyah === ayah &&
-                  (audioState.isPlaying || audioState.isPaused);
+                  (audioState.isPlaying || audioState.isPaused || audioState.isPreparing);
                 return (
                   <View
                     key={ayah}
@@ -745,7 +759,7 @@ export function QuranReaderScreen() {
                       } else if (isThisVerse && audioState.isPaused) {
                         resume();
                       } else {
-                        playFromAyah(surahNum, sheetAyah);
+                        playAyah(surahNum, sheetAyah);
                       }
                     }}
                   >
@@ -828,9 +842,15 @@ export function QuranReaderScreen() {
                   saveSelectedReciter(r.id);
                   setShowReciterModal(false);
                   if (audioState.isPlaying || audioState.isPaused) {
+                    const wasFullSurah = audioState.isFullSurahPlaying;
+                    const { currentSurah, currentAyah } = audioState;
                     stop();
-                    if (audioState.currentSurah === surahNum && audioState.currentAyah) {
-                      playFromAyah(surahNum, audioState.currentAyah);
+                    if (currentSurah === surahNum && currentAyah) {
+                      if (wasFullSurah) {
+                        playFromAyah(surahNum, 1);
+                      } else {
+                        playAyah(surahNum, currentAyah);
+                      }
                     }
                   }
                 }}
@@ -927,6 +947,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   headerCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  headerSpacer: { width: 44, minWidth: 44 },
   headerOrnament: { marginBottom: 4 },
   headerTitleArabic: {
     fontSize: 24,
@@ -944,10 +965,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   headerRight: { alignItems: 'flex-end', gap: 6 },
+  playerBarRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    gap: 8,
+  },
   playerBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
   },
   playerBtn: {
     flexDirection: 'row',
@@ -963,23 +992,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   backBtn: { paddingVertical: 6, paddingRight: 4 },
-  backBtnPill: {
-    height: 30,
-    minWidth: 44,
-    paddingHorizontal: 10,
-    borderRadius: 16,
-    backgroundColor: 'rgba(214,179,106,0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(214,179,106,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: 'rgba(214,179,106,0.6)',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  backBtnText: { fontSize: 17, fontWeight: '700', color: '#F6E3B0' },
   listenBtn: { alignSelf: 'flex-end' },
   listenHalo: {
     position: 'absolute',

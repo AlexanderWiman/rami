@@ -15,6 +15,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../../theme/ThemeContext';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
+import { BackBar } from '../../../components/BackBar';
 import { GlassCard } from '../../../components/GlassCard';
 import { useAdmin } from '../AdminContext';
 import { spacing, radius } from '../../../theme/spacing';
@@ -72,12 +73,12 @@ export function AdminLoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backWrap}>
-          <Text style={[styles.backText, { color: colors.textMuted }]}>← Back</Text>
-        </TouchableOpacity>
+        <View style={styles.backWrap}>
+          <BackBar />
+        </View>
 
         <View style={styles.content}>
-          <GlassCard padding="lg" rounded="lg">
+          <GlassCard padding="lg" rounded="lg" fillContent={false}>
             <Text
               style={[
                 styles.title,
@@ -139,7 +140,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.xs,
   },
-  backText: { fontSize: fontSize.sm },
   content: {
     flex: 1,
     justifyContent: 'center',
@@ -150,7 +150,9 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
     fontFamily: fontFamily.heading,
     textAlign: 'center',
+    lineHeight: fontSize.xl * 1.35,
     marginBottom: spacing.lg,
+    ...(Platform.OS === 'android' && { includeFontPadding: false }),
   },
   input: {
     paddingVertical: spacing.sm,

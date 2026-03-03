@@ -15,7 +15,10 @@
   },
   "dependencies": {
     "@expo-google-fonts/amiri": "^0.4.1",
+    "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@sellpy/react-native-scroll-anchor": "^0.1.1",
+    "@tabby_ai/hijri-converter": "^1.0.5",
     "babel-preset-expo": "~54.0.10",
     "expo": "~54.0.33",
     "expo-asset": "~12.0.12",
@@ -37,6 +40,7 @@
     "expo-notifications": "~0.32.16",
     "expo-router": "~6.0.23",
     "expo-status-bar": "~3.0.9",
+    "expo-store-review": "~9.0.9",
     "expo-updates": "~29.0.16",
     "expo-video": "~3.0.16",
     "react": "19.1.0",

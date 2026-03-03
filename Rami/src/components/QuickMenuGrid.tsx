@@ -31,6 +31,7 @@ const PANEL_RADIUS = 26;
 export type QuickMenuIconName =
   | 'prayer'
   | 'quran'
+  | 'bukhari'
   | 'qibla'
   | 'qa'
   | 'tasbih'
@@ -72,6 +73,14 @@ export function QuickMenuIcon({ name, color }: { name: QuickMenuIconName; color:
         <Svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24">
           <Path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" {...strokeProps} />
           <Path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" {...strokeProps} />
+        </Svg>
+      );
+    case 'bukhari':
+      return (
+        <Svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24">
+          <Path d="M4 4h13a3 3 0 0 1 3 3v13H7a3 3 0 0 0-3 3V4z" {...strokeProps} />
+          <Path d="M7 4v19" {...strokeProps} />
+          <Path d="M10 9h7M10 13h7" {...strokeProps} />
         </Svg>
       );
     case 'qibla':
@@ -352,20 +361,20 @@ const styles = StyleSheet.create({
   },
 });
 
-/** Returns 8 menu items with localized labels (en/ar/tr). Caller adds onPress. */
+/** Returns localized menu items. Caller adds onPress. */
 export function getMenuItems(
   language: Language
 ): Array<Omit<QuickMenuItem, 'onPress'> & { route?: string }> {
   return [
     { key: 'prayer', label: getString(language, 'prayerTimes'), iconName: 'prayer', route: '/prayer-times' },
     { key: 'quran', label: getString(language, 'navQuran'), iconName: 'quran', route: '/quran' },
+    { key: 'bukhari', label: getString(language, 'navBukhari'), iconName: 'bukhari', route: '/bukhari' },
     { key: 'qibla', label: getString(language, 'navQibla'), iconName: 'qibla', route: '/qibla' },
     { key: 'calendar', label: getString(language, 'calendarTitle'), iconName: 'calendar', route: '/calendar' },
     { key: 'tasbih', label: getString(language, 'tasbihTitle'), iconName: 'tasbih', route: '/tasbih' },
     { key: 'names', label: getString(language, 'namesOfAllahTitle'), iconName: 'names', route: '/names' },
     { key: 'adkhar', label: getString(language, 'navAdkhar'), iconName: 'adkhar', route: '/adkhar' },
     { key: 'forum', label: getString(language, 'doubts'), iconName: 'forum', route: '/forum' },
-    { key: 'qa', label: getString(language, 'navQA'), iconName: 'qa', route: '/qa', locked: true },
     { key: 'settings', label: getString(language, 'navSettings'), iconName: 'settings', route: '/settings' },
   ];
 }

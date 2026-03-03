@@ -114,4 +114,4 @@ export const themeColorsByStyle = {
 
 export type ColorScheme = 'light' | 'dark';
 export type ThemeStyle = keyof typeof themeColorsByStyle;
-export type ThemeColors = typeof lightColors;
+export type ThemeColors = (typeof themeColorsByStyle)[ThemeStyle][ColorScheme];

@@ -36,6 +36,8 @@ export async function scheduleTodayNotifications(
   lang: Language
 ): Promise<void> {
   if (!settings.notificationsEnabled) return;
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== 'granted') return;
   await ensureAndroidNotificationChannels();
   const useCustomSound = settings.playAzanSound && isAzanSoundKey(settings.selectedSound);
   if (useCustomSound) await ensurePrayerChannelForSound(settings.selectedSound);
@@ -60,7 +62,7 @@ export async function scheduleTodayNotifications(
         title,
         body: '',
         sound,
-        vibrate: true,
+        vibrate: [0, 250, 250, 250],
         ...(Platform.OS === 'ios' && {
           data: { prayerName: p.name, screen: '/', playAzan: settings.playAzanSound },
         }),
@@ -104,7 +106,7 @@ export async function scheduleTestNotification(settings: PrayerSettings): Promis
       title: 'Test – Böneutrop',
       body: 'Om du hör detta har notisen fungerat.',
       sound,
-      vibrate: true,
+      vibrate: [0, 250, 250, 250],
       ...(Platform.OS === 'ios' && { data: { screen: '/', playAzan: settings.playAzanSound } }),
     },
     trigger,

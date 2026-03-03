@@ -14,7 +14,7 @@ import { getString } from '../../constants/i18n';
 import type { StringTranslationKey } from '../../constants/i18n';
 import { spacing, radius } from '../../theme/spacing';
 
-type DockIconName = 'prayer' | 'quran' | 'qibla' | 'qa' | 'forum' | 'settings';
+type DockIconName = 'prayer' | 'quran' | 'bukhari' | 'qibla' | 'qa' | 'forum' | 'settings';
 
 // Large icons and touch targets for accessibility (older users)
 const ICON_SIZE = 36;
@@ -23,8 +23,8 @@ const STROKE = 2.4;
 const DOCK_ITEMS: { i18nKey: StringTranslationKey; href: string; pathMatch: string; icon: DockIconName }[] = [
   { i18nKey: 'navPrayer', href: '/', pathMatch: 'index', icon: 'prayer' },
   { i18nKey: 'navQuran', href: '/quran', pathMatch: 'quran', icon: 'quran' },
+  { i18nKey: 'navBukhari', href: '/bukhari', pathMatch: 'bukhari', icon: 'bukhari' },
   { i18nKey: 'navQibla', href: '/qibla', pathMatch: 'qibla', icon: 'qibla' },
-  { i18nKey: 'navQA', href: '/qa', pathMatch: 'qa', icon: 'qa' },
   { i18nKey: 'navForum', href: '/forum', pathMatch: 'forum', icon: 'forum' },
   { i18nKey: 'navSettings', href: '/settings', pathMatch: 'settings', icon: 'settings' },
 ];
@@ -49,6 +49,14 @@ function DockIcon({ name, color }: { name: DockIconName; color: string }) {
         <Svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24">
           <Path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" {...strokeProps} />
           <Path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" {...strokeProps} />
+        </Svg>
+      );
+    case 'bukhari':
+      return (
+        <Svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24">
+          <Path d="M4 4h13a3 3 0 0 1 3 3v13H7a3 3 0 0 0-3 3V4z" {...strokeProps} />
+          <Path d="M7 4v19" {...strokeProps} />
+          <Path d="M10 9h7M10 13h7" {...strokeProps} />
         </Svg>
       );
     case 'qibla':

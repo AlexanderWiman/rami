@@ -21,10 +21,11 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '../../../theme/ThemeContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
+import { BackBar } from '../../../components/BackBar';
 import { GlassCard } from '../../../components/GlassCard';
 import { ZoomableImageModal } from '../../../components/ZoomableImageModal';
 import { getThread } from '../api';
-import type { ThreadWithContent, ThreadContent } from '../types';
+import type { ThreadWithContent, ThreadContent, TextHighlight } from '../types';
 import { ColoredTextBlock } from '../components/ColoredTextBlock';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize, fontWeight, fontFamily } from '../../../theme/typography';
@@ -36,7 +37,6 @@ const IMAGE_WIDTH = SCREEN_WIDTH - spacing.lg * 2 - spacing.lg * 2;
 // i18n
 const threadStrings = {
   en: {
-    back: '← Back',
     loadError: 'Failed to load post',
     notFound: 'Post not found',
     watchOnYouTube: 'Watch on YouTube',
@@ -44,7 +44,6 @@ const threadStrings = {
     openFile: 'Open file',
   },
   ar: {
-    back: '← رجوع',
     loadError: 'فشل في تحميل المنشور',
     notFound: 'المنشور غير موجود',
     watchOnYouTube: 'شاهد على يوتيوب',
@@ -52,17 +51,16 @@ const threadStrings = {
     openFile: 'فتح الملف',
   },
   tr: {
-    back: '← Geri',
     loadError: 'Gönderi yüklenemedi',
     notFound: 'Gönderi bulunamadı',
     watchOnYouTube: "YouTube'da izle",
     playVideo: 'Videoyu oynat',
     openFile: 'Dosyayı aç',
   },
-  fr: { back: '← Retour', loadError: 'Échec du chargement', notFound: 'Publication introuvable', watchOnYouTube: 'Voir sur YouTube', playVideo: 'Lire la vidéo', openFile: 'Ouvrir le fichier' },
-  es: { back: '← Atrás', loadError: 'Error al cargar', notFound: 'Publicación no encontrada', watchOnYouTube: 'Ver en YouTube', playVideo: 'Reproducir video', openFile: 'Abrir archivo' },
-  sv: { back: '← Tillbaka', loadError: 'Kunde inte ladda', notFound: 'Inlägg hittades inte', watchOnYouTube: 'Titta på YouTube', playVideo: 'Spela video', openFile: 'Öppna fil' },
-  de: { back: '← Zurück', loadError: 'Laden fehlgeschlagen', notFound: 'Beitrag nicht gefunden', watchOnYouTube: 'Auf YouTube ansehen', playVideo: 'Video abspielen', openFile: 'Datei öffnen' },
+  fr: { loadError: 'Échec du chargement', notFound: 'Publication introuvable', watchOnYouTube: 'Voir sur YouTube', playVideo: 'Lire la vidéo', openFile: 'Ouvrir le fichier' },
+  es: { loadError: 'Error al cargar', notFound: 'Publicación no encontrada', watchOnYouTube: 'Ver en YouTube', playVideo: 'Reproducir video', openFile: 'Abrir archivo' },
+  sv: { loadError: 'Kunde inte ladda', notFound: 'Inlägg hittades inte', watchOnYouTube: 'Titta på YouTube', playVideo: 'Spela video', openFile: 'Öppna fil' },
+  de: { loadError: 'Laden fehlgeschlagen', notFound: 'Beitrag nicht gefunden', watchOnYouTube: 'Auf YouTube ansehen', playVideo: 'Video abspielen', openFile: 'Datei öffnen' },
 };
 
 // Extract YouTube video ID from various URL formats
@@ -326,9 +324,9 @@ export function ForumThreadScreen() {
   if (error || !data) {
     return (
       <ScreenWrapper>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backWrap}>
-          <Text style={[styles.backText, { color: isRoyal ? '#E6C27A' : colors.highlight }]}>{strings.back}</Text>
-        </TouchableOpacity>
+        <View style={styles.backWrap}>
+          <BackBar />
+        </View>
         <View style={styles.centered}>
           <Text style={[styles.errorText, { color: colors.error }]}>
             {error || strings.notFound}
@@ -340,9 +338,9 @@ export function ForumThreadScreen() {
 
   return (
     <ScreenWrapper>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backWrap}>
-        <Text style={[styles.backText, { color: isRoyal ? '#E6C27A' : colors.highlight }]}>{strings.back}</Text>
-      </TouchableOpacity>
+      <View style={styles.backWrap}>
+        <BackBar />
+      </View>
       <ZoomableImageModal
         visible={!!imageViewerUri}
         uri={imageViewerUri}
@@ -411,7 +409,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.xs,
   },
-  backText: { fontSize: fontSize.md, fontWeight: fontWeight.semibold },
   scroll: { flex: 1 },
   scrollContent: { padding: spacing.lg, paddingTop: spacing.sm },
   headerCard: { marginBottom: spacing.md },

@@ -1,0 +1,345 @@
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playFromAyah","data":{"reciter":"ar.mahermuaiqly","surahNumber":1,"ayahInSurah":1},"timestamp":1771706831424}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/MaherAlMuaiqly128kbps/001001.mp3","reciterId":"ar.mahermuaiqly"},"timestamp":1771706831582}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.mahermuaiqly","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":90341},"timestamp":1771706832951}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"getResolvedAyahAudioUri ok","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","forceStreaming":false},"timestamp":1771706832951}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setupPlayer","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85EA-4B47-92E1-C87D200","surahNumber":1,"ayahNumber":1},"timestamp":1771706832952}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setAudioModeAsync ok, creating player","data":{},"timestamp":1771706833083}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"createAudioPlayer done","data":{"hasPlayer":true},"timestamp":1771706833192}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"skipping initial play(), will play when isLoaded","data":{},"timestamp":1771706833193}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/MaherAlMuaiqly128kbps/001002.mp3","reciterId":"ar.mahermuaiqly"},"timestamp":1771706833256}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":3.5526530612244898,"playing":false,"n":0},"timestamp":1771706833291}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"isLoaded true (first time)","data":{},"timestamp":1771706833292}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":false,"duration":3.5526530612244898,"currentTime":0,"n":0},"timestamp":1771706833292}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playAfterLoad: play() called","data":{},"timestamp":1771706833294}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":3.5526530612244898,"playing":true,"n":1},"timestamp":1771706833321}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":3.5526530612244898,"currentTime":0,"n":1},"timestamp":1771706833323}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":3.5526530612244898,"playing":true,"n":2},"timestamp":1771706833323}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":3.5526530612244898,"currentTime":0,"n":2},"timestamp":1771706833323}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.mahermuaiqly","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":53917},"timestamp":1771706833359}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":3.5526530612244898,"playing":true,"n":3},"timestamp":1771706833577}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":3.5526530612244898,"currentTime":0.20007752,"n":3},"timestamp":1771706833577}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":3.5526530612244898,"playing":true,"n":4},"timestamp":1771706833777}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":3.5526530612244898,"currentTime":0.40012327,"n":4},"timestamp":1771706833778}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playFromAyah","data":{"reciter":"ar.minshawi","surahNumber":1,"ayahInSurah":1},"timestamp":1771706835958}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Minshawy_Murattal_128kbps/001001.mp3","reciterId":"ar.minshawi"},"timestamp":1771706836083}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.minshawi","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":79540},"timestamp":1771706836342}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"getResolvedAyahAudioUri ok","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","forceStreaming":false},"timestamp":1771706836342}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setupPlayer","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85EA-4B47-92E1-C87D200","surahNumber":1,"ayahNumber":1},"timestamp":1771706836342}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setAudioModeAsync ok, creating player","data":{},"timestamp":1771706836374}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"createAudioPlayer done","data":{"hasPlayer":true},"timestamp":1771706836376}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"skipping initial play(), will play when isLoaded","data":{},"timestamp":1771706836377}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":4.963265306122449,"playing":false,"n":0},"timestamp":1771706836444}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"isLoaded true (first time)","data":{},"timestamp":1771706836445}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":false,"duration":4.963265306122449,"currentTime":0,"n":0},"timestamp":1771706836445}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playAfterLoad: play() called","data":{},"timestamp":1771706836446}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Minshawy_Murattal_128kbps/001002.mp3","reciterId":"ar.minshawi"},"timestamp":1771706836476}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":4.963265306122449,"playing":true,"n":1},"timestamp":1771706836477}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":4.963265306122449,"currentTime":0,"n":1},"timestamp":1771706836477}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":4.963265306122449,"playing":true,"n":2},"timestamp":1771706836477}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":4.963265306122449,"currentTime":0,"n":2},"timestamp":1771706836478}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.minshawi","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":93667},"timestamp":1771706836541}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":4.963265306122449,"playing":true,"n":3},"timestamp":1771706836734}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":4.963265306122449,"currentTime":0.200052602,"n":3},"timestamp":1771706836734}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":4.963265306122449,"playing":true,"n":4},"timestamp":1771706836934}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":4.963265306122449,"currentTime":0.400113893,"n":4},"timestamp":1771706836935}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playFromAyah","data":{"reciter":"ar.husary","surahNumber":1,"ayahInSurah":1},"timestamp":1771706839067}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://cdn.islamic.network/quran/audio/128/ar.husary/1.mp3","reciterId":"ar.husary"},"timestamp":1771706839248}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download failed, returning URL","data":{"err":"Error: Downloaded file is empty","url":"https://cdn.islamic.network/quran/audio/128/ar.husary/1.mp3"},"timestamp":1771706839464}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"getResolvedAyahAudioUri ok","data":{"uri":"https://cdn.islamic.network/quran/audio/128/ar.husary/1.mp3","forceStreaming":false},"timestamp":1771706839464}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setupPlayer","data":{"uri":"https://cdn.islamic.network/quran/audio/128/ar.husary/1.mp3","surahNumber":1,"ayahNumber":1},"timestamp":1771706839465}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setAudioModeAsync ok, creating player","data":{},"timestamp":1771706839498}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"createAudioPlayer done","data":{"hasPlayer":true},"timestamp":1771706839500}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"skipping initial play(), will play when isLoaded","data":{},"timestamp":1771706839501}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://cdn.islamic.network/quran/audio/128/ar.husary/2.mp3","reciterId":"ar.husary"},"timestamp":1771706839596}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download failed, returning URL","data":{"err":"Error: Downloaded file is empty","url":"https://cdn.islamic.network/quran/audio/128/ar.husary/2.mp3"},"timestamp":1771706839624}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":5.12,"playing":false,"n":0},"timestamp":1771706840008}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"isLoaded true (first time)","data":{},"timestamp":1771706840010}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":false,"duration":5.12,"currentTime":0,"n":0},"timestamp":1771706840011}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playAfterLoad: play() called","data":{},"timestamp":1771706840012}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":5.12,"playing":true,"n":1},"timestamp":1771706840039}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":5.12,"currentTime":0,"n":1},"timestamp":1771706840040}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":5.12,"playing":true,"n":2},"timestamp":1771706840040}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":5.12,"currentTime":0,"n":2},"timestamp":1771706840041}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":5.12,"playing":true,"n":3},"timestamp":1771706840297}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":5.12,"currentTime":0.200078687,"n":3},"timestamp":1771706840299}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":5.12,"playing":true,"n":4},"timestamp":1771706840496}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":5.12,"currentTime":0.400074062,"n":4},"timestamp":1771706840498}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://cdn.islamic.network/quran/audio/128/ar.husary/2.mp3","reciterId":"ar.husary"},"timestamp":1771706845074}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://cdn.islamic.network/quran/audio/128/ar.husary/3.mp3","reciterId":"ar.husary"},"timestamp":1771706845232}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.husary","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":76113},"timestamp":1771706845469}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.husary","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":104534},"timestamp":1771706845474}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://cdn.islamic.network/quran/audio/128/ar.husary/4.mp3","reciterId":"ar.husary"},"timestamp":1771706845634}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.husary","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":78203},"timestamp":1771706845723}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://cdn.islamic.network/quran/audio/128/ar.husary/5.mp3","reciterId":"ar.husary"},"timestamp":1771706849988}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.husary","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":113729},"timestamp":1771706850232}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://cdn.islamic.network/quran/audio/128/ar.husary/6.mp3","reciterId":"ar.husary"},"timestamp":1771706854492}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download failed, returning URL","data":{"err":"Error: Downloaded file is empty","url":"https://cdn.islamic.network/quran/audio/128/ar.husary/6.mp3"},"timestamp":1771706854684}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://cdn.islamic.network/quran/audio/128/ar.husary/6.mp3","reciterId":"ar.husary"},"timestamp":1771706861227}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://cdn.islamic.network/quran/audio/128/ar.husary/7.mp3","reciterId":"ar.husary"},"timestamp":1771706861373}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download failed, returning URL","data":{"err":"Error: Downloaded file is empty","url":"https://cdn.islamic.network/quran/audio/128/ar.husary/6.mp3"},"timestamp":1771706861396}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download failed, returning URL","data":{"err":"Error: Downloaded file is empty","url":"https://cdn.islamic.network/quran/audio/128/ar.husary/7.mp3"},"timestamp":1771706861414}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playFromAyah","data":{"reciter":"ar.alafasy","surahNumber":1,"ayahInSurah":7},"timestamp":1771707005211}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/001007.mp3","reciterId":"ar.alafasy"},"timestamp":1771707005343}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":212450},"timestamp":1771707005695}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"getResolvedAyahAudioUri ok","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","forceStreaming":false},"timestamp":1771707005695}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setupPlayer","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85EA-4B47-92E1-C87D200","surahNumber":1,"ayahNumber":7},"timestamp":1771707005696}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setAudioModeAsync ok, creating player","data":{},"timestamp":1771707005739}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"createAudioPlayer done","data":{"hasPlayer":true},"timestamp":1771707005750}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"skipping initial play(), will play when isLoaded","data":{},"timestamp":1771707005751}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":13.244081632653062,"playing":false,"n":0},"timestamp":1771707005819}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"isLoaded true (first time)","data":{},"timestamp":1771707005820}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":false,"duration":13.244081632653062,"currentTime":0,"n":0},"timestamp":1771707005820}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playAfterLoad: play() called","data":{},"timestamp":1771707005821}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":13.244081632653062,"playing":true,"n":1},"timestamp":1771707005846}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":13.244081632653062,"currentTime":0,"n":1},"timestamp":1771707005846}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":13.244081632653062,"playing":true,"n":2},"timestamp":1771707005847}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":13.244081632653062,"currentTime":0,"n":2},"timestamp":1771707005847}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":13.244081632653062,"playing":true,"n":3},"timestamp":1771707006103}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":13.244081632653062,"currentTime":0.200084527,"n":3},"timestamp":1771707006104}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":13.244081632653062,"playing":true,"n":4},"timestamp":1771707006305}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":13.244081632653062,"currentTime":0.401363277,"n":4},"timestamp":1771707006307}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playFromAyah","data":{"reciter":"ar.alafasy","surahNumber":2,"ayahInSurah":1},"timestamp":1771707014118}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/002001.mp3","reciterId":"ar.alafasy"},"timestamp":1771707014512}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":123007},"timestamp":1771707014798}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"getResolvedAyahAudioUri ok","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","forceStreaming":false},"timestamp":1771707014798}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setupPlayer","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85EA-4B47-92E1-C87D200","surahNumber":2,"ayahNumber":1},"timestamp":1771707014799}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setAudioModeAsync ok, creating player","data":{},"timestamp":1771707015146}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"createAudioPlayer done","data":{"hasPlayer":true},"timestamp":1771707015150}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"skipping initial play(), will play when isLoaded","data":{},"timestamp":1771707015151}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/002002.mp3","reciterId":"ar.alafasy"},"timestamp":1771707015159}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":false,"duration":7.6538775510204085,"currentTime":0,"n":0},"timestamp":1771707015883}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":7.6538775510204085,"playing":false,"n":0},"timestamp":1771707015883}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"isLoaded true (first time)","data":{},"timestamp":1771707015883}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playAfterLoad: play() called","data":{},"timestamp":1771707015884}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":144322},"timestamp":1771707015892}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":7.6538775510204085,"playing":true,"n":1},"timestamp":1771707015911}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":7.6538775510204085,"currentTime":0,"n":1},"timestamp":1771707015911}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":7.6538775510204085,"playing":true,"n":2},"timestamp":1771707015912}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":7.6538775510204085,"currentTime":0,"n":2},"timestamp":1771707015913}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":7.6538775510204085,"playing":true,"n":3},"timestamp":1771707016162}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":7.6538775510204085,"currentTime":0.200065303,"n":3},"timestamp":1771707016163}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":7.6538775510204085,"playing":true,"n":4},"timestamp":1771707016362}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":7.6538775510204085,"currentTime":0.400155928,"n":4},"timestamp":1771707016364}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/002003.mp3","reciterId":"ar.alafasy"},"timestamp":1771707023453}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":183193},"timestamp":1771707024307}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playFromAyah","data":{"reciter":"ar.alafasy","surahNumber":1,"ayahInSurah":1},"timestamp":1771707025750}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":146830},"timestamp":1771707025868}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"getResolvedAyahAudioUri ok","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","forceStreaming":false},"timestamp":1771707025869}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setupPlayer","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85EA-4B47-92E1-C87D200","surahNumber":1,"ayahNumber":1},"timestamp":1771707025869}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setAudioModeAsync ok, creating player","data":{},"timestamp":1771707025889}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"createAudioPlayer done","data":{"hasPlayer":true},"timestamp":1771707025894}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"skipping initial play(), will play when isLoaded","data":{},"timestamp":1771707025894}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":6.086530612244898,"playing":false,"n":0},"timestamp":1771707025940}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"isLoaded true (first time)","data":{},"timestamp":1771707025940}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":false,"duration":6.086530612244898,"currentTime":0,"n":0},"timestamp":1771707025940}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playAfterLoad: play() called","data":{},"timestamp":1771707025941}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":6.086530612244898,"playing":true,"n":1},"timestamp":1771707025963}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":6.086530612244898,"currentTime":0,"n":1},"timestamp":1771707025964}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":6.086530612244898,"playing":true,"n":2},"timestamp":1771707025964}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":6.086530612244898,"currentTime":0,"n":2},"timestamp":1771707025964}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":89988},"timestamp":1771707025977}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":6.086530612244898,"playing":true,"n":3},"timestamp":1771707026221}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":6.086530612244898,"currentTime":0.200073429,"n":3},"timestamp":1771707026222}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":6.086530612244898,"playing":true,"n":4},"timestamp":1771707026421}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":6.086530612244898,"currentTime":0.400143889,"n":4},"timestamp":1771707026423}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playFromAyah","data":{"reciter":"ar.alafasy","surahNumber":68,"ayahInSurah":1},"timestamp":1771965424360}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/068001.mp3","reciterId":"ar.alafasy"},"timestamp":1771965424480}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":152264},"timestamp":1771965425046}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"getResolvedAyahAudioUri ok","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","forceStreaming":false},"timestamp":1771965425047}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setupPlayer","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85EA-4B47-92E1-C87D200","surahNumber":68,"ayahNumber":1},"timestamp":1771965425047}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setAudioModeAsync ok, creating player","data":{},"timestamp":1771965425136}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"createAudioPlayer done","data":{"hasPlayer":true},"timestamp":1771965425152}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"skipping initial play(), will play when isLoaded","data":{},"timestamp":1771965425153}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":false,"n":0},"timestamp":1771965425285}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"isLoaded true (first time)","data":{},"timestamp":1771965425286}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/068002.mp3","reciterId":"ar.alafasy"},"timestamp":1771965425285}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playAfterLoad: play() called","data":{},"timestamp":1771965425287}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":false,"duration":9.482448979591837,"currentTime":0,"n":0},"timestamp":1771965425286}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":true,"n":1},"timestamp":1771965425314}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"verseStarted","data":{"surahNumber":68,"ayahNumber":1},"timestamp":1771965425315}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":9.482448979591837,"currentTime":0,"n":1},"timestamp":1771965425315}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":true,"n":2},"timestamp":1771965425315}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":9.482448979591837,"currentTime":0,"n":2},"timestamp":1771965425315}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":134291},"timestamp":1771965425394}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":true,"n":3},"timestamp":1771965425571}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":9.482448979591837,"currentTime":0.200089923,"n":3},"timestamp":1771965425572}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":true,"n":4},"timestamp":1771965425771}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":9.482448979591837,"currentTime":0.400083215,"n":4},"timestamp":1771965425772}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"verseFinished","data":{"surahNumber":68,"ayahNumber":1,"reason":"nearEnd"},"timestamp":1771965434571}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":2},"timestamp":1771965434574}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/068003.mp3","reciterId":"ar.alafasy"},"timestamp":1771965434689}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":106288},"timestamp":1771965435209}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":3},"timestamp":1771965442693}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/068004.mp3","reciterId":"ar.alafasy"},"timestamp":1771965442803}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":104616},"timestamp":1771965443398}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":4},"timestamp":1771965449211}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/068005.mp3","reciterId":"ar.alafasy"},"timestamp":1771965449351}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":68672},"timestamp":1771965449541}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playFromAyah","data":{"reciter":"ar.alafasy","surahNumber":68,"ayahInSurah":6},"timestamp":1771965570285}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/068006.mp3","reciterId":"ar.alafasy"},"timestamp":1771965570370}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":73269},"timestamp":1771965570566}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"getResolvedAyahAudioUri ok","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","forceStreaming":false},"timestamp":1771965570566}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setupPlayer","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85EA-4B47-92E1-C87D200","surahNumber":68,"ayahNumber":6},"timestamp":1771965570566}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setAudioModeAsync ok, creating player","data":{},"timestamp":1771965570633}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"createAudioPlayer done","data":{"hasPlayer":true},"timestamp":1771965570637}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"skipping initial play(), will play when isLoaded","data":{},"timestamp":1771965570638}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"isLoaded true (first time)","data":{},"timestamp":1771965570776}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/068007.mp3","reciterId":"ar.alafasy"},"timestamp":1771965570776}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":4.54530612244898,"playing":false,"n":0},"timestamp":1771965570776}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":false,"duration":4.54530612244898,"currentTime":0,"n":0},"timestamp":1771965570776}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playAfterLoad: play() called","data":{},"timestamp":1771965570778}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":4.54530612244898,"playing":true,"n":1},"timestamp":1771965570806}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"verseStarted","data":{"surahNumber":68,"ayahNumber":6},"timestamp":1771965570806}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":4.54530612244898,"currentTime":0,"n":1},"timestamp":1771965570806}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":4.54530612244898,"playing":true,"n":2},"timestamp":1771965570806}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":4.54530612244898,"currentTime":0,"n":2},"timestamp":1771965570807}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":200747},"timestamp":1771965570884}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":4.54530612244898,"playing":true,"n":3},"timestamp":1771965571063}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":4.54530612244898,"currentTime":0.200072351,"n":3},"timestamp":1771965571064}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":4.54530612244898,"playing":true,"n":4},"timestamp":1771965571263}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":4.54530612244898,"currentTime":0.400081601,"n":4},"timestamp":1771965571263}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"verseFinished","data":{"surahNumber":68,"ayahNumber":6,"reason":"nearEnd"},"timestamp":1771965575063}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":7},"timestamp":1771965575066}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/068008.mp3","reciterId":"ar.alafasy"},"timestamp":1771965575180}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":74941},"timestamp":1771965576038}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":8},"timestamp":1771965587383}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/068009.mp3","reciterId":"ar.alafasy"},"timestamp":1771965587500}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":86644},"timestamp":1771965587994}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":9},"timestamp":1771965591903}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/068010.mp3","reciterId":"ar.alafasy"},"timestamp":1771965591994}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":106706},"timestamp":1771965592293}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":10},"timestamp":1771965597015}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/068011.mp3","reciterId":"ar.alafasy"},"timestamp":1771965597131}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":149756},"timestamp":1771965597723}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":11},"timestamp":1771965603535}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/068012.mp3","reciterId":"ar.alafasy"},"timestamp":1771965603650}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":111722},"timestamp":1771965603912}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playFromAyah","data":{"reciter":"ar.alafasy","surahNumber":68,"ayahInSurah":1},"timestamp":1771965901701}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":152264},"timestamp":1771965901920}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"getResolvedAyahAudioUri ok","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","forceStreaming":false},"timestamp":1771965901920}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setupPlayer","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85EA-4B47-92E1-C87D200","surahNumber":68,"ayahNumber":1},"timestamp":1771965901921}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setAudioModeAsync ok, creating player","data":{},"timestamp":1771965902032}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"createAudioPlayer done","data":{"hasPlayer":true},"timestamp":1771965902059}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"skipping initial play(), will play when isLoaded","data":{},"timestamp":1771965902061}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"isLoaded true (first time)","data":{},"timestamp":1771965902243}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":false,"duration":9.482448979591837,"currentTime":0,"n":0},"timestamp":1771965902243}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":false,"n":0},"timestamp":1771965902243}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playAfterLoad: play() called","data":{},"timestamp":1771965902244}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":134291},"timestamp":1771965902245}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":true,"n":1},"timestamp":1771965902269}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"verseStarted","data":{"surahNumber":68,"ayahNumber":1},"timestamp":1771965902272}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":9.482448979591837,"currentTime":0,"n":1},"timestamp":1771965902272}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":true,"n":2},"timestamp":1771965902272}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":9.482448979591837,"currentTime":0,"n":2},"timestamp":1771965902273}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":true,"n":3},"timestamp":1771965902527}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":9.482448979591837,"currentTime":0.201162362,"n":3},"timestamp":1771965902528}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":true,"n":4},"timestamp":1771965902726}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":9.482448979591837,"currentTime":0.400132195,"n":4},"timestamp":1771965902728}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"verseFinished","data":{"surahNumber":68,"ayahNumber":1,"reason":"nearEnd"},"timestamp":1771965911526}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":2},"timestamp":1771965911531}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":106288},"timestamp":1771965911659}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":3},"timestamp":1771965919649}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":104616},"timestamp":1771965919769}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":4},"timestamp":1771965926166}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":68672},"timestamp":1771965926285}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":5},"timestamp":1771965932483}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":73269},"timestamp":1771965932601}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":6},"timestamp":1771965936598}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":200747},"timestamp":1771965936716}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":7},"timestamp":1771965940915}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":74941},"timestamp":1771965941034}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":8},"timestamp":1771965953235}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":86644},"timestamp":1771965953338}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":9},"timestamp":1771965957755}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":106706},"timestamp":1771965957996}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":10},"timestamp":1771965962866}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":149756},"timestamp":1771965962983}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":11},"timestamp":1771965969387}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":111722},"timestamp":1771965969508}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":68,"ayahNumber":12},"timestamp":1771965978504}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/Alafasy_128kbps/068013.mp3","reciterId":"ar.alafasy"},"timestamp":1771965978686}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":112558},"timestamp":1771965979403}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playFromAyah","data":{"reciter":"ar.alafasy","surahNumber":68,"ayahInSurah":1},"timestamp":1771966006475}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":152264},"timestamp":1771966006601}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setupPlayer","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85EA-4B47-92E1-C87D200","surahNumber":68,"ayahNumber":1},"timestamp":1771966006601}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"getResolvedAyahAudioUri ok","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","forceStreaming":false},"timestamp":1771966006601}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setAudioModeAsync ok, creating player","data":{},"timestamp":1771966006686}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"createAudioPlayer done","data":{"hasPlayer":true},"timestamp":1771966006693}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"skipping initial play(), will play when isLoaded","data":{},"timestamp":1771966006694}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":false,"n":0},"timestamp":1771966006862}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"isLoaded true (first time)","data":{},"timestamp":1771966006863}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":false,"duration":9.482448979591837,"currentTime":0,"n":0},"timestamp":1771966006863}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playAfterLoad: play() called","data":{},"timestamp":1771966006864}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":134291},"timestamp":1771966006866}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":true,"n":1},"timestamp":1771966006886}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"verseStarted","data":{"surahNumber":68,"ayahNumber":1},"timestamp":1771966006887}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":9.482448979591837,"currentTime":0,"n":1},"timestamp":1771966006887}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":true,"n":2},"timestamp":1771966006888}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":9.482448979591837,"currentTime":0,"n":2},"timestamp":1771966006888}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":true,"n":3},"timestamp":1771966007143}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":9.482448979591837,"currentTime":0.200103304,"n":3},"timestamp":1771966007145}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":9.482448979591837,"playing":true,"n":4},"timestamp":1771966007343}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":9.482448979591837,"currentTime":0.400123263,"n":4},"timestamp":1771966007345}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playFromAyah","data":{"reciter":"ar.alafasy","surahNumber":1,"ayahInSurah":1},"timestamp":1771966018092}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":146830},"timestamp":1771966018207}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"getResolvedAyahAudioUri ok","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","forceStreaming":false},"timestamp":1771966018207}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setupPlayer","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85EA-4B47-92E1-C87D200","surahNumber":1,"ayahNumber":1},"timestamp":1771966018207}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setAudioModeAsync ok, creating player","data":{},"timestamp":1771966018231}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"createAudioPlayer done","data":{"hasPlayer":true},"timestamp":1771966018233}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"skipping initial play(), will play when isLoaded","data":{},"timestamp":1771966018234}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":6.086530612244898,"playing":false,"n":0},"timestamp":1771966018285}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"isLoaded true (first time)","data":{},"timestamp":1771966018285}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":false,"duration":6.086530612244898,"currentTime":0,"n":0},"timestamp":1771966018285}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playAfterLoad: play() called","data":{},"timestamp":1771966018286}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":89988},"timestamp":1771966018305}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":6.086530612244898,"playing":true,"n":1},"timestamp":1771966018310}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"verseStarted","data":{"surahNumber":1,"ayahNumber":1},"timestamp":1771966018310}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":6.086530612244898,"currentTime":0,"n":1},"timestamp":1771966018311}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":6.086530612244898,"playing":true,"n":2},"timestamp":1771966018311}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":6.086530612244898,"currentTime":0,"n":2},"timestamp":1771966018312}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":6.086530612244898,"playing":true,"n":3},"timestamp":1771966018567}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":6.086530612244898,"currentTime":0.200059876,"n":3},"timestamp":1771966018568}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":6.086530612244898,"playing":true,"n":4},"timestamp":1771966018767}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":6.086530612244898,"currentTime":0.400084335,"n":4},"timestamp":1771966018768}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"verseFinished","data":{"surahNumber":1,"ayahNumber":1,"reason":"nearEnd"},"timestamp":1771966024167}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":1,"ayahNumber":2},"timestamp":1771966024170}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":74523},"timestamp":1771966024348}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":1,"ayahNumber":3},"timestamp":1771966029487}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":74941},"timestamp":1771966029615}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":1,"ayahNumber":4},"timestamp":1771966034020}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":107960},"timestamp":1771966034143}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":1,"ayahNumber":5},"timestamp":1771966038533}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":89988},"timestamp":1771966038663}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":1,"ayahNumber":6},"timestamp":1771966045055}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache hit","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.alafasy","size":212450},"timestamp":1771966045204}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":1,"ayahNumber":7},"timestamp":1771966050373}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playFromAyah","data":{"reciter":"ar.mahermuaiqly","surahNumber":8,"ayahInSurah":1},"timestamp":1771968046650}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/MaherAlMuaiqly128kbps/008001.mp3","reciterId":"ar.mahermuaiqly"},"timestamp":1771968046806}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.mahermuaiqly","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":305528},"timestamp":1771968048739}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"getResolvedAyahAudioUri ok","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","forceStreaming":false},"timestamp":1771968048739}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setupPlayer","data":{"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85EA-4B47-92E1-C87D200","surahNumber":8,"ayahNumber":1},"timestamp":1771968048742}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"setAudioModeAsync ok, creating player","data":{},"timestamp":1771968048863}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"createAudioPlayer done","data":{"hasPlayer":true},"timestamp":1771968048899}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"skipping initial play(), will play when isLoaded","data":{},"timestamp":1771968048899}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/MaherAlMuaiqly128kbps/008002.mp3","reciterId":"ar.mahermuaiqly"},"timestamp":1771968048901}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":false,"duration":19.069387755102042,"currentTime":0,"n":0},"timestamp":1771968049122}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":19.069387755102042,"playing":false,"n":0},"timestamp":1771968049121}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"isLoaded true (first time)","data":{},"timestamp":1771968049122}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playAfterLoad: play() called","data":{},"timestamp":1771968049123}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":19.069387755102042,"playing":true,"n":1},"timestamp":1771968049147}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"verseStarted","data":{"surahNumber":8,"ayahNumber":1},"timestamp":1771968049148}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":19.069387755102042,"currentTime":0,"n":1},"timestamp":1771968049148}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":19.069387755102042,"playing":true,"n":2},"timestamp":1771968049149}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":19.069387755102042,"currentTime":0,"n":2},"timestamp":1771968049149}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":19.069387755102042,"playing":true,"n":3},"timestamp":1771968049404}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":19.069387755102042,"currentTime":0.200078813,"n":3},"timestamp":1771968049404}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"playbackStatusUpdate","data":{"isLoaded":true,"duration":19.069387755102042,"playing":true,"n":4},"timestamp":1771968049604}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"postPlay status","data":{"playing":true,"duration":19.069387755102042,"currentTime":0.400142813,"n":4},"timestamp":1771968049605}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.mahermuaiqly","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":283376},"timestamp":1771968049680}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"verseFinished","data":{"surahNumber":8,"ayahNumber":1,"reason":"nearEnd"},"timestamp":1771968067804}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":8,"ayahNumber":2},"timestamp":1771968067809}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/MaherAlMuaiqly128kbps/008003.mp3","reciterId":"ar.mahermuaiqly"},"timestamp":1771968067995}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.mahermuaiqly","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":109087},"timestamp":1771968068440}
+{"sessionId":"f5eb8b","location":"useQuranAudio.ts","message":"advanceToVerse (preload)","data":{"surahNumber":8,"ayahNumber":3},"timestamp":1771968085135}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"cache miss, downloading","data":{"url":"https://everyayah.com/data/MaherAlMuaiqly128kbps/008004.mp3","reciterId":"ar.mahermuaiqly"},"timestamp":1771968085272}
+{"sessionId":"f5eb8b","location":"quranAudioCache.ts","message":"download ok","data":{"cachePath":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","reciterId":"ar.mahermuaiqly","status":200,"uri":"file:///Users/alexanderwiman/Library/Developer/CoreSimulator/Devices/4501565C-85","size":187246},"timestamp":1771968085533}

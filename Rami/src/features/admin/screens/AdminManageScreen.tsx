@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '../../../theme/ThemeContext';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
+import { BackBar } from '../../../components/BackBar';
 import { GlassCard } from '../../../components/GlassCard';
 import { useAdmin } from '../AdminContext';
 import { getAdmins, createAdmin, deleteAdmin } from '../../forum/api';
@@ -182,15 +183,7 @@ export function AdminManageScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={[
-              styles.backPill,
-              { backgroundColor: isRoyal ? 'rgba(230, 194, 122, 0.2)' : colors.surfaceGlass, borderColor: isRoyal ? '#E6C27A' : colors.border },
-            ]}
-          >
-            <Text style={[styles.backPillText, { color: isRoyal ? '#E6C27A' : colors.text }]}>← Back</Text>
-          </TouchableOpacity>
+          <BackBar />
           <Text style={[styles.title, { color: colors.text }]}>Manage Admins</Text>
         </View>
 
@@ -310,14 +303,6 @@ export function AdminManageScreen() {
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
   header: { marginBottom: spacing.lg },
-  backPill: {
-    alignSelf: 'flex-start',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  backPillText: { fontSize: fontSize.sm, fontWeight: '600' },
   title: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.semibold,

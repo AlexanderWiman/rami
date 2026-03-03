@@ -22,7 +22,10 @@ export type AzanSoundKey = (typeof AZAN_SOUNDS)[number]['key'];
 export const AZAN_SOUND_KEYS = AZAN_SOUNDS.map((sound) => sound.key) as readonly AzanSoundKey[];
 
 const SOUND_MAP = Object.fromEntries(
-  AZAN_SOUNDS.map((s) => [s.key, { publicId: s.publicId, version: s.version ?? DEFAULT_VERSION }])
+  AZAN_SOUNDS.map((s) => [
+    s.key,
+    { publicId: s.publicId, version: 'version' in s ? s.version : DEFAULT_VERSION },
+  ])
 ) as Record<AzanSoundKey, { publicId: string; version: string }>;
 
 export function getAzanSoundUrl(soundKey: string): string | null {

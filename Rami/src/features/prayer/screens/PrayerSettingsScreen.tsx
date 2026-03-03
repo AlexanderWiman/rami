@@ -12,6 +12,8 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
+  Share,
+  Platform,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
@@ -43,6 +45,10 @@ const lastScrollY = { current: 0 };
 
 const ADMIN_TAP_TARGET = 20;
 const ADMIN_TAP_TIMEOUT_MS = 5000;
+
+const STORE_URL_ANDROID = 'https://play.google.com/store/apps/details?id=com.rami.burhank';
+// App not on App Store yet – use Play Store link for sharing on iOS too
+const STORE_URL_IOS = STORE_URL_ANDROID;
 
 export function PrayerSettingsScreen() {
   const { colors, pageBackground, style } = useTheme();
@@ -166,6 +172,29 @@ export function PrayerSettingsScreen() {
     }
   }, [testingSound, settings, playPreview]);
 
+  const storeUrl = Platform.OS === 'ios' ? STORE_URL_IOS : STORE_URL_ANDROID;
+  const appName = translations[language]?.appName ?? translations.en.appName;
+
+  const handleShareApp = useCallback(async () => {
+    try {
+      await Share.share({
+        message: `${appName}\n${storeUrl}`,
+        title: appName,
+        url: Platform.OS === 'ios' ? storeUrl : undefined,
+      });
+    } catch {
+      /* user dismissed */
+    }
+  }, [appName, storeUrl]);
+
+  const handleRateApp = useCallback(async () => {
+    try {
+      await Linking.openURL(storeUrl);
+    } catch {
+      /* ignore */
+    }
+  }, [storeUrl]);
+
   if (!settings) {
     return (
       <ScreenWrapper>
@@ -241,7 +270,7 @@ export function PrayerSettingsScreen() {
         </TouchableOpacity>
 
         {/* Notifications */}
-        <GlassCard padding="lg" rounded="lg" style={styles.section}>
+        <GlassCard padding="lg" rounded="lg" fillContent={false} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: textSecondary }]}>{t('sectionNotifications')}</Text>
           <View style={styles.row}>
             <Text style={[styles.label, { color: textPrimary }]}>{t('enableNotifications')}</Text>
@@ -478,6 +507,24 @@ export function PrayerSettingsScreen() {
           </View>
         </GlassCard>
 
+        {/* Share & Rate */}
+        <View style={styles.shareRateRow}>
+          <TouchableOpacity
+            style={[styles.shareRateBtn, { borderColor: chipBorder, backgroundColor: chipBg }]}
+            onPress={handleShareApp}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.shareRateBtnText, { color: chipActiveText }]}>{t('shareApp')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.shareRateBtn, { borderColor: chipBorder, backgroundColor: chipBg }]}
+            onPress={handleRateApp}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.shareRateBtnText, { color: chipActiveText }]}>{t('rateApp')}</Text>
+          </TouchableOpacity>
+        </View>
+
         <Text style={[styles.versionText, { color: textMuted }]}>
           v{Constants.expoConfig?.version ?? '?'}
         </Text>
@@ -580,6 +627,24 @@ const styles = StyleSheet.create({
   offsetBtnDisabled: { opacity: 0.4 },
   offsetBtnText: { fontSize: 18, fontWeight: '700' },
   offsetValue: { fontSize: fontSize.sm, minWidth: 48, textAlign: 'center' },
+  shareRateRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  shareRateBtn: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+  },
+  shareRateBtnText: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+  },
   versionText: {
     fontSize: fontSize.sm,
     textAlign: 'center',

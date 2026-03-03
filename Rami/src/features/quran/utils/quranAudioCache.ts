@@ -6,6 +6,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAyahAudioUrl, getGlobalAyahNumber } from './audio';
+import { getReciterSource } from '../constants/reciters';
 import { SURAH_LIST } from '../data/surahs';
 
 const CACHE_INDEX_KEY = '@rami/quran_audio_cache_index';
@@ -13,6 +14,7 @@ const JUZ_AMMA_DOWNLOADED_KEY = '@rami/quran_audio_juz_amma';
 const FULL_QURAN_DOWNLOADED_KEY = '@rami/quran_audio_full';
 const DOWNLOADED_SURAHS_KEY = '@rami/quran_audio_downloaded_surahs';
 const MAX_CACHED_AYAHS = 150;
+const DOWNLOAD_CONCURRENCY = 3;
 
 /** Prefer documentDirectory for persistence; cacheDirectory may be cleared by OS. */
 function getCacheDir(): string {
@@ -28,6 +30,12 @@ async function ensureCacheDir(): Promise<void> {
   if (!info.exists) {
     await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
   }
+}
+
+function isUsableCachedFile(info: FileSystem.FileInfo): boolean {
+  if (!info.exists) return false;
+  const size = 'size' in info ? (info as { size?: number }).size : undefined;
+  return size == null || size > 0;
 }
 
 async function loadCacheIndex(): Promise<CacheEntry[]> {
@@ -58,6 +66,49 @@ async function evictOldestIfNeeded(entries: CacheEntry[]): Promise<CacheEntry[]>
   return entries.slice(toRemove.length);
 }
 
+type AyahToDownload = { surahNumber: number; ayahInSurah: number };
+
+function getCacheKey(reciterId: string, surahNumber: number, ayahInSurah: number): string {
+  const safe = reciterId.replace(/[^a-z0-9._-]/gi, '_');
+  if (getReciterSource(reciterId as import('../constants/reciters').ReciterId) === 'mp3quran') {
+    return `${safe}_s${surahNumber}`;
+  }
+  return `${safe}_${getGlobalAyahNumber(surahNumber, ayahInSurah)}`;
+}
+
+async function downloadOneAyah(
+  reciterId: string,
+  cacheDir: string,
+  surahNumber: number,
+  ayahInSurah: number
+): Promise<void> {
+  const cacheFileName = `${getCacheKey(reciterId, surahNumber, ayahInSurah)}.mp3`;
+  const cachePath = cacheDir + cacheFileName;
+  const url = getAyahAudioUrl(surahNumber, ayahInSurah, reciterId);
+  const url64 = url.includes('/128/') ? getAyahAudioUrl(surahNumber, ayahInSurah, reciterId, 64) : url;
+  let result = await FileSystem.downloadAsync(url, cachePath);
+  if (result.status !== 200 && url64 !== url) {
+    await FileSystem.deleteAsync(cachePath, { idempotent: true });
+    result = await FileSystem.downloadAsync(url64, cachePath);
+  }
+  if (result.status !== 200) throw new Error(`HTTP ${result.status}`);
+  const downloaded = await FileSystem.getInfoAsync(cachePath);
+  if (!isUsableCachedFile(downloaded)) {
+    await FileSystem.deleteAsync(cachePath, { idempotent: true });
+    throw new Error('Downloaded file is empty');
+  }
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+}
+
+const _dbgCache = (_msg: string, _data?: object) => {};
+
 /**
  * Returns local file URI if cached, or fetches and caches, then returns local URI.
  * On fetch failure, returns the original URL so player can try streaming.
@@ -67,18 +118,32 @@ export async function getResolvedAyahAudioUri(
   ayahInSurah: number,
   reciterId: string
 ): Promise<string> {
-  const globalAyah = getGlobalAyahNumber(surahNumber, ayahInSurah);
-  const cacheFileName = `${reciterId.replace(/[^a-z0-9._-]/gi, '_')}_${globalAyah}.mp3`;
+  const cacheFileName = `${getCacheKey(reciterId, surahNumber, ayahInSurah)}.mp3`;
   const cachePath = getCacheDir() + cacheFileName;
 
   await ensureCacheDir();
 
   const exists = await FileSystem.getInfoAsync(cachePath);
   if (exists.exists) {
-    return cachePath;
+    if (!isUsableCachedFile(exists)) {
+      _dbgCache('cache hit invalid (empty), deleting', {
+        cachePath: cachePath.slice(0, 80),
+        reciterId,
+        size: 'size' in exists ? (exists as { size?: number }).size ?? null : null,
+      });
+      await FileSystem.deleteAsync(cachePath, { idempotent: true });
+    } else {
+      _dbgCache('cache hit', {
+        cachePath: cachePath.slice(0, 80),
+        reciterId,
+        size: 'size' in exists ? (exists as { size?: number }).size ?? null : null,
+      });
+      return cachePath;
+    }
   }
 
   const url = getAyahAudioUrl(surahNumber, ayahInSurah, reciterId);
+  _dbgCache('cache miss, downloading', { url: url.slice(0, 80), reciterId });
   const url64 = url.includes('/128/') ? getAyahAudioUrl(surahNumber, ayahInSurah, reciterId, 64) : url;
   try {
     let result = await FileSystem.downloadAsync(url, cachePath);
@@ -87,14 +152,30 @@ export async function getResolvedAyahAudioUri(
       result = await FileSystem.downloadAsync(url64, cachePath);
     }
     if (result.status !== 200) throw new Error(`HTTP ${result.status}`);
+    const downloaded = await FileSystem.getInfoAsync(cachePath);
+    if (!isUsableCachedFile(downloaded)) {
+      await FileSystem.deleteAsync(cachePath, { idempotent: true });
+      throw new Error('Downloaded file is empty');
+    }
 
     const entries = await loadCacheIndex();
-    const newEntries = [...entries, { reciter: reciterId, globalAyah, path: cachePath }];
+    const entryAyah = getReciterSource(reciterId as import('../constants/reciters').ReciterId) === 'mp3quran'
+      ? getGlobalAyahNumber(surahNumber, 1)
+      : getGlobalAyahNumber(surahNumber, ayahInSurah);
+    const newEntries = [...entries, { reciter: reciterId, globalAyah: entryAyah, path: cachePath }];
     const trimmed = await evictOldestIfNeeded(newEntries);
     await saveCacheIndex(trimmed);
 
+    _dbgCache('download ok', {
+      cachePath: cachePath.slice(0, 80),
+      reciterId,
+      status: result.status,
+      uri: result.uri?.slice?.(0, 80),
+      size: 'size' in downloaded ? (downloaded as { size?: number }).size ?? null : null,
+    });
     return cachePath;
-  } catch {
+  } catch (e) {
+    _dbgCache('download failed, returning URL', { err: String(e), url: url.slice(0, 80) });
     return url;
   }
 }
@@ -128,36 +209,48 @@ export async function downloadJuzAmmaAudio(
   for (const s of JUZ_AMMA_SURAHS) total += s.ayahCount;
   let completed = 0;
 
+  const isMp3quran = getReciterSource(reciterId as import('../constants/reciters').ReciterId) === 'mp3quran';
+  const toDownload: AyahToDownload[] = [];
   for (const surah of JUZ_AMMA_SURAHS) {
-    for (let ayah = 1; ayah <= surah.ayahCount; ayah++) {
-      try {
-        const globalAyah = getGlobalAyahNumber(surah.number, ayah);
-        const cacheFileName = `${reciterId.replace(/[^a-z0-9._-]/gi, '_')}_${globalAyah}.mp3`;
-        const cachePath = cacheDir + cacheFileName;
+    if (isMp3quran) {
+      const cachePath = cacheDir + `${getCacheKey(reciterId, surah.number, 1)}.mp3`;
+      const exists = await FileSystem.getInfoAsync(cachePath);
+      if (exists.exists) {
+        completed += surah.ayahCount;
+        onProgress?.(completed, total);
+      } else {
+        toDownload.push({ surahNumber: surah.number, ayahInSurah: 1 });
+      }
+    } else {
+      for (let ayah = 1; ayah <= surah.ayahCount; ayah++) {
+        const cachePath = cacheDir + `${getCacheKey(reciterId, surah.number, ayah)}.mp3`;
         const exists = await FileSystem.getInfoAsync(cachePath);
         if (exists.exists) {
           completed++;
           onProgress?.(completed, total);
-          continue;
+        } else {
+          toDownload.push({ surahNumber: surah.number, ayahInSurah: ayah });
         }
-        const url = getAyahAudioUrl(surah.number, ayah, reciterId);
-        const url64 = url.includes('/128/') ? getAyahAudioUrl(surah.number, ayah, reciterId, 64) : url;
-        let result = await FileSystem.downloadAsync(url, cachePath);
-        if (result.status !== 200 && url64 !== url) {
-          await FileSystem.deleteAsync(cachePath, { idempotent: true });
-          result = await FileSystem.downloadAsync(url64, cachePath);
-        }
-        if (result.status !== 200) throw new Error(`HTTP ${result.status}`);
-        /* Pre-downloaded files: don't add to evictable cache index – keep them permanent */
-      } catch (e) {
-        return {
-          success: false,
-          error: e instanceof Error ? e.message : 'Download failed',
-        };
       }
-      completed++;
-      onProgress?.(completed, total);
     }
+  }
+
+  const batches = chunk(toDownload, DOWNLOAD_CONCURRENCY);
+  for (const batch of batches) {
+    try {
+      await Promise.all(
+        batch.map((a) => downloadOneAyah(reciterId, cacheDir, a.surahNumber, a.ayahInSurah))
+      );
+    } catch (e) {
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : 'Download failed',
+      };
+    }
+    completed += isMp3quran
+      ? batch.reduce((s, a) => s + (SURAH_LIST.find((s) => s.number === a.surahNumber)?.ayahCount ?? 0), 0)
+      : batch.length;
+    onProgress?.(completed, total);
   }
 
   const existing = await AsyncStorage.getItem(JUZ_AMMA_DOWNLOADED_KEY);
@@ -200,17 +293,22 @@ async function saveDownloadedSurahs(reciterId: string, surahs: Set<number>): Pro
   }
 }
 
-/** Check if a surah is downloaded for a reciter. Uses cached set first, then verifies first ayah. */
+/** Check if a surah is downloaded for a reciter. Uses cached set first, then verifies file. */
 export async function isSurahAudioDownloaded(reciterId: string, surahNumber: number): Promise<boolean> {
   const downloaded = await getDownloadedSurahs(reciterId);
   if (downloaded.has(surahNumber)) return true;
   const surah = SURAH_LIST.find((s) => s.number === surahNumber);
   if (!surah) return false;
   const cacheDir = getCacheDir();
-  const firstPath = cacheDir + `${reciterId.replace(/[^a-z0-9._-]/gi, '_')}_${getGlobalAyahNumber(surahNumber, 1)}.mp3`;
+  if (getReciterSource(reciterId as import('../constants/reciters').ReciterId) === 'mp3quran') {
+    const path = cacheDir + `${getCacheKey(reciterId, surahNumber, 1)}.mp3`;
+    const exists = await FileSystem.getInfoAsync(path);
+    return exists.exists && isUsableCachedFile(exists);
+  }
+  const firstPath = cacheDir + `${getCacheKey(reciterId, surahNumber, 1)}.mp3`;
   const firstExists = await FileSystem.getInfoAsync(firstPath);
   if (!firstExists.exists) return false;
-  const lastPath = cacheDir + `${reciterId.replace(/[^a-z0-9._-]/gi, '_')}_${getGlobalAyahNumber(surahNumber, surah.ayahCount)}.mp3`;
+  const lastPath = cacheDir + `${getCacheKey(reciterId, surahNumber, surah.ayahCount)}.mp3`;
   const lastExists = await FileSystem.getInfoAsync(lastPath);
   return lastExists.exists;
 }
@@ -231,29 +329,35 @@ export async function downloadSurahAudio(
   const total = surah.ayahCount;
   let done = 0;
 
-  for (let ayah = 1; ayah <= surah.ayahCount; ayah++) {
-    try {
-      const globalAyah = getGlobalAyahNumber(surahNumber, ayah);
-      const cacheFileName = `${reciterId.replace(/[^a-z0-9._-]/gi, '_')}_${globalAyah}.mp3`;
-      const cachePath = cacheDir + cacheFileName;
+  const isMp3quran = getReciterSource(reciterId as import('../constants/reciters').ReciterId) === 'mp3quran';
+  const toDownload: AyahToDownload[] = [];
+  if (isMp3quran) {
+    const cachePath = cacheDir + `${getCacheKey(reciterId, surahNumber, 1)}.mp3`;
+    const exists = await FileSystem.getInfoAsync(cachePath);
+    if (!exists.exists) toDownload.push({ surahNumber, ayahInSurah: 1 });
+  } else {
+    for (let ayah = 1; ayah <= surah.ayahCount; ayah++) {
+      const cachePath = cacheDir + `${getCacheKey(reciterId, surahNumber, ayah)}.mp3`;
       const exists = await FileSystem.getInfoAsync(cachePath);
       if (exists.exists) {
         done++;
         onProgress?.(done, total);
-        continue;
+      } else {
+        toDownload.push({ surahNumber, ayahInSurah: ayah });
       }
-      const url = getAyahAudioUrl(surahNumber, ayah, reciterId);
-      const url64 = url.includes('/128/') ? getAyahAudioUrl(surahNumber, ayah, reciterId, 64) : url;
-      let result = await FileSystem.downloadAsync(url, cachePath);
-      if (result.status !== 200 && url64 !== url) {
-        await FileSystem.deleteAsync(cachePath, { idempotent: true });
-        result = await FileSystem.downloadAsync(url64, cachePath);
-      }
-      if (result.status !== 200) throw new Error(`HTTP ${result.status}`);
+    }
+  }
+
+  const batches = chunk(toDownload, DOWNLOAD_CONCURRENCY);
+  for (const batch of batches) {
+    try {
+      await Promise.all(
+        batch.map((a) => downloadOneAyah(reciterId, cacheDir, a.surahNumber, a.ayahInSurah))
+      );
     } catch (e) {
       return { success: false, error: e instanceof Error ? e.message : 'Download failed' };
     }
-    done++;
+    done += isMp3quran ? surah.ayahCount : batch.length;
     onProgress?.(done, total);
   }
 
@@ -291,35 +395,48 @@ export async function downloadFullQuranAudio(
   const total = TOTAL_AYAHS;
   let completed = 0;
 
+  const isMp3quran = getReciterSource(reciterId as import('../constants/reciters').ReciterId) === 'mp3quran';
+  const toDownload: AyahToDownload[] = [];
   for (const surah of SURAH_LIST) {
-    for (let ayah = 1; ayah <= surah.ayahCount; ayah++) {
-      try {
-        const globalAyah = getGlobalAyahNumber(surah.number, ayah);
-        const cacheFileName = `${reciterId.replace(/[^a-z0-9._-]/gi, '_')}_${globalAyah}.mp3`;
-        const cachePath = cacheDir + cacheFileName;
+    if (isMp3quran) {
+      const cachePath = cacheDir + `${getCacheKey(reciterId, surah.number, 1)}.mp3`;
+      const exists = await FileSystem.getInfoAsync(cachePath);
+      if (exists.exists) {
+        completed += surah.ayahCount;
+        onProgress?.(completed, total);
+      } else {
+        toDownload.push({ surahNumber: surah.number, ayahInSurah: 1 });
+      }
+    } else {
+      for (let ayah = 1; ayah <= surah.ayahCount; ayah++) {
+        const cachePath = cacheDir + `${getCacheKey(reciterId, surah.number, ayah)}.mp3`;
         const exists = await FileSystem.getInfoAsync(cachePath);
         if (exists.exists) {
           completed++;
           onProgress?.(completed, total);
-          continue;
+        } else {
+          toDownload.push({ surahNumber: surah.number, ayahInSurah: ayah });
         }
-        const url = getAyahAudioUrl(surah.number, ayah, reciterId);
-        const url64 = url.includes('/128/') ? getAyahAudioUrl(surah.number, ayah, reciterId, 64) : url;
-        let result = await FileSystem.downloadAsync(url, cachePath);
-        if (result.status !== 200 && url64 !== url) {
-          await FileSystem.deleteAsync(cachePath, { idempotent: true });
-          result = await FileSystem.downloadAsync(url64, cachePath);
-        }
-        if (result.status !== 200) throw new Error(`HTTP ${result.status}`);
-      } catch (e) {
-        return {
-          success: false,
-          error: e instanceof Error ? e.message : 'Download failed',
-        };
       }
-      completed++;
-      onProgress?.(completed, total);
     }
+  }
+
+  const batches = chunk(toDownload, DOWNLOAD_CONCURRENCY);
+  for (const batch of batches) {
+    try {
+      await Promise.all(
+        batch.map((a) => downloadOneAyah(reciterId, cacheDir, a.surahNumber, a.ayahInSurah))
+      );
+    } catch (e) {
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : 'Download failed',
+      };
+    }
+    completed += isMp3quran
+      ? batch.reduce((s, a) => s + (SURAH_LIST.find((x) => x.number === a.surahNumber)?.ayahCount ?? 0), 0)
+      : batch.length;
+    onProgress?.(completed, total);
   }
 
   const existing = await AsyncStorage.getItem(FULL_QURAN_DOWNLOADED_KEY);

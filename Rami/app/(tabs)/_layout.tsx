@@ -14,17 +14,17 @@ export default function TabsLayout() {
       <PrayerNotificationRescheduler />
       <View style={styles.container}>
         <Tabs
-          sceneContainerStyle={[styles.transparent, styles.sceneFill]}
           screenOptions={{
             headerShown: false,
+            sceneStyle: [styles.transparent, styles.sceneFill],
             tabBarStyle: styles.hiddenTabBar,
             tabBarShowLabel: false,
             tabBarButton: () => null,
-            contentStyle: styles.transparent,
           }}
         >
           <Tabs.Screen name="index" options={{ title: 'Prayer' }} />
           <Tabs.Screen name="quran" options={{ title: 'Quran' }} />
+          <Tabs.Screen name="bukhari" options={{ title: 'Bukhari' }} />
           <Tabs.Screen name="qibla" options={{ title: 'Qibla' }} />
           <Tabs.Screen name="qa" options={{ title: 'Sources' }} />
           <Tabs.Screen name="forum" options={{ title: 'Forum' }} />

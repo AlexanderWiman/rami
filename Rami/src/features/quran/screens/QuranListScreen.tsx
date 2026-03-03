@@ -12,6 +12,8 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  Modal,
+  Pressable,
   NativeSyntheticEvent,
   NativeScrollEvent,
   Platform,
@@ -26,7 +28,7 @@ import { useDockVisibility } from '../../../components/SacredDock';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
 import { BackToHomeBar } from '../../../components/BackToHomeBar';
 import { GlassCard } from '../../../components/GlassCard';
-import { loadLastRead, loadSelectedReciter } from '../storage/quranStorage';
+import { loadSelectedReciter } from '../storage/quranStorage';
 import { SURAH_LIST, searchSurahs, type SurahMeta } from '../data/surahs';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { downloadFullQuranText, isQuranTextDownloaded } from '../utils/quranTextCache';
@@ -49,8 +51,9 @@ export function QuranListScreen() {
   const { language } = useLanguage();
   const { showDock } = useDockVisibility();
   const router = useRouter();
-  const [lastRead, setLastRead] = useState<{ surah: number; ayah: number } | null>(null);
   const [search, setSearch] = useState('');
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [modalSearch, setModalSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [pendingSurah, setPendingSurah] = useState<number | null>(null);
   const [quranDownloaded, setQuranDownloaded] = useState(false);
@@ -66,9 +69,6 @@ export function QuranListScreen() {
 
   useEffect(() => {
     Promise.all([
-      loadLastRead().then((lr) => {
-        if (lr) setLastRead({ surah: lr.surah, ayah: lr.ayah });
-      }),
       isQuranTextDownloaded().then(setQuranDownloaded),
       loadSelectedReciter().then(async (reciter) => {
         setSelectedReciter(reciter);
@@ -102,8 +102,8 @@ export function QuranListScreen() {
     [showDock]
   );
 
-  const list = search.trim() ? searchSurahs(search, language) : SURAH_LIST;
-  const lastReadSurah = lastRead ? SURAH_LIST.find((s) => s.number === lastRead.surah) : null;
+  const list = SURAH_LIST;
+  const searchResults = modalSearch.trim() ? searchSurahs(modalSearch, language) : SURAH_LIST;
 
   const handleDownloadAudio = useCallback(async () => {
     if (audioDownloading || audioDownloaded) return;
@@ -153,18 +153,21 @@ export function QuranListScreen() {
       setDownloadingSurah(surahNumber);
       setSurahProgress({ done: 0, total: SURAH_LIST.find((s) => s.number === surahNumber)?.ayahCount ?? 0 });
       await activateKeepAwakeAsync('quran-surah-download');
-      const result = await downloadSurahAudio(selectedReciter, surahNumber, (done, total) =>
-        setSurahProgress({ done, total })
-      );
-      deactivateKeepAwake('quran-surah-download');
-      setDownloadingSurah(null);
-      setSurahProgress(null);
-      if (result.success) {
-        setDownloadedSurahs((prev) => new Set([...prev, surahNumber]));
-        const full = await isFullQuranAudioDownloaded(selectedReciter);
-        setAudioDownloaded(full);
-      } else {
-        Alert.alert(getString(language, 'error'), result.error ?? getString(language, 'downloadQuranAudioError'));
+      try {
+        const result = await downloadSurahAudio(selectedReciter, surahNumber, (done, total) =>
+          setSurahProgress({ done, total })
+        );
+        if (result.success) {
+          setDownloadedSurahs((prev) => new Set([...prev, surahNumber]));
+          const full = await isFullQuranAudioDownloaded(selectedReciter);
+          setAudioDownloaded(full);
+        } else {
+          Alert.alert(getString(language, 'error'), result.error ?? getString(language, 'downloadQuranAudioError'));
+        }
+      } finally {
+        deactivateKeepAwake('quran-surah-download');
+        setDownloadingSurah(null);
+        setSurahProgress(null);
       }
     },
     [downloadingSurah, selectedReciter, downloadedSurahs, language]
@@ -295,39 +298,30 @@ export function QuranListScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <BackToHomeBar />
-          <Text style={[styles.title, { color: colors.text }]}>{getString(language, 'readingSanctuary')}</Text>
+          <View style={styles.headerHomeRow}>
+            <BackToHomeBar />
+          </View>
+          <View style={styles.headerTitleRow}>
+            <Text style={[styles.title, { color: colors.text }]}>{getString(language, 'readingSanctuary')}</Text>
+            <TouchableOpacity
+              style={[
+                styles.searchIconBtn,
+                {
+                  backgroundColor: isRoyal ? 'rgba(230,194,122,0.35)' : colors.highlightGlow,
+                  borderWidth: 1,
+                  borderColor: isRoyal ? 'rgba(230,194,122,0.6)' : colors.highlight,
+                },
+              ]}
+              onPress={() => {
+                setModalSearch('');
+                setShowSearchModal(true);
+              }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="search" size={22} color={isRoyal ? 'rgba(230,194,122,0.95)' : colors.highlight} />
+            </TouchableOpacity>
+          </View>
         </View>
-        {lastReadSurah && lastRead && (
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => router.push(`/quran/${lastRead!.surah}?ayah=${lastRead!.ayah}` as const)}
-            style={styles.continueWrap}
-          >
-            <GlassCard padding="lg" rounded="lg" fillColor={colors.highlightGlow} strokeColor={colors.highlight}>
-              <Text style={[styles.continueLabel, { color: isRoyal ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>{getString(language, 'continueReading')}</Text>
-              <Text style={[styles.continueSurah, { color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text }]}>
-                {language === 'ar'
-                  ? `${lastReadSurah.nameAr} — ${getString(language, 'ayah')} ${lastRead.ayah}`
-                  : `${lastReadSurah.nameEn} — ${getString(language, 'ayah')} ${lastRead.ayah}`}
-              </Text>
-            </GlassCard>
-          </TouchableOpacity>
-        )}
-        <TextInput
-          style={[
-            styles.search,
-            {
-              backgroundColor: isRoyal ? 'rgba(10, 25, 18, 0.72)' : colors.surfaceGlass,
-              color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text,
-              borderColor: isRoyal ? 'rgba(230, 194, 122, 0.28)' : colors.border,
-            },
-          ]}
-          placeholder={getString(language, 'search')}
-          placeholderTextColor={isRoyal ? 'rgba(255,255,255,0.5)' : colors.textMuted}
-          value={search}
-          onChangeText={setSearch}
-        />
         <GlassCard padding="lg" rounded="lg" style={styles.downloadCard}>
           <Text style={[styles.downloadCardTitle, { color: isRoyal ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>
             {getString(language, 'downloadForOffline')}
@@ -437,6 +431,72 @@ export function QuranListScreen() {
           }
         />
       </ScrollView>
+
+      <Modal
+        visible={showSearchModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowSearchModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowSearchModal(false)}>
+          <Pressable style={[styles.modalContent, { backgroundColor: isRoyal ? 'rgba(10,25,18,0.98)' : colors.background }]} onPress={(e) => e.stopPropagation()}>
+            <View style={[styles.modalHeader, { borderBottomColor: isRoyal ? 'rgba(230,194,122,0.2)' : colors.border }]}>
+              <TextInput
+                style={[
+                  styles.modalSearchInput,
+                  {
+                    backgroundColor: isRoyal ? 'rgba(255,255,255,0.08)' : colors.surfaceGlass,
+                    color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text,
+                    borderColor: isRoyal ? 'rgba(230,194,122,0.25)' : colors.border,
+                  },
+                ]}
+                placeholder={getString(language, 'search')}
+                placeholderTextColor={isRoyal ? 'rgba(255,255,255,0.5)' : colors.textMuted}
+                value={modalSearch}
+                onChangeText={setModalSearch}
+                autoFocus
+                returnKeyType="search"
+              />
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setShowSearchModal(false)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Text style={[styles.modalCloseText, { color: colors.highlight }]}>{getString(language, 'cancel')}</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={searchResults}
+              keyExtractor={(item) => `search-${item.number}`}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.modalResultItem, { borderBottomColor: isRoyal ? 'rgba(255,255,255,0.06)' : colors.border }]}
+                  onPress={() => {
+                    setShowSearchModal(false);
+                    setPendingSurah(item.number);
+                    setTimeout(() => router.push(`/quran/${item.number}` as const), 0);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.modalResultNum, { color: colors.highlight }]}>{item.number}</Text>
+                  <Text style={[styles.modalResultName, { color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text }]}>
+                    {language === 'ar' ? item.nameAr : item.nameEn}
+                  </Text>
+                  <Text style={[styles.modalResultAyahs, { color: isRoyal ? 'rgba(255,255,255,0.5)' : colors.textMuted }]}>
+                    {item.ayahCount} {getString(language, 'verses')}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <Text style={[styles.modalEmpty, { color: isRoyal ? 'rgba(255,255,255,0.5)' : colors.textMuted }]}>
+                  {getString(language, 'noResults')}
+                </Text>
+              }
+              keyboardShouldPersistTaps="handled"
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScreenWrapper>
   );
 }
@@ -445,21 +505,96 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { paddingTop: spacing.lg, paddingBottom: spacing.sm },
+  headerHomeRow: {
+    marginBottom: spacing.xs,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  searchIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
+    flex: 1,
     fontSize: fontSize.xl,
     fontWeight: fontWeight.regular,
     fontFamily: fontFamily.heading,
   },
   scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
-  continueWrap: { marginBottom: spacing.lg },
-  continueLabel: { fontSize: fontSize.xs, marginBottom: spacing.xxs },
-  continueSurah: { fontSize: fontSize.md, fontWeight: fontWeight.semibold },
   search: {
     marginBottom: spacing.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
+    fontSize: fontSize.md,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-start',
+    paddingTop: 60,
+    paddingHorizontal: spacing.lg,
+  },
+  modalContent: {
+    flex: 1,
+    borderRadius: radius.xl,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  modalSearchInput: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    fontSize: fontSize.md,
+  },
+  modalCloseBtn: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  modalCloseText: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.medium,
+  },
+  modalResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: spacing.md,
+  },
+  modalResultNum: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    minWidth: 28,
+  },
+  modalResultName: {
+    flex: 1,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.medium,
+  },
+  modalResultAyahs: {
+    fontSize: fontSize.sm,
+  },
+  modalEmpty: {
+    padding: spacing.xl,
+    textAlign: 'center',
     fontSize: fontSize.md,
   },
   downloadCard: {

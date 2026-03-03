@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
   Easing,
   runOnJS,
+  type SharedValue,
 } from 'react-native-reanimated';
 
 const PARTICLE_COUNT = 14;
@@ -67,7 +68,7 @@ function Particle({
 }: {
   x: number;
   y: number;
-  progress: Animated.SharedValue<number>;
+  progress: SharedValue<number>;
 }) {
   const style = useAnimatedStyle(() => {
     'worklet';

@@ -107,6 +107,7 @@ export function usePrayerTimes() {
   const { language, setLanguage } = useLanguage();
   const lastMunicipalityLabel = useRef<string | null>(null);
   const currentLabelRef = useRef<string | null>(null);
+  const forceFullRefreshRef = useRef(false);
   const [today, setToday] = useState<PrayerTimesForDay | null>(null);
   const [nextPrayer, setNextPrayer] = useState<NextPrayerResult | null>(null);
   const [tomorrowFirstPrayer, setTomorrowFirstPrayer] = useState<{
@@ -175,7 +176,14 @@ export function usePrayerTimes() {
     setTomorrowFirstPrayer(null);
     let lat: number;
     let lon: number;
+    const skipFastPath = forceFullRefreshRef.current;
+    if (skipFastPath) forceFullRefreshRef.current = false;
+
+    const s = await loadPrayerSettings();
+    setSettingsState(s);
     const cachedLoc = await loadLocation();
+    const { method, school, latitudeAdjustmentMethod } = settingsToAladhanParams(s);
+
     // Load cached municipality - prefer module-level cache, then ref, then AsyncStorage
     if (!_cachedMunicipality && !lastMunicipalityLabel.current) {
       const stored = await loadMunicipalityLabel();
@@ -184,9 +192,47 @@ export function usePrayerTimes() {
         lastMunicipalityLabel.current = stored;
       }
     } else if (_cachedMunicipality && !lastMunicipalityLabel.current) {
-      // Module cache has value but ref doesn't - sync them
       lastMunicipalityLabel.current = _cachedMunicipality;
     }
+
+    // Fast path: show cached content immediately if we have location + prayer times (skip when doing background refresh)
+    if (!skipFastPath && cachedLoc) {
+      lat = cachedLoc.lat;
+      lon = cachedLoc.lon;
+      setLocationState(cachedLoc);
+      setLocationLabel(cachedLoc.label ?? `${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+      if (cachedLoc.label) {
+        _cachedMunicipality = cachedLoc.label;
+        lastMunicipalityLabel.current = cachedLoc.label;
+      }
+      const cachedJson = await getCachedPrayerTimes(dateKey, lat, lon, method, school, latitudeAdjustmentMethod);
+      if (cachedJson) {
+        try {
+          const parsed = JSON.parse(cachedJson) as PrayerTimesForDay;
+          if (parsed.sunrise != null) {
+            const times = applyPrayerOffsets(
+              parsed.times.map((t) => ({ ...t, time: new Date(t.time) })),
+              s.prayerOffsets
+            );
+            const sunrise = parsed.sunrise != null ? new Date(parsed.sunrise) : null;
+            const adjusted = { dateKey: parsed.dateKey, times, sunrise };
+            setToday(adjusted);
+            const next = computeNextPrayer(adjusted.times, new Date());
+            setNextPrayer(next);
+            setCountdownSeconds(next?.secondsUntil ?? null);
+            if (!next) fetchAndSetTomorrow(lat, lon, s);
+            setLoading(false);
+            // Refresh in background (GPS, API) — don't block
+            forceFullRefreshRef.current = true;
+            refreshTimes().catch(() => {});
+            return;
+          }
+        } catch {
+          /* fall through to full refresh */
+        }
+      }
+    }
+
     async function setLabelFromCoords(lat: number, lon: number) {
       try {
         const addresses = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
@@ -299,7 +345,7 @@ export function usePrayerTimes() {
       }
     } else {
     // Otherwise: use current position. Fallback to cached when GPS unavailable or permission denied.
-    const LOCATION_TIMEOUT_MS = 15000;
+    const LOCATION_TIMEOUT_MS = 5000;
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -320,19 +366,21 @@ export function usePrayerTimes() {
         }
       } else {
         let pos: Location.LocationObject | null = null;
-        try {
-          pos = await Promise.race([
-            Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Location timeout')), LOCATION_TIMEOUT_MS)
-            ),
-          ]);
-        } catch (timeoutOrError) {
-          const lastKnown = await Location.getLastKnownPositionAsync({ maxAge: 600000 });
-          if (lastKnown) {
-            pos = lastKnown;
+        // Try last known position first (often instant) before waiting for GPS
+        pos = await Location.getLastKnownPositionAsync({ maxAge: 600000 });
+        if (!pos) {
+          try {
+            pos = await Promise.race([
+              Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('Location timeout')), LOCATION_TIMEOUT_MS)
+              ),
+            ]);
+          } catch (timeoutOrError) {
+            const lastKnown = await Location.getLastKnownPositionAsync({ maxAge: 600000 });
+            if (lastKnown) pos = lastKnown;
+            if (!pos) throw timeoutOrError;
           }
-          if (!pos) throw timeoutOrError;
         }
         lat = pos.coords.latitude;
         lon = pos.coords.longitude;
@@ -374,10 +422,6 @@ export function usePrayerTimes() {
       }
     }
     }
-
-    const s = await loadPrayerSettings();
-    setSettingsState(s);
-    const { method, school, latitudeAdjustmentMethod } = settingsToAladhanParams(s);
 
     const cachedJson = await getCachedPrayerTimes(dateKey, lat, lon, method, school, latitudeAdjustmentMethod);
     const applyOffsetsAndSet = (raw: PrayerTimesForDay) => {

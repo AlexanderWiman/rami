@@ -138,6 +138,10 @@ export function OnboardingScreen() {
     }
     if (step === 4) {
       const settings = { ...DEFAULT_SETTINGS, calculationMethod: calcMethod };
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') {
+        settings.notificationsEnabled = false;
+      }
       await savePrayerSettings(settings);
       await setOnboardingDone();
       router.replace('/');

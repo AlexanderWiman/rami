@@ -55,6 +55,7 @@ export const translations: Record<
     navForum: string;
     navSettings: string;
     navAdkhar: string;
+    navBukhari: string;
     adkharTitle: string;
     adkharSubtitle: string;
     adkharMorning: string;
@@ -71,6 +72,12 @@ export const translations: Record<
     sectionPrayerTimes: string;
     sectionInfo: string;
     sectionApp: string;
+    sectionCredits: string;
+    creditsDeveloper: string;
+    creditsPrayerTimes: string;
+    creditsQuran: string;
+    creditsBukhari: string;
+    creditsLocation: string;
     nextPrayer: string;
     location: string;
     noLocation: string;
@@ -119,6 +126,23 @@ export const translations: Record<
     noResults: string;
     knowledgeGarden: string;
     readingSanctuary: string;
+    bukhariTitle: string;
+    bukhariSubtitle: string;
+    bukhariBook: string;
+    bukhariChapter: string;
+    bukhariBooks: string;
+    bukhariChapters: string;
+    bukhariHadith: string;
+    bukhariHadiths: string;
+    bukhariNoBooks: string;
+    bukhariNoChapters: string;
+    bukhariNoHadiths: string;
+    bukhariLoadError: string;
+    bukhariLanguage: string;
+    bukhariFavorites: string;
+    bukhariNoFavorites: string;
+    bukhariMaxFavoritesReached: string;
+    backToTop: string;
     continueReading: string;
     namesOfAllahTitle: string;
     namesOfAllahSubtitle: string;
@@ -172,6 +196,9 @@ export const translations: Record<
     resumeRecitation: string;
     stopRecitation: string;
     playFromHere: string;
+    tapVerseHint: string;
+    fullSurahNotAvailable: string;
+    loadingQuranText: string;
     locationPermissionNeeded: string;
     couldNotGetDirection: string;
     findingDirection: string;
@@ -190,6 +217,7 @@ export const translations: Record<
     off: string;
     playAzan: string;
     openQibla: string;
+    mecca: string;
     nextPrayerAt: string;
     adminLogin: string;
     adminHome: string;
@@ -241,6 +269,8 @@ export const translations: Record<
     onboardingAndroidNotificationHint: string;
     openSettings: string;
     notificationPermissionRequired: string;
+    shareApp: string;
+    rateApp: string;
   }
 > = {
   en: {
@@ -261,6 +291,7 @@ export const translations: Record<
     navForum: 'Forum',
     navSettings: 'Settings',
     navAdkhar: 'Adhkar',
+    navBukhari: 'Bukhari',
     adkharTitle: 'Adhkar',
     adkharSubtitle: 'Morning, evening, bedtime and post-prayer remembrances',
     adkharMorning: 'Morning',
@@ -277,6 +308,12 @@ export const translations: Record<
     sectionPrayerTimes: 'Prayer times',
     sectionInfo: 'Info',
     sectionApp: 'App',
+    sectionCredits: 'Credits',
+    creditsDeveloper: 'Abo Olle',
+    creditsPrayerTimes: 'Prayer times: AlAdhan API',
+    creditsQuran: 'Quran: Al-Quran Cloud',
+    creditsBukhari: 'Sahih al-Bukhari: hadith-api',
+    creditsLocation: 'Location: OpenStreetMap Nominatim',
     nextPrayer: 'Next prayer',
     location: 'Location',
     noLocation: 'No location set',
@@ -326,6 +363,23 @@ export const translations: Record<
     noResults: 'No results',
     knowledgeGarden: 'Knowledge Garden',
     readingSanctuary: 'Reading Sanctuary',
+    bukhariTitle: 'Sahih al-Bukhari',
+    bukhariSubtitle: 'Authentic narrations with offline access and bookmarks.',
+    bukhariBook: 'Book',
+    bukhariChapter: 'Chapter',
+    bukhariBooks: 'books',
+    bukhariChapters: 'chapters',
+    bukhariHadith: 'Hadith',
+    bukhariHadiths: 'hadiths',
+    bukhariNoBooks: 'No books found',
+    bukhariNoChapters: 'No chapters found',
+    bukhariNoHadiths: 'No hadith found in this chapter',
+    bukhariLoadError: 'Unable to load Sahih al-Bukhari right now.',
+    bukhariLanguage: 'Text language',
+    bukhariFavorites: 'Favorites',
+    bukhariNoFavorites: 'Tap ☆ on a hadith to add it here.',
+    bukhariMaxFavoritesReached: 'Maximum 50 favorites. Remove one to add another.',
+    backToTop: 'Back to top',
     namesOfAllahTitle: '99 Names of Allah',
     namesOfAllahSubtitle: 'Reflect on the most beautiful names.',
     tasbihTitle: 'Tasbih',
@@ -379,6 +433,9 @@ export const translations: Record<
     resumeRecitation: 'Resume',
     stopRecitation: 'Stop',
     playFromHere: 'Play from here',
+    tapVerseHint: 'Tap verse number to play',
+    fullSurahNotAvailable: 'Full surah is not available for this reciter. Tap a verse to listen.',
+    loadingQuranText: 'Fetching text…',
     locationPermissionNeeded: 'Location permission needed',
     couldNotGetDirection: 'Could not get direction',
     findingDirection: 'Finding direction…',
@@ -397,6 +454,7 @@ export const translations: Record<
     off: 'Off',
     playAzan: 'Play Azan',
     openQibla: 'Open Qibla',
+    mecca: 'Mecca',
     nextPrayerAt: 'Next prayer at {time}',
     adminLogin: 'Login',
     adminHome: 'Home',
@@ -409,7 +467,7 @@ export const translations: Record<
       Isha: 'Isha',
     },
     soundOptions: { azan1: 'Azan 1', azan2: 'Azan 2' },
-    calculationMethodOptions: { MWL: 'MWL', Egypt: 'Egypt', UmmAlQura: 'Umm al-Qura', Karachi: 'Karachi', Diyanet: 'Diyanet (Muslim Pro)' },
+    calculationMethodOptions: { MWL: 'MWL', Egypt: 'Egypt', UmmAlQura: 'Umm al-Qura', Karachi: 'Karachi', Diyanet: '★ Recommended' },
     asrMethodOptions: { Shafi: 'Shafi', Hanafi: 'Hanafi' },
     highLatitudeOptions: {
       MiddleOfNight: 'Middle of the Night',
@@ -480,6 +538,8 @@ export const translations: Record<
     onboardingAndroidNotificationHint: ' On some phones you may also need to enable notifications under Settings > Apps > Burhank.',
     openSettings: 'Open settings',
     notificationPermissionRequired: 'Notification permission is required. Please enable it in system settings.',
+    shareApp: 'Share app',
+    rateApp: 'Rate app',
   },
   ar: {
     appName: 'رامي',
@@ -499,6 +559,7 @@ export const translations: Record<
     navForum: 'المنتدى',
     navSettings: 'الإعدادات',
     navAdkhar: 'الأذكار',
+    navBukhari: 'البخاري',
     adkharTitle: 'الأذكار',
     adkharSubtitle: 'أذكار الصباح والمساء والنوم وبعد الصلاة',
     adkharMorning: 'الصباح',
@@ -515,6 +576,12 @@ export const translations: Record<
     sectionPrayerTimes: 'أوقات الصلاة',
     sectionInfo: 'معلومات',
     sectionApp: 'التطبيق',
+    sectionCredits: 'شكر وتقدير',
+    creditsDeveloper: 'Abo Olle',
+    creditsPrayerTimes: 'أوقات الصلاة: AlAdhan API',
+    creditsQuran: 'القرآن: Al-Quran Cloud',
+    creditsBukhari: 'صحيح البخاري: hadith-api',
+    creditsLocation: 'الموقع: OpenStreetMap Nominatim',
     nextPrayer: 'الصلاة القادمة',
     location: 'الموقع',
     noLocation: 'لم يتم تعيين الموقع',
@@ -564,6 +631,23 @@ export const translations: Record<
     noResults: 'لا نتائج',
     knowledgeGarden: 'حديقة المعرفة',
     readingSanctuary: 'القرآن',
+    bukhariTitle: 'صحيح البخاري',
+    bukhariSubtitle: 'أحاديث صحيحة مع حفظ دون اتصال وإشارات مرجعية.',
+    bukhariBook: 'كتاب',
+    bukhariChapter: 'باب',
+    bukhariBooks: 'كتب',
+    bukhariChapters: 'أبواب',
+    bukhariHadith: 'حديث',
+    bukhariHadiths: 'أحاديث',
+    bukhariNoBooks: 'لا توجد كتب',
+    bukhariNoChapters: 'لا توجد أبواب',
+    bukhariNoHadiths: 'لا توجد أحاديث في هذا الباب',
+    bukhariLoadError: 'تعذر تحميل صحيح البخاري الآن.',
+    bukhariLanguage: 'لغة النص',
+    bukhariFavorites: 'المفضلة',
+    bukhariNoFavorites: 'اضغط ☆ على الحديث لإضافته هنا.',
+    bukhariMaxFavoritesReached: 'الحد الأقصى 50 مفضلة. احذف واحدة لإضافة أخرى.',
+    backToTop: 'العودة للأعلى',
     namesOfAllahTitle: 'أسماء الله الحسنى',
     namesOfAllahSubtitle: 'تأمل في الأسماء الحسنى.',
     tasbihTitle: 'السبحة',
@@ -617,6 +701,9 @@ export const translations: Record<
     resumeRecitation: 'استئناف',
     stopRecitation: 'إيقاف',
     playFromHere: 'تشغيل من هنا',
+    tapVerseHint: 'انقر على رقم الآية للتلاوة',
+    fullSurahNotAvailable: 'السورة الكاملة غير متاحة لهذا القارئ. انقر على الآية للاستماع.',
+    loadingQuranText: 'جارٍ جلب النص…',
     locationPermissionNeeded: 'يلزم إذن الموقع',
     couldNotGetDirection: 'تعذر تحديد الاتجاه',
     findingDirection: 'جارٍ البحث عن الاتجاه…',
@@ -635,6 +722,7 @@ export const translations: Record<
     off: 'إيقاف',
     playAzan: 'تشغيل الأذان',
     openQibla: 'القبلة',
+    mecca: 'مكة',
     nextPrayerAt: 'بعد {time}',
     adminLogin: 'تسجيل الدخول',
     adminHome: 'الرئيسية',
@@ -647,7 +735,7 @@ export const translations: Record<
       Isha: 'العشاء',
     },
     soundOptions: { azan1: 'أذان 1', azan2: 'أذان 2' },
-    calculationMethodOptions: { MWL: 'رابطة العالم الإسلامي', Egypt: 'مصر', UmmAlQura: 'أم القرى', Karachi: 'كراتشي', Diyanet: 'ديانة (Muslim Pro)' },
+    calculationMethodOptions: { MWL: 'رابطة العالم الإسلامي', Egypt: 'مصر', UmmAlQura: 'أم القرى', Karachi: 'كراتشي', Diyanet: '★ الموصى به' },
     asrMethodOptions: { Shafi: 'الشافعي', Hanafi: 'الحنفي' },
     highLatitudeOptions: {
       MiddleOfNight: 'منتصف الليل',
@@ -718,6 +806,8 @@ export const translations: Record<
     onboardingAndroidNotificationHint: ' على بعض الهواتف قد تحتاج أيضاً لتفعيل الإشعارات من الإعدادات > التطبيقات > برهانك.',
     openSettings: 'فتح الإعدادات',
     notificationPermissionRequired: 'مطلوب إذن الإشعارات. يرجى تفعيله في إعدادات النظام.',
+    shareApp: 'مشاركة التطبيق',
+    rateApp: 'تقييم التطبيق',
   },
   tr: {
     appName: 'Rami',
@@ -737,6 +827,7 @@ export const translations: Record<
     navForum: 'Forum',
     navSettings: 'Ayarlar',
     navAdkhar: 'Zikirler',
+    navBukhari: 'Buhari',
     adkharTitle: 'Zikirler',
     adkharSubtitle: 'Sabah, akşam, yatmadan önce ve namaz sonrası zikirleri',
     adkharMorning: 'Sabah',
@@ -753,6 +844,12 @@ export const translations: Record<
     sectionPrayerTimes: 'Namaz vakitleri',
     sectionInfo: 'Bilgi',
     sectionApp: 'Uygulama',
+    sectionCredits: 'Teşekkürler',
+    creditsDeveloper: 'Abo Olle',
+    creditsPrayerTimes: 'Namaz vakitleri: AlAdhan API',
+    creditsQuran: 'Kuran: Al-Quran Cloud',
+    creditsBukhari: 'Sahih al-Bukhari: hadith-api',
+    creditsLocation: 'Konum: OpenStreetMap Nominatim',
     nextPrayer: 'Sıradaki namaz',
     location: 'Konum',
     noLocation: 'Konum ayarlanmadı',
@@ -802,6 +899,23 @@ export const translations: Record<
     noResults: 'Sonuç yok',
     knowledgeGarden: 'Bilgi Bahçesi',
     readingSanctuary: 'Okuma Sığınağı',
+    bukhariTitle: 'Sahih el-Buhari',
+    bukhariSubtitle: 'Çevrimdışı erişim ve yer imleri ile sahih hadisler.',
+    bukhariBook: 'Kitap',
+    bukhariChapter: 'Bölüm',
+    bukhariBooks: 'kitap',
+    bukhariChapters: 'bölüm',
+    bukhariHadith: 'Hadis',
+    bukhariHadiths: 'hadis',
+    bukhariNoBooks: 'Kitap bulunamadı',
+    bukhariNoChapters: 'Bölüm bulunamadı',
+    bukhariNoHadiths: 'Bu bölümde hadis bulunamadı',
+    bukhariLoadError: 'Sahih el-Buhari şu anda yüklenemedi.',
+    bukhariLanguage: 'Metin dili',
+    bukhariFavorites: 'Favoriler',
+    bukhariNoFavorites: 'Buraya eklemek için bir hadise ☆ dokunun.',
+    bukhariMaxFavoritesReached: 'En fazla 50 favori. Yeni eklemek için birini kaldırın.',
+    backToTop: 'Yukarı dön',
     namesOfAllahTitle: "Allah'ın 99 İsmi",
     namesOfAllahSubtitle: 'En güzel isimler üzerinde düşün.',
     tasbihTitle: 'Tesbih',
@@ -855,6 +969,9 @@ export const translations: Record<
     resumeRecitation: 'Devam et',
     stopRecitation: 'Durdur',
     playFromHere: 'Buradan oynat',
+    tapVerseHint: 'Dinlemek için ayet numarasına dokunun',
+    fullSurahNotAvailable: 'Tam sure bu okuyucu için mevcut değil. Dinlemek için bir ayete dokunun.',
+    loadingQuranText: 'Metin getiriliyor…',
     locationPermissionNeeded: 'Konum izni gerekiyor',
     couldNotGetDirection: 'Yön alınamadı',
     findingDirection: 'Yön bulunuyor…',
@@ -873,6 +990,7 @@ export const translations: Record<
     off: 'Kapalı',
     playAzan: 'Ezan çal',
     openQibla: 'Kıbleyi aç',
+    mecca: 'Mekke',
     nextPrayerAt: 'Sonraki namaz {time}',
     adminLogin: 'Giriş yap',
     adminHome: 'Ana sayfa',
@@ -885,7 +1003,7 @@ export const translations: Record<
       Isha: 'Yatsı',
     },
     soundOptions: { azan1: 'Ezan 1', azan2: 'Ezan 2' },
-    calculationMethodOptions: { MWL: 'MWL', Egypt: 'Mısır', UmmAlQura: "Ümmü'l-Kurâ", Karachi: 'Karachi', Diyanet: 'Diyanet (Muslim Pro)' },
+    calculationMethodOptions: { MWL: 'MWL', Egypt: 'Mısır', UmmAlQura: "Ümmü'l-Kurâ", Karachi: 'Karachi', Diyanet: '★ Önerilen' },
     asrMethodOptions: { Shafi: 'Şafii', Hanafi: 'Hanefi' },
     highLatitudeOptions: {
       MiddleOfNight: 'Gecenin ortası',
@@ -957,6 +1075,8 @@ export const translations: Record<
     onboardingAndroidNotificationHint: ' Bazı telefonlarda Ayarlar > Uygulamalar > Burhank altından bildirimleri de etkinleştirmeniz gerekebilir.',
     openSettings: 'Ayarları aç',
     notificationPermissionRequired: 'Bildirim izni gerekli. Lütfen sistem ayarlarından etkinleştirin.',
+    shareApp: 'Uygulamayı paylaş',
+    rateApp: 'Uygulamayı değerlendir',
   },
   fr: {
     appName: 'Rami',
@@ -976,6 +1096,7 @@ export const translations: Record<
     navForum: 'Forum',
     navSettings: 'Paramètres',
     navAdkhar: 'Adhkar',
+    navBukhari: 'Bukhari',
     adkharTitle: 'Adhkar',
     adkharSubtitle: 'Invocations du matin, du soir, du coucher et après la prière',
     adkharMorning: 'Matin',
@@ -992,6 +1113,12 @@ export const translations: Record<
     sectionPrayerTimes: 'Heures de prière',
     sectionInfo: 'Info',
     sectionApp: 'Application',
+    sectionCredits: 'Crédits',
+    creditsDeveloper: 'Abo Olle',
+    creditsPrayerTimes: 'Heures de prière: AlAdhan API',
+    creditsQuran: 'Coran: Al-Quran Cloud',
+    creditsBukhari: 'Sahih al-Bukhari: hadith-api',
+    creditsLocation: 'Localisation: OpenStreetMap Nominatim',
     nextPrayer: 'Prochaine prière',
     location: 'Emplacement',
     noLocation: 'Aucun emplacement défini',
@@ -1041,6 +1168,23 @@ export const translations: Record<
     noResults: 'Aucun résultat',
     knowledgeGarden: 'Jardin du savoir',
     readingSanctuary: 'Sanctuaire de lecture',
+    bukhariTitle: 'Sahih al-Bukhari',
+    bukhariSubtitle: 'Hadiths authentiques avec mode hors ligne et favoris.',
+    bukhariBook: 'Livre',
+    bukhariChapter: 'Chapitre',
+    bukhariBooks: 'livres',
+    bukhariChapters: 'chapitres',
+    bukhariHadith: 'Hadith',
+    bukhariHadiths: 'hadiths',
+    bukhariNoBooks: 'Aucun livre trouvé',
+    bukhariNoChapters: 'Aucun chapitre trouvé',
+    bukhariNoHadiths: 'Aucun hadith dans ce chapitre',
+    bukhariLoadError: 'Impossible de charger Sahih al-Bukhari pour le moment.',
+    bukhariLanguage: 'Langue du texte',
+    bukhariFavorites: 'Favoris',
+    bukhariNoFavorites: 'Appuyez sur ☆ sur un hadith pour l\'ajouter ici.',
+    bukhariMaxFavoritesReached: 'Maximum 50 favoris. Supprimez-en un pour en ajouter un autre.',
+    backToTop: 'Retour en haut',
     namesOfAllahTitle: '99 noms d\'Allah',
     namesOfAllahSubtitle: 'Méditez sur les plus beaux noms.',
     tasbihTitle: 'Tasbih',
@@ -1094,6 +1238,9 @@ export const translations: Record<
     resumeRecitation: 'Reprendre',
     stopRecitation: 'Arrêter',
     playFromHere: 'Jouer à partir d\'ici',
+    tapVerseHint: 'Appuyez sur le numéro du verset pour écouter',
+    fullSurahNotAvailable: 'La sourate complète n\'est pas disponible pour ce récitateur. Appuyez sur un verset pour écouter.',
+    loadingQuranText: 'Chargement du texte…',
     locationPermissionNeeded: 'Permission de localisation requise',
     couldNotGetDirection: 'Impossible d\'obtenir la direction',
     findingDirection: 'Recherche de la direction…',
@@ -1112,6 +1259,7 @@ export const translations: Record<
     off: 'Désactivé',
     playAzan: 'Jouer l\'Adhan',
     openQibla: 'Ouvrir Qibla',
+    mecca: 'La Mecque',
     nextPrayerAt: 'Prochaine prière à {time}',
     adminLogin: 'Connexion',
     adminHome: 'Accueil',
@@ -1124,7 +1272,7 @@ export const translations: Record<
       Isha: 'Isha',
     },
     soundOptions: { azan1: 'Adhan 1', azan2: 'Adhan 2' },
-    calculationMethodOptions: { MWL: 'MWL', Egypt: 'Égypte', UmmAlQura: 'Umm al-Qura', Karachi: 'Karachi', Diyanet: 'Diyanet (Muslim Pro)' },
+    calculationMethodOptions: { MWL: 'MWL', Egypt: 'Égypte', UmmAlQura: 'Umm al-Qura', Karachi: 'Karachi', Diyanet: '★ Recommandé' },
     asrMethodOptions: { Shafi: 'Chaféite', Hanafi: 'Hanafite' },
     highLatitudeOptions: {
       MiddleOfNight: 'Milieu de la nuit',
@@ -1195,6 +1343,8 @@ export const translations: Record<
     onboardingAndroidNotificationHint: ' Sur certains téléphones, vous devrez peut-être aussi activer les notifications dans Paramètres > Applications > Burhank.',
     openSettings: 'Ouvrir les paramètres',
     notificationPermissionRequired: 'L\'autorisation de notification est requise. Veuillez l\'activer dans les paramètres du système.',
+    shareApp: 'Partager l\'app',
+    rateApp: 'Noter l\'app',
   },
   es: {
     appName: 'Rami',
@@ -1214,6 +1364,7 @@ export const translations: Record<
     navForum: 'Foro',
     navSettings: 'Ajustes',
     navAdkhar: 'Adhkar',
+    navBukhari: 'Bujari',
     adkharTitle: 'Adhkar',
     adkharSubtitle: 'Invocaciones de mañana, tarde, antes de dormir y después de la oración',
     adkharMorning: 'Mañana',
@@ -1230,6 +1381,12 @@ export const translations: Record<
     sectionPrayerTimes: 'Horarios de oración',
     sectionInfo: 'Info',
     sectionApp: 'Aplicación',
+    sectionCredits: 'Créditos',
+    creditsDeveloper: 'Abo Olle',
+    creditsPrayerTimes: 'Horarios de oración: AlAdhan API',
+    creditsQuran: 'Corán: Al-Quran Cloud',
+    creditsBukhari: 'Sahih al-Bukhari: hadith-api',
+    creditsLocation: 'Ubicación: OpenStreetMap Nominatim',
     nextPrayer: 'Próxima oración',
     location: 'Ubicación',
     noLocation: 'Sin ubicación configurada',
@@ -1279,6 +1436,23 @@ export const translations: Record<
     noResults: 'Sin resultados',
     knowledgeGarden: 'Jardín del conocimiento',
     readingSanctuary: 'Santuario de lectura',
+    bukhariTitle: 'Sahih al-Bukhari',
+    bukhariSubtitle: 'Hadices auténticos con modo sin conexión y marcadores.',
+    bukhariBook: 'Libro',
+    bukhariChapter: 'Capítulo',
+    bukhariBooks: 'libros',
+    bukhariChapters: 'capítulos',
+    bukhariHadith: 'Hadiz',
+    bukhariHadiths: 'hadices',
+    bukhariNoBooks: 'No se encontraron libros',
+    bukhariNoChapters: 'No se encontraron capítulos',
+    bukhariNoHadiths: 'No hay hadices en este capítulo',
+    bukhariLoadError: 'No se pudo cargar Sahih al-Bukhari ahora mismo.',
+    bukhariLanguage: 'Idioma del texto',
+    bukhariFavorites: 'Favoritos',
+    bukhariNoFavorites: 'Toca ☆ en un hadiz para añadirlo aquí.',
+    bukhariMaxFavoritesReached: 'Máximo 50 favoritos. Elimina uno para añadir otro.',
+    backToTop: 'Volver arriba',
     namesOfAllahTitle: '99 nombres de Allah',
     namesOfAllahSubtitle: 'Reflexiona sobre los nombres más bellos.',
     tasbihTitle: 'Tasbih',
@@ -1305,6 +1479,8 @@ export const translations: Record<
     downloadLabelAudio: 'Audio',
     downloadSurahHint: 'Toca una sura para descargarla sin conexión',
     downloadAudioOptions: 'Elegir qué descargar',
+    downloadAudioOptionJuzAmma: 'Juz Amma (~15 MB)',
+    downloadAudioOptionFull: 'Corán completo (~500 MB)',
     downloadQuran: 'Descargar texto',
     downloadQuranSize: 'Árabe + traducción, ~4 MB',
     downloadQuranDownloading: 'Descargando…',
@@ -1330,6 +1506,9 @@ export const translations: Record<
     resumeRecitation: 'Reanudar',
     stopRecitation: 'Detener',
     playFromHere: 'Reproducir desde aquí',
+    tapVerseHint: 'Toca el número del versículo para reproducir',
+    fullSurahNotAvailable: 'La sura completa no está disponible para este recitador. Toca un versículo para escuchar.',
+    loadingQuranText: 'Obteniendo texto…',
     locationPermissionNeeded: 'Se necesita permiso de ubicación',
     couldNotGetDirection: 'No se pudo obtener la dirección',
     findingDirection: 'Buscando dirección…',
@@ -1348,6 +1527,7 @@ export const translations: Record<
     off: 'Desactivado',
     playAzan: 'Reproducir Adhan',
     openQibla: 'Abrir Qibla',
+    mecca: 'La Meca',
     nextPrayerAt: 'Próxima oración a las {time}',
     adminLogin: 'Iniciar sesión',
     adminHome: 'Inicio',
@@ -1360,7 +1540,7 @@ export const translations: Record<
       Isha: 'Isha',
     },
     soundOptions: { azan1: 'Adhan 1', azan2: 'Adhan 2' },
-    calculationMethodOptions: { MWL: 'MWL', Egypt: 'Egipto', UmmAlQura: 'Umm al-Qura', Karachi: 'Karachi', Diyanet: 'Diyanet (Muslim Pro)' },
+    calculationMethodOptions: { MWL: 'MWL', Egypt: 'Egipto', UmmAlQura: 'Umm al-Qura', Karachi: 'Karachi', Diyanet: '★ Recomendado' },
     asrMethodOptions: { Shafi: 'Shafií', Hanafi: 'Hanafí' },
     highLatitudeOptions: {
       MiddleOfNight: 'Mitad de la noche',
@@ -1431,6 +1611,8 @@ export const translations: Record<
     onboardingAndroidNotificationHint: ' En algunos teléfonos también debes activar las notificaciones en Ajustes > Aplicaciones > Burhank.',
     openSettings: 'Abrir configuración',
     notificationPermissionRequired: 'Se requiere permiso de notificaciones. Actívalo en la configuración del sistema.',
+    shareApp: 'Compartir app',
+    rateApp: 'Valorar app',
   },
   sv: {
     appName: 'Rami',
@@ -1450,6 +1632,7 @@ export const translations: Record<
     navForum: 'Forum',
     navSettings: 'Inställningar',
     navAdkhar: 'Adhkar',
+    navBukhari: 'Bukhari',
     adkharTitle: 'Adhkar',
     adkharSubtitle: 'Morgon-, kvälls-, sov- och böneinvokationer',
     adkharMorning: 'Morgon',
@@ -1466,6 +1649,12 @@ export const translations: Record<
     sectionPrayerTimes: 'Bönetider',
     sectionInfo: 'Info',
     sectionApp: 'App',
+    sectionCredits: 'Credits',
+    creditsDeveloper: 'Abo Olle',
+    creditsPrayerTimes: 'Bönetider: AlAdhan API',
+    creditsQuran: 'Koran: Al-Quran Cloud',
+    creditsBukhari: 'Sahih al-Bukhari: hadith-api',
+    creditsLocation: 'Plats: OpenStreetMap Nominatim',
     nextPrayer: 'Nästa bön',
     location: 'Plats',
     noLocation: 'Ingen plats angiven',
@@ -1515,6 +1704,23 @@ export const translations: Record<
     noResults: 'Inga resultat',
     knowledgeGarden: 'Kunskapsträdgården',
     readingSanctuary: 'Läsningsfristad',
+    bukhariTitle: 'Sahih al-Bukhari',
+    bukhariSubtitle: 'Autentiska hadither med offline-läge och bokmärken.',
+    bukhariBook: 'Bok',
+    bukhariChapter: 'Kapitel',
+    bukhariBooks: 'böcker',
+    bukhariChapters: 'kapitel',
+    bukhariHadith: 'Hadith',
+    bukhariHadiths: 'hadither',
+    bukhariNoBooks: 'Inga böcker hittades',
+    bukhariNoChapters: 'Inga kapitel hittades',
+    bukhariNoHadiths: 'Inga hadither i detta kapitel',
+    bukhariLoadError: 'Kunde inte ladda Sahih al-Bukhari just nu.',
+    bukhariLanguage: 'Textspråk',
+    bukhariFavorites: 'Favoriter',
+    bukhariNoFavorites: 'Tryck ☆ på en hadith för att lägga till den här.',
+    bukhariMaxFavoritesReached: 'Max 50 favoriter. Ta bort en för att lägga till en till.',
+    backToTop: 'Till toppen',
     namesOfAllahTitle: 'Allahs 99 namn',
     namesOfAllahSubtitle: 'Reflektera över de vackraste namnen.',
     tasbihTitle: 'Tasbih',
@@ -1568,6 +1774,9 @@ export const translations: Record<
     resumeRecitation: 'Återuppta',
     stopRecitation: 'Stoppa',
     playFromHere: 'Spela härifrån',
+    tapVerseHint: 'Tryck på versnummer för att spela',
+    fullSurahNotAvailable: 'Hela surahn är inte tillgänglig för denna recitator. Tryck på en vers för att lyssna.',
+    loadingQuranText: 'Hämtar text…',
     locationPermissionNeeded: 'Platsbehörighet krävs',
     couldNotGetDirection: 'Kunde inte få riktning',
     findingDirection: 'Söker riktning…',
@@ -1586,6 +1795,7 @@ export const translations: Record<
     off: 'Av',
     playAzan: 'Spela Adhan',
     openQibla: 'Öppna Qibla',
+    mecca: 'Mecka',
     nextPrayerAt: 'Nästa bön kl {time}',
     adminLogin: 'Logga in',
     adminHome: 'Hem',
@@ -1598,7 +1808,7 @@ export const translations: Record<
       Isha: 'Isha',
     },
     soundOptions: { azan1: 'Adhan 1', azan2: 'Adhan 2' },
-    calculationMethodOptions: { MWL: 'MWL', Egypt: 'Egypten', UmmAlQura: 'Umm al-Qura', Karachi: 'Karachi', Diyanet: 'Diyanet (Muslim Pro)' },
+    calculationMethodOptions: { MWL: 'MWL', Egypt: 'Egypten', UmmAlQura: 'Umm al-Qura', Karachi: 'Karachi', Diyanet: '★ Rekommenderad' },
     asrMethodOptions: { Shafi: 'Shafii', Hanafi: 'Hanafi' },
     highLatitudeOptions: {
       MiddleOfNight: 'Mitten av natten',
@@ -1669,6 +1879,8 @@ export const translations: Record<
     onboardingAndroidNotificationHint: ' På vissa telefoner måste du också slå på notiser under Inställningar > Appar > Burhank.',
     openSettings: 'Öppna inställningar',
     notificationPermissionRequired: 'Notisbehörighet krävs. Aktivera den i systeminställningarna.',
+    shareApp: 'Dela appen',
+    rateApp: 'Betygsätt appen',
   },
   de: {
     appName: 'Rami',
@@ -1688,6 +1900,7 @@ export const translations: Record<
     navForum: 'Forum',
     navSettings: 'Einstellungen',
     navAdkhar: 'Adhkar',
+    navBukhari: 'Bukhari',
     adkharTitle: 'Adhkar',
     adkharSubtitle: 'Morgen-, Abend-, Schlaf- und Gebetsinvokationen',
     adkharMorning: 'Morgen',
@@ -1704,6 +1917,12 @@ export const translations: Record<
     sectionPrayerTimes: 'Gebetszeiten',
     sectionInfo: 'Info',
     sectionApp: 'App',
+    sectionCredits: 'Danksagungen',
+    creditsDeveloper: 'Abo Olle',
+    creditsPrayerTimes: 'Gebetszeiten: AlAdhan API',
+    creditsQuran: 'Koran: Al-Quran Cloud',
+    creditsBukhari: 'Sahih al-Bukhari: hadith-api',
+    creditsLocation: 'Standort: OpenStreetMap Nominatim',
     nextPrayer: 'Nächstes Gebet',
     location: 'Standort',
     noLocation: 'Kein Standort festgelegt',
@@ -1753,6 +1972,23 @@ export const translations: Record<
     noResults: 'Keine Ergebnisse',
     knowledgeGarden: 'Wissensgarten',
     readingSanctuary: 'Leseheiligtum',
+    bukhariTitle: 'Sahih al-Bukhari',
+    bukhariSubtitle: 'Authentische Hadithe mit Offline-Modus und Lesezeichen.',
+    bukhariBook: 'Buch',
+    bukhariChapter: 'Kapitel',
+    bukhariBooks: 'Bücher',
+    bukhariChapters: 'Kapitel',
+    bukhariHadith: 'Hadith',
+    bukhariHadiths: 'Hadithe',
+    bukhariNoBooks: 'Keine Bücher gefunden',
+    bukhariNoChapters: 'Keine Kapitel gefunden',
+    bukhariNoHadiths: 'Keine Hadithe in diesem Kapitel',
+    bukhariLoadError: 'Sahih al-Bukhari konnte gerade nicht geladen werden.',
+    bukhariLanguage: 'Textsprache',
+    bukhariFavorites: 'Favoriten',
+    bukhariNoFavorites: 'Tippe auf ☆ bei einem Hadith, um ihn hier hinzuzufügen.',
+    bukhariMaxFavoritesReached: 'Maximal 50 Favoriten. Entferne einen, um einen anderen hinzuzufügen.',
+    backToTop: 'Nach oben',
     namesOfAllahTitle: '99 Namen Allahs',
     namesOfAllahSubtitle: 'Meditiere über die schönsten Namen.',
     tasbihTitle: 'Tasbih',
@@ -1779,6 +2015,8 @@ export const translations: Record<
     downloadLabelAudio: 'Audio',
     downloadSurahHint: 'Tippen Sie auf eine Sure zum Herunterladen für Offline',
     downloadAudioOptions: 'Wählen Sie, was heruntergeladen werden soll',
+    downloadAudioOptionJuzAmma: 'Juz Amma (~15 MB)',
+    downloadAudioOptionFull: 'Vollständiger Koran (~500 MB)',
     downloadQuran: 'Text herunterladen',
     downloadQuranSize: 'Arabisch + Übersetzung, ~4 MB',
     downloadQuranDownloading: 'Wird heruntergeladen…',
@@ -1804,6 +2042,9 @@ export const translations: Record<
     resumeRecitation: 'Fortsetzen',
     stopRecitation: 'Stoppen',
     playFromHere: 'Von hier abspielen',
+    tapVerseHint: 'Tippen Sie auf die Versnummer zum Abspielen',
+    fullSurahNotAvailable: 'Vollständige Sure für diesen Rezitator nicht verfügbar. Tippen Sie auf einen Vers zum Anhören.',
+    loadingQuranText: 'Text wird geladen…',
     locationPermissionNeeded: 'Standortberechtigung erforderlich',
     couldNotGetDirection: 'Richtung konnte nicht ermittelt werden',
     findingDirection: 'Richtung wird gesucht…',
@@ -1822,6 +2063,7 @@ export const translations: Record<
     off: 'Aus',
     playAzan: 'Adhan abspielen',
     openQibla: 'Qibla öffnen',
+    mecca: 'Mekka',
     nextPrayerAt: 'Nächstes Gebet um {time}',
     adminLogin: 'Anmelden',
     adminHome: 'Start',
@@ -1834,7 +2076,7 @@ export const translations: Record<
       Isha: 'Isha',
     },
     soundOptions: { azan1: 'Adhan 1', azan2: 'Adhan 2' },
-    calculationMethodOptions: { MWL: 'MWL', Egypt: 'Ägypten', UmmAlQura: 'Umm al-Qura', Karachi: 'Karachi', Diyanet: 'Diyanet (Muslim Pro)' },
+    calculationMethodOptions: { MWL: 'MWL', Egypt: 'Ägypten', UmmAlQura: 'Umm al-Qura', Karachi: 'Karachi', Diyanet: '★ Empfohlen' },
     asrMethodOptions: { Shafi: 'Schafiitisch', Hanafi: 'Hanafitisch' },
     highLatitudeOptions: {
       MiddleOfNight: 'Mitte der Nacht',
@@ -1905,6 +2147,8 @@ export const translations: Record<
     onboardingAndroidNotificationHint: ' Bei einigen Telefonen müssen Sie Benachrichtigungen auch unter Einstellungen > Apps > Burhank aktivieren.',
     openSettings: 'Einstellungen öffnen',
     notificationPermissionRequired: 'Benachrichtigungsberechtigung erforderlich. Bitte in den Systemeinstellungen aktivieren.',
+    shareApp: 'App teilen',
+    rateApp: 'App bewerten',
   },
 };
 
