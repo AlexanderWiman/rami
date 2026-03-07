@@ -35,8 +35,6 @@ import { spacing, radius } from '../../../theme/spacing';
 import { fontSize, fontWeight, fontFamily } from '../../../theme/typography';
 
 const SOUND_KEYS = AZAN_SOUND_KEYS;
-const CALC_METHOD_KEYS = ['MWL', 'Egypt', 'UmmAlQura', 'Karachi', 'Diyanet'] as const;
-const ASR_KEYS = ['Shafi', 'Hanafi'] as const;
 const OFFSET_MIN = -30;
 const OFFSET_MAX = 30;
 
@@ -364,36 +362,6 @@ export function PrayerSettingsScreen() {
         {/* Prayer times */}
         <GlassCard padding="lg" rounded="lg" style={styles.prayerTimesSection}>
           <Text style={[styles.sectionTitle, { color: textSecondary }]}>{t('sectionPrayerTimes')}</Text>
-          <Text style={[styles.groupLabel, { color: textSecondary }]}>{t('calculationMethod')}</Text>
-          <View style={styles.chipRow}>
-            {CALC_METHOD_KEYS.map((key) => (
-              <TouchableOpacity
-                key={key}
-                activeOpacity={0.8}
-                style={[styles.chip, { borderColor: chipBorder, backgroundColor: chipBg }, settings.calculationMethod === key && { backgroundColor: chipActiveBg, borderColor: chipActiveBorder }]}
-                onPress={() => updateSettings({ ...settings, calculationMethod: key })}
-              >
-                <Text style={[styles.chipText, { color: textPrimary }, settings.calculationMethod === key && { color: chipActiveText, fontWeight: fontWeight.semibold }]}>
-                  {translations[language].calculationMethodOptions[key]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <Text style={[styles.groupLabel, { color: textSecondary }]}>{t('asrMethod')}</Text>
-          <View style={[styles.chipRow, styles.chipRowLast]}>
-            {ASR_KEYS.map((key) => (
-              <TouchableOpacity
-                key={key}
-                activeOpacity={0.8}
-                style={[styles.chip, { borderColor: chipBorder, backgroundColor: chipBg }, settings.asrMethod === key && { backgroundColor: chipActiveBg, borderColor: chipActiveBorder }]}
-                onPress={() => updateSettings({ ...settings, asrMethod: key })}
-              >
-                <Text style={[styles.chipText, { color: textPrimary }, settings.asrMethod === key && { color: chipActiveText, fontWeight: fontWeight.semibold }]}>
-                  {translations[language].asrMethodOptions[key]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
           <Text style={[styles.groupLabel, { color: textSecondary }]}>{t('prayerOffset')}</Text>
           {PRAYER_NAMES_ORDER.map((name) => {
             const off = settings.prayerOffsets[name] ?? 0;

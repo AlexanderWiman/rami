@@ -1,5 +1,5 @@
 /**
- * Onboarding: Step 1 Language, Step 2 Location, Step 3 Notifications, Step 4 Calculation method.
+ * Onboarding: Step 1 Language, Step 2 Location, Step 3 Notifications.
  * Save and go Home when done.
  */
 import React, { useState } from 'react';
@@ -7,18 +7,14 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Pla
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import { saveLanguage } from '../../prayer/storage/prayerSettings';
-import { saveLocation } from '../../prayer/storage/prayerSettings';
-import { savePrayerSettings } from '../../prayer/storage/prayerSettings';
-import { DEFAULT_SETTINGS } from '../../prayer/storage/prayerSettings';
+import { saveLanguage, saveLocation, savePrayerSettings, DEFAULT_SETTINGS } from '../../prayer/storage/prayerSettings';
 import { setOnboardingDone } from '../storage';
 import type { Language } from '../../prayer/types';
-import type { CalculationMethodKey } from '../../prayer/types';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { t, translations } from '../../../constants/i18n';
+import { t } from '../../../constants/i18n';
 
-const STEPS = 4;
+const STEPS = 3;
 
 /** Fallback when location services are unavailable (e.g. simulator, location off). */
 const DEFAULT_LOCATION = { lat: 59.3293, lon: 18.0686, label: 'Stockholm' };
@@ -33,13 +29,23 @@ export function OnboardingScreen() {
   const { language, setLanguage } = useLanguage();
   const [step, setStep] = useState(1);
   const [lang, setLang] = useState<Language>('ar');
-  const [calcMethod, setCalcMethod] = useState<CalculationMethodKey>('Diyanet');
   const [loading, setLoading] = useState(false);
+
+  const finishOnboarding = async () => {
+    const settings = { ...DEFAULT_SETTINGS };
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') {
+      settings.notificationsEnabled = false;
+    }
+    await savePrayerSettings(settings);
+    await setOnboardingDone();
+    router.replace('/');
+  };
 
   const handleNext = async () => {
     if (step === 1) {
       await saveLanguage(lang);
-      setLanguage(lang); // Update context so onboarding step 2/3 and app use chosen language
+      setLanguage(lang);
       setStep(2);
       return;
     }
@@ -99,16 +105,15 @@ export function OnboardingScreen() {
       return;
     }
     if (step === 3) {
-      // Request notification permission – user can skip; they can enable later in settings
       setLoading(true);
       try {
         const { status: existing } = await Notifications.getPermissionsAsync();
-        let status = existing;
+        let finalStatus = existing;
         if (existing !== 'granted') {
           const { status: requested } = await Notifications.requestPermissionsAsync();
-          status = requested;
+          finalStatus = requested;
         }
-        if (status !== 'granted') {
+        if (finalStatus !== 'granted') {
           setLoading(false);
           Alert.alert(
             t(language, 'onboardingAllowNotifications'),
@@ -119,12 +124,12 @@ export function OnboardingScreen() {
                 text: t(language, 'onboardingOpenSettings'),
                 onPress: () => {
                   Linking.openSettings();
-                  setStep(4);
+                  finishOnboarding();
                 },
               },
               {
                 text: t(language, 'onboardingContinueWithout'),
-                onPress: () => setStep(4),
+                onPress: () => finishOnboarding(),
               },
             ]
           );
@@ -133,24 +138,12 @@ export function OnboardingScreen() {
       } finally {
         setLoading(false);
       }
-      setStep(4);
-      return;
-    }
-    if (step === 4) {
-      const settings = { ...DEFAULT_SETTINGS, calculationMethod: calcMethod };
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status !== 'granted') {
-        settings.notificationsEnabled = false;
-      }
-      await savePrayerSettings(settings);
-      await setOnboardingDone();
-      router.replace('/');
+      await finishOnboarding();
       return;
     }
   };
 
   const stepLabel = t(language, 'onboardingStepOf').replace('{step}', String(step)).replace('{total}', String(STEPS));
-  const calcMethodLabels = translations[language].calculationMethodOptions;
 
   return (
     <ScreenWrapper style={styles.container}>
@@ -164,7 +157,11 @@ export function OnboardingScreen() {
                 <TouchableOpacity
                   key={l}
                   style={[styles.opt, styles.optRoyal, lang === l && styles.optSelRoyal]}
-                  onPress={() => setLang(l)}
+                  onPress={async () => {
+                    setLang(l);
+                    setLanguage(l);
+                    await saveLanguage(l);
+                  }}
                 >
                   <Text style={[styles.optText, styles.optTextRoyal, lang === l && styles.optTextSelRoyal]}>
                     {{ ar: 'العربية', en: 'English', tr: 'Türkçe', fr: 'Français', es: 'Español', sv: 'Svenska', de: 'Deutsch' }[l]}
@@ -186,24 +183,6 @@ export function OnboardingScreen() {
             <Text style={[styles.title, styles.royalTitle]}>{t(language, 'onboardingAllowNotifications')}</Text>
             <Text style={[styles.body, styles.royalBody]}>{t(language, 'onboardingNotificationsBody')}</Text>
             {loading && <ActivityIndicator size="large" color="#E6C27A" style={styles.spinner} />}
-          </>
-        )}
-        {step === 4 && (
-          <>
-            <Text style={[styles.title, styles.royalTitle]}>{t(language, 'calculationMethod')}</Text>
-            <View style={styles.options}>
-              {(['MWL', 'Egypt', 'UmmAlQura', 'Karachi', 'Diyanet'] as const).map((m) => (
-                <TouchableOpacity
-                  key={m}
-                  style={[styles.opt, styles.optRoyal, calcMethod === m && styles.optSelRoyal]}
-                  onPress={() => setCalcMethod(m)}
-                >
-                  <Text style={[styles.optText, styles.optTextRoyal, calcMethod === m && styles.optTextSelRoyal]}>
-                    {calcMethodLabels[m] ?? m}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
           </>
         )}
       </View>

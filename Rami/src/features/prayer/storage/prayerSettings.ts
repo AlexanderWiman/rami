@@ -14,7 +14,7 @@ const KEY_LOCATION = '@rami/location';
 const KEY_THEME_STYLE = '@rami/theme_style';
 const KEY_MUNICIPALITY_LABEL = '@rami/municipality_label';
 
-const CURRENT_SETTINGS_VERSION = 2;
+const CURRENT_SETTINGS_VERSION = 3;
 
 export const DEFAULT_OFFSETS: PrayerOffsetMinutes = {
   Fajr: 0,
@@ -55,7 +55,11 @@ export const DEFAULT_SETTINGS: PrayerSettings = {
 };
 
 function migrateFromV1(parsed: Record<string, unknown>): PrayerSettings {
-  const base = { ...DEFAULT_SETTINGS };
+  const base: PrayerSettings = {
+    ...DEFAULT_SETTINGS,
+    prayerOffsets: { ...DEFAULT_OFFSETS },
+    prayerNotify: { ...DEFAULT_NOTIFY },
+  };
   if (typeof parsed.notificationsEnabled === 'boolean') base.notificationsEnabled = parsed.notificationsEnabled;
   if (typeof parsed.playAzanSound === 'boolean') base.playAzanSound = parsed.playAzanSound;
   if (typeof parsed.selectedSound === 'string') base.selectedSound = parsed.selectedSound;
@@ -64,17 +68,31 @@ function migrateFromV1(parsed: Record<string, unknown>): PrayerSettings {
   return base;
 }
 
+function allOffsetsZero(offsets: Partial<Record<PrayerName, number>> | undefined): boolean {
+  if (!offsets) return true;
+  return PRAYER_NAMES_ORDER.every((n) => (offsets[n] ?? 0) === 0);
+}
+
 function migrate(parsed: Record<string, unknown>): PrayerSettings {
   const version = (parsed.settingsVersion as number) ?? 1;
   if (version < 2) return migrateFromV1(parsed);
+
   const merged = { ...DEFAULT_SETTINGS, ...parsed } as PrayerSettings;
+  merged.prayerOffsets = { ...DEFAULT_OFFSETS, ...(parsed.prayerOffsets as Partial<PrayerOffsetMinutes> | undefined) };
+  merged.prayerNotify = { ...DEFAULT_NOTIFY, ...(parsed.prayerNotify as Partial<PrayerNotifyFlags> | undefined) };
+
   for (const name of PRAYER_NAMES_ORDER) {
-    if (typeof merged.prayerOffsets?.[name] !== 'number') merged.prayerOffsets![name] = 0;
-    if (typeof merged.prayerNotify?.[name] !== 'boolean') merged.prayerNotify![name] = true;
+    if (typeof merged.prayerOffsets[name] !== 'number') merged.prayerOffsets[name] = DEFAULT_OFFSETS[name];
+    if (typeof merged.prayerNotify[name] !== 'boolean') merged.prayerNotify[name] = true;
   }
+
+  // v2 -> v3: fix users whose offsets were incorrectly stored as all-zeros
+  if (version < 3 && allOffsetsZero(merged.prayerOffsets)) {
+    merged.prayerOffsets = { ...DEFAULT_OFFSETS };
+  }
+
   if (!isAzanSoundKey(merged.selectedSound)) merged.selectedSound = DEFAULT_SETTINGS.selectedSound;
-  const validMethods = ['MWL', 'Egypt', 'UmmAlQura', 'Karachi', 'Diyanet'] as const;
-  if (!validMethods.includes(merged.calculationMethod as any)) merged.calculationMethod = DEFAULT_SETTINGS.calculationMethod;
+  merged.calculationMethod = 'Diyanet';
   merged.settingsVersion = CURRENT_SETTINGS_VERSION;
   return merged;
 }

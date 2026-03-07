@@ -217,16 +217,7 @@ export function AdminDashboardScreen() {
           )}
         </View>
 
-        <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={[styles.secondaryButton, { borderColor: colors.border }]}
-            onPress={() => router.push('/admin/sources')}
-          >
-            <Text style={[styles.secondaryButtonText, { color: isRoyal ? 'rgba(255,255,255,0.9)' : colors.text }]}>
-              Sources
-            </Text>
-          </TouchableOpacity>
-        </View>
+      
 
         {/* Threads List */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Threads</Text>

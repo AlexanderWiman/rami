@@ -3,7 +3,7 @@
     "name": "Burhank برهانك",
     "slug": "burhank",
     "scheme": "burhank",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -33,7 +33,7 @@
       }
     },
     "android": {
-      "versionCode": 22,
+      "versionCode": 25,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
