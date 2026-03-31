@@ -11,6 +11,7 @@ import { setAudioModeAsync } from 'expo-audio';
 import { ensureAndroidNotificationChannels } from '../src/features/prayer/notifications/channels';
 import { setPendingPlayAzanFromNotification } from '../src/features/prayer/notificationResponse';
 import { isOnboardingDone } from '../src/features/onboarding/storage';
+import { registerForPushNotifications } from '../src/services/pushRegistration';
 import { ThemeProvider } from '../src/theme/ThemeContext';
 import { LanguageProvider } from '../src/contexts/LanguageContext';
 import { AdminProvider } from '../src/features/admin/AdminContext';
@@ -49,6 +50,50 @@ export default function RootLayout() {
 
   useEffect(() => {
     ensureAndroidNotificationChannels().catch(() => {});
+
+    // Register for remote push after onboarding, with current settings + location.
+    // Also ensure Android notification channel for the selected azan sound exists
+    // (needed for remote push to play the right sound on Android).
+    isOnboardingDone().then(async (done) => {
+      if (!done) return;
+      try {
+        const { loadPrayerSettings, loadLocation, loadLanguage } = await import(
+          '../src/features/prayer/storage/prayerSettings'
+        );
+        const { ensurePrayerChannelForSound } = await import(
+          '../src/features/prayer/notifications/channels'
+        );
+        const { isAzanSoundKey } = await import(
+          '../src/features/prayer/constants/azan'
+        );
+        const [settings, loc, lang] = await Promise.all([
+          loadPrayerSettings(),
+          loadLocation(),
+          loadLanguage(),
+        ]);
+
+        // Ensure custom azan channel exists on Android so remote push plays the right sound
+        if (settings.playAzanSound && isAzanSoundKey(settings.selectedSound)) {
+          ensurePrayerChannelForSound(settings.selectedSound).catch(() => {});
+        }
+
+        registerForPushNotifications({
+          latitude: loc?.lat,
+          longitude: loc?.lon,
+          calculationMethod: settings.calculationMethod,
+          asrMethod: settings.asrMethod,
+          highLatitudeRule: settings.highLatitudeRule,
+          prayerOffsets: settings.prayerOffsets,
+          prayerNotify: settings.prayerNotify,
+          notificationsEnabled: settings.notificationsEnabled,
+          language: lang,
+          selectedSound: settings.selectedSound,
+          playAzanSound: settings.playAzanSound,
+        }).catch(() => {});
+      } catch {
+        // Settings not yet available — will register on next open
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -71,14 +116,18 @@ export default function RootLayout() {
   useEffect(() => {
     type NotificationPayload = {
       title?: string | null;
-      data?: { screen?: string; playAzan?: boolean | string } | null;
+      data?: { screen?: string; playAzan?: boolean | string; ramiKind?: string } | null;
     };
     const isPlayAzan = (d: { playAzan?: boolean | string } | undefined) => d?.playAzan === true || d?.playAzan === 'true';
     const isPrayerNotificationByTitle = (title: string | null | undefined) =>
       (title?.includes('Böneutrop') ?? false) || (title?.includes('time for') ?? false) || /حان وقت/.test(title ?? '');
-    const shouldPlayAzan = (content: NotificationPayload) =>
-      (content.data?.screen === '/' && isPlayAzan(content.data)) ||
-      (Platform.OS === 'android' && !content.data && isPrayerNotificationByTitle(content.title));
+    const shouldPlayAzan = (content: NotificationPayload) => {
+      if (content.data?.ramiKind === 'alhamdulillah' || content.data?.ramiKind === 'salawat') return false;
+      return (
+        (content.data?.screen === '/' && isPlayAzan(content.data)) ||
+        (Platform.OS === 'android' && !content.data && isPrayerNotificationByTitle(content.title))
+      );
+    };
     async function handleNotificationResponse(response: Notifications.NotificationResponse) {
       const content = response.notification.request.content;
       const data = content.data as { screen?: string; playAzan?: boolean | string } | undefined;

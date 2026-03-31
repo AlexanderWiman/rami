@@ -54,6 +54,7 @@ export function PrayerSpaceScreen() {
     error,
     location,
     language,
+    use12h,
     refreshTimes,
     refreshSchedule,
     settings,
@@ -216,6 +217,7 @@ export function PrayerSpaceScreen() {
               nextPrayer={nextPrayer ?? null}
               tomorrowFirstPrayer={tomorrowFirstPrayer ?? null}
               language={language}
+              use12h={use12h}
               prayerNameLabel={nextPrayerLabel}
               onOpenRadialMenu={() => setRadialOpen(true)}
               isPrayerTimeNow={isPrayerTimeNow}
@@ -263,8 +265,15 @@ export function PrayerSpaceScreen() {
               nextPrayerName={nextPrayer?.prayer.name ?? null}
               currentPrayerName={currentPrayerName}
               language={language}
+              use12h={use12h}
               onLongPressPill={(p) => setQuickSettingsPrayer(p.name)}
             />
+            <TouchableOpacity
+              style={[styles.adjustTimesBtn, { borderColor: isRoyal ? 'rgba(230,194,122,0.5)' : colors.border }]}
+              onPress={() => { hapticLight(); router.push('/(tabs)/settings'); }}
+            >
+              <Text style={[styles.adjustTimesBtnText, { color: isRoyal ? '#E6C27A' : colors.highlight }]}>{getString(language, 'adjustPrayerTimes')}</Text>
+            </TouchableOpacity>
             <PrayerQuickSettingsSheet
               visible={quickSettingsPrayer != null}
               onClose={() => setQuickSettingsPrayer(null)}
@@ -351,5 +360,14 @@ const styles = StyleSheet.create({
   quickMenuSection: {
     marginBottom: spacing.lg,
   },
+  adjustTimesBtn: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignSelf: 'center',
+  },
+  adjustTimesBtnText: { fontSize: fontSize.sm, fontWeight: fontWeight.medium },
   pillSection: { marginBottom: spacing.lg },
 });

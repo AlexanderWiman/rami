@@ -21,8 +21,8 @@ import { useReduceMotion, shouldSkipContinuousAnimations } from '../utils/reduce
 import { getOrbGlowPeriod, getOrbGlowColor } from '../utils/orbGlowByTime';
 import { hapticMedium } from '../utils/haptics';
 import type { NextPrayerResult, Language } from '../features/prayer/types';
-import { formatCountdownShort, formatTime } from '../features/prayer/utils/nextPrayer';
-import { getString, getPrayerName } from '../constants/i18n';
+import { formatCountdownShort } from '../features/prayer/utils/nextPrayer';
+import { getString, getPrayerName, formatTimeWithLocale } from '../constants/i18n';
 import { spacing } from '../theme/spacing';
 import { fontSize, fontWeight, fontFamily } from '../theme/typography';
 
@@ -40,6 +40,7 @@ export type NextPrayerOrbProps = {
   nextPrayer: NextPrayerResult | null;
   tomorrowFirstPrayer?: TomorrowFirstPrayer | null;
   language: Language;
+  use12h?: boolean;
   prayerNameLabel: string;
   onOpenRadialMenu: () => void;
   /** When true, orb does one long glow pulse and triggers medium haptic (ceremonial prayer time). */
@@ -50,6 +51,7 @@ function NextPrayerOrbComponent({
   nextPrayer,
   tomorrowFirstPrayer = null,
   language,
+  use12h = false,
   prayerNameLabel,
   onOpenRadialMenu,
   isPrayerTimeNow = false,
@@ -115,7 +117,7 @@ function NextPrayerOrbComponent({
     const tomorrowLine = tomorrowFirstPrayer
       ? getString(language, 'firstPrayerTomorrowAt')
           .replace('{name}', getPrayerName(language, tomorrowFirstPrayer.name))
-          .replace('{time}', formatTime(tomorrowFirstPrayer.time))
+          .replace('{time}', formatTimeWithLocale(language, tomorrowFirstPrayer.time, use12h))
       : null;
     const gold = '#E6C27A';
     const goldMuted = 'rgba(230, 194, 122, 0.85)';
@@ -160,7 +162,7 @@ function NextPrayerOrbComponent({
     );
   }
 
-  const atTime = getString(language, 'nextPrayerAt').replace('{time}', formatTime(nextPrayer.prayer.time));
+  const atTime = getString(language, 'nextPrayerAt').replace('{time}', formatTimeWithLocale(language, nextPrayer.prayer.time, use12h));
 
   return (
     <TouchableOpacity activeOpacity={1} onPress={onOpenRadialMenu} style={styles.touchable}>

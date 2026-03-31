@@ -13,8 +13,11 @@ const KEY_CACHED_TIMES = '@rami/cached_times';
 const KEY_LOCATION = '@rami/location';
 const KEY_THEME_STYLE = '@rami/theme_style';
 const KEY_MUNICIPALITY_LABEL = '@rami/municipality_label';
+const KEY_CLOCK_FORMAT = '@rami/clock_format';
 
-const CURRENT_SETTINGS_VERSION = 3;
+export type ClockFormat = '12h' | '24h';
+
+const CURRENT_SETTINGS_VERSION = 4;
 
 export const DEFAULT_OFFSETS: PrayerOffsetMinutes = {
   Fajr: 0,
@@ -52,6 +55,7 @@ export const DEFAULT_SETTINGS: PrayerSettings = {
   highLatitudeRule: 'MiddleOfNight',
   prayerOffsets: { ...DEFAULT_OFFSETS },
   prayerNotify: { ...DEFAULT_NOTIFY },
+  alhamdulillahReminderEnabled: false,
 };
 
 function migrateFromV1(parsed: Record<string, unknown>): PrayerSettings {
@@ -93,6 +97,9 @@ function migrate(parsed: Record<string, unknown>): PrayerSettings {
 
   if (!isAzanSoundKey(merged.selectedSound)) merged.selectedSound = DEFAULT_SETTINGS.selectedSound;
   merged.calculationMethod = 'Diyanet';
+  if (typeof merged.alhamdulillahReminderEnabled !== 'boolean') {
+    merged.alhamdulillahReminderEnabled = DEFAULT_SETTINGS.alhamdulillahReminderEnabled;
+  }
   merged.settingsVersion = CURRENT_SETTINGS_VERSION;
   return merged;
 }
@@ -179,6 +186,16 @@ export async function loadMunicipalityLabel(): Promise<string | null> {
 
 export async function saveMunicipalityLabel(label: string): Promise<void> {
   await AsyncStorage.setItem(KEY_MUNICIPALITY_LABEL, label);
+}
+
+export async function loadClockFormat(): Promise<ClockFormat> {
+  const raw = await AsyncStorage.getItem(KEY_CLOCK_FORMAT);
+  if (raw === '12h' || raw === '24h') return raw;
+  return '24h';
+}
+
+export async function saveClockFormat(format: ClockFormat): Promise<void> {
+  await AsyncStorage.setItem(KEY_CLOCK_FORMAT, format);
 }
 
 /** Cache key includes method/asr/latAdj when provided so cache is invalidated when calculation params change */

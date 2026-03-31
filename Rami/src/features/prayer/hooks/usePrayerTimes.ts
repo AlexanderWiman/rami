@@ -21,18 +21,23 @@ import {
   saveLocation,
   loadMunicipalityLabel,
   saveMunicipalityLabel,
+  loadClockFormat,
+  saveClockFormat,
   getCachedPrayerTimes,
   setCachedPrayerTimes,
   type CachedLocation,
+  type ClockFormat,
 } from '../storage/prayerSettings';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getString } from '../../../constants/i18n';
 import {
   scheduleTodayNotifications,
   cancelAllPrayerNotifications,
+  scheduleAlhamdulillahReminder,
 } from '../notifications/scheduler';
 import { ensureAndroidNotificationChannels } from '../notifications/channels';
 import { prefetchPrayerTimesForWeek } from '../api/prayerPrefetch';
+import { syncPreferencesToBackend } from '../../../services/pushRegistration';
 
 function toDateKey(d: Date): string {
   const y = d.getFullYear();
@@ -95,6 +100,7 @@ export async function reschedulePrayerNotificationsFromStorage(): Promise<void> 
     const lang = await loadLanguage();
     await cancelAllPrayerNotifications();
     await scheduleTodayNotifications(times, settings, lang);
+    await scheduleAlhamdulillahReminder(settings, lang);
   } catch {
     /* ignore */
   }
@@ -120,6 +126,7 @@ export function usePrayerTimes() {
   const [location, setLocationState] = useState<CachedLocation | null>(null);
   const [locationLabel, setLocationLabel] = useState<string>('');
   const [settings, setSettingsState] = useState<PrayerSettings | null>(null);
+  const [clockFormat, setClockFormatState] = useState<ClockFormat>('24h');
 
   const dateKey = toDateKey(new Date());
 
@@ -513,6 +520,7 @@ export function usePrayerTimes() {
     loadPrayerSettings().then((s) => {
       setSettingsState(s);
     });
+    loadClockFormat().then(setClockFormatState);
     refreshTimes();
   }, [refreshTimes]);
 
@@ -553,9 +561,22 @@ export function usePrayerTimes() {
     if (today && s.notificationsEnabled) {
       await cancelAllPrayerNotifications();
       await scheduleTodayNotifications(today.times, s, language);
+      await scheduleAlhamdulillahReminder(s, language);
     } else if (!s.notificationsEnabled) {
       await cancelAllPrayerNotifications();
     }
+    // Sync to backend for remote push (fire-and-forget)
+    syncPreferencesToBackend({
+      calculationMethod: s.calculationMethod,
+      asrMethod: s.asrMethod,
+      highLatitudeRule: s.highLatitudeRule,
+      prayerOffsets: s.prayerOffsets,
+      prayerNotify: s.prayerNotify,
+      notificationsEnabled: s.notificationsEnabled,
+      language,
+      selectedSound: s.selectedSound,
+      playAzanSound: s.playAzanSound,
+    }).catch(() => {});
   }, [today, language, refreshTimes]);
 
   const updateLanguage = useCallback(
@@ -569,7 +590,13 @@ export function usePrayerTimes() {
     if (!today || !settings) return;
     await cancelAllPrayerNotifications();
     await scheduleTodayNotifications(today.times, settings, language);
+    await scheduleAlhamdulillahReminder(settings, language);
   }, [today, settings, language]);
+
+  const setClockFormat = useCallback((format: ClockFormat) => {
+    setClockFormatState(format);
+    saveClockFormat(format).catch(() => {});
+  }, []);
 
   // Schedule notifications when today + settings are ready; only prayers with prayerNotify[name]=true.
   // Uses latest settings from storage so all hook instances respect toggles (e.g. notifications off in one screen).
@@ -586,10 +613,12 @@ export function usePrayerTimes() {
       await ensureAndroidNotificationChannels();
       await cancelAllPrayerNotifications();
       await scheduleTodayNotifications(today.times, latest, language);
+      await scheduleAlhamdulillahReminder(latest, language);
     })();
   }, [
     today?.dateKey,
     settings?.notificationsEnabled,
+    settings?.alhamdulillahReminderEnabled,
     settings?.playAzanSound,
     settings?.selectedSound,
     // Use JSON so we only re-run when actual prayerNotify values change, not object reference
@@ -607,6 +636,9 @@ export function usePrayerTimes() {
     location: locationLabel || null,
     settings,
     language,
+    clockFormat,
+    use12h: clockFormat === '12h',
+    setClockFormat,
     refreshTimes,
     updateSettings,
     updateLanguage,
@@ -616,6 +648,7 @@ export function usePrayerTimes() {
       setLocationState(loc);
       setLocationLabel(loc.label ?? `${loc.lat.toFixed(2)}, ${loc.lon.toFixed(2)}`);
       await refreshTimes();
+      syncPreferencesToBackend({ latitude: loc.lat, longitude: loc.lon }).catch(() => {});
     },
   };
 }

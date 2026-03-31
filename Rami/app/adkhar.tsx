@@ -57,7 +57,9 @@ export default function AdkharScreen() {
 
   const activeSection = ADHKAR_SECTIONS.find((s) => s.category === selectedCategory);
   const items = activeSection?.items ?? [];
-  const targetCount = 3;
+  const currentItem = items[currentIndex];
+  // Use item.count as target when present and > 1 (e.g. 33, 34 for post-prayer dhikr); otherwise 3 taps to go to next card
+  const targetCount = currentItem?.count != null && currentItem.count > 1 ? currentItem.count : 3;
 
   const translateX = useSharedValue(0);
 
@@ -137,8 +139,6 @@ export default function AdkharScreen() {
   const isComplete = tapCount >= targetCount;
   const counterBgOpacity = 0.35 + progress * 0.65;
   const counterBg = `rgba(230, 194, 122, ${counterBgOpacity})`;
-
-  const currentItem = items[currentIndex];
 
   const renderCard = (item: AdhkarItem) => (
     <GlassCard padding="xl" rounded="lg" style={styles.card}>

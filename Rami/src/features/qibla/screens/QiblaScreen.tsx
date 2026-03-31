@@ -446,7 +446,9 @@ export function QiblaScreen() {
         <Text style={[styles.degreesText, { color: mutedColor }]}>
           {bearing != null ? `${formatNumber(language, Math.round(bearing))}° ${getString(language, 'fromNorth')}` : '—'}
         </Text>
-
+        <Text style={[styles.glowHintText, { color: mutedColor }]}>
+          {getString(language, 'qiblaGlowHint')}
+        </Text>
       </View>
     </ScreenWrapper>
   );
@@ -586,5 +588,12 @@ const styles = StyleSheet.create({
   },
   degreesText: {
     fontSize: fontSize.sm,
+  },
+  glowHintText: {
+    fontSize: fontSize.xs,
+    marginTop: spacing.sm,
+    textAlign: 'center',
+    paddingHorizontal: spacing.xl,
+    opacity: 0.7,
   },
 });

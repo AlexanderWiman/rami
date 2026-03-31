@@ -51,17 +51,21 @@ export default function LocationPickerScreen() {
   const cardBorder = isRoyal ? 'rgba(230, 194, 122, 0.28)' : colors.border;
 
   const searchPlaceholder = getString(language, 'locationSearchPlaceholder');
+  const searchHint = getString(language, 'locationSearchHint');
   const useCurrentLabel = getString(language, 'useCurrentLocation');
   const noResultsLabel = getString(language, 'locationSearchNoResults');
+
+  const quickCountries = language === 'ar' ? ['ليبيا', 'مصر', 'السعودية', 'تركيا'] : ['Libya', 'Egypt', 'Saudi Arabia', 'Turkey'];
 
   const buildLabel = useCallback((first: Location.LocationGeocodedAddress) => {
     const parts = [first.city, first.subregion, first.region, first.country].filter(Boolean);
     return parts.length > 0 ? parts.join(', ') : '';
   }, []);
 
-  const handleSearch = useCallback(async () => {
-    const q = query.trim();
+  const handleSearch = useCallback(async (overrideQuery?: string) => {
+    const q = (overrideQuery ?? query).trim();
     if (!q || q.length < 2) return;
+    if (overrideQuery) setQuery(overrideQuery);
     setError(null);
     setLoading(true);
     setResults([]);
@@ -126,6 +130,8 @@ export default function LocationPickerScreen() {
       setLoading(false);
     }
   }, [query, buildLabel]);
+  const runSearch = () => handleSearch();
+  const runSearchCountry = (country: string) => handleSearch(country);
 
   const handleUseGps = useCallback(async () => {
     setError(null);
@@ -220,6 +226,18 @@ export default function LocationPickerScreen() {
           </GlassCard>
         </View>
 
+        <Text style={[styles.hint, { color: textMuted }]}>{searchHint}</Text>
+        <View style={styles.quickRow}>
+          {quickCountries.map((country) => (
+            <TouchableOpacity
+              key={country}
+              style={[styles.quickChip, { backgroundColor: chipBg, borderColor: chipBorder }]}
+              onPress={() => runSearchCountry(country)}
+            >
+              <Text style={[styles.quickChipText, { color: textPrimary }]}>{country}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         <View style={[styles.searchRow, { backgroundColor: chipBg, borderColor: chipBorder }]}>
           <TextInput
             style={[styles.input, { color: textPrimary }]}
@@ -234,7 +252,7 @@ export default function LocationPickerScreen() {
           />
           <TouchableOpacity
             style={[styles.searchBtn, { backgroundColor: colors.highlight }]}
-            onPress={handleSearch}
+            onPress={runSearch}
             disabled={loading || query.trim().length < 2}
           >
             {loading ? (
@@ -294,6 +312,15 @@ const styles = StyleSheet.create({
   header: { paddingTop: spacing.lg, paddingBottom: spacing.md },
   titleCard: { marginBottom: spacing.md },
   title: { fontSize: fontSize.xl, fontWeight: fontWeight.regular, fontFamily: fontFamily.heading },
+  hint: { fontSize: fontSize.xs, marginBottom: spacing.xs },
+  quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.sm },
+  quickChip: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  quickChipText: { fontSize: fontSize.sm },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

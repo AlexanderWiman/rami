@@ -123,6 +123,67 @@ export async function initializeDatabase() {
   await query(`
     CREATE INDEX IF NOT EXISTS idx_qa_items_created_at ON qa_items(created_at DESC);
   `);
+
+  // ── Push notification tables ──
+
+  await query(`
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS push_devices (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      device_id TEXT UNIQUE NOT NULL,
+      expo_push_token TEXT NOT NULL,
+      platform TEXT NOT NULL CHECK (platform IN ('ios', 'android')),
+      timezone TEXT NOT NULL DEFAULT 'UTC',
+      latitude DOUBLE PRECISION,
+      longitude DOUBLE PRECISION,
+      calculation_method TEXT DEFAULT 'Diyanet',
+      asr_method TEXT DEFAULT 'Shafi',
+      high_latitude_rule TEXT DEFAULT 'MiddleOfNight',
+      prayer_offsets JSONB DEFAULT '{"Fajr":0,"Dhuhr":0,"Asr":4,"Maghrib":-2,"Isha":-10}',
+      prayer_notify JSONB DEFAULT '{"Fajr":true,"Dhuhr":true,"Asr":true,"Maghrib":true,"Isha":true}',
+      notifications_enabled BOOLEAN DEFAULT true,
+      language TEXT DEFAULT 'ar',
+      selected_sound TEXT DEFAULT 'azan1',
+      play_azan_sound BOOLEAN DEFAULT true,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS scheduled_pushes (
+      id SERIAL PRIMARY KEY,
+      device_id UUID NOT NULL REFERENCES push_devices(id) ON DELETE CASCADE,
+      prayer_name TEXT NOT NULL,
+      send_at TIMESTAMPTZ NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT DEFAULT '',
+      sent BOOLEAN DEFAULT false,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE INDEX IF NOT EXISTS idx_scheduled_pushes_pending
+    ON scheduled_pushes (send_at) WHERE sent = false;
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS prayer_times_cache (
+      date_key TEXT NOT NULL,
+      latitude NUMERIC(8,4) NOT NULL,
+      longitude NUMERIC(8,4) NOT NULL,
+      method INT NOT NULL,
+      school INT NOT NULL,
+      lat_adj INT NOT NULL,
+      timings JSONB NOT NULL,
+      fetched_at TIMESTAMPTZ DEFAULT NOW(),
+      PRIMARY KEY (date_key, latitude, longitude, method, school, lat_adj)
+    );
+  `);
 }
 
 export async function seedSuperadmin() {

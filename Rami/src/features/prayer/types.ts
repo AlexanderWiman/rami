@@ -63,6 +63,8 @@ export interface PrayerSettings {
   prayerOffsets: PrayerOffsetMinutes;
   /** Notify for this prayer (only used when notificationsEnabled is true) */
   prayerNotify: PrayerNotifyFlags;
+  /** Local hourly reminders, alternating alhamdulillah and salawat (requires notificationsEnabled) */
+  alhamdulillahReminderEnabled: boolean;
 }
 
 /** Legacy type alias for API (numeric method id) */

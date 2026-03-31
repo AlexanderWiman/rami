@@ -37,6 +37,7 @@ export function PrayerTimesScreen() {
     error,
     location,
     language,
+    use12h,
     settings,
     refreshTimes,
     refreshSchedule,
@@ -142,7 +143,7 @@ export function PrayerTimesScreen() {
                 <View key={item.key} style={[styles.row, { borderBottomColor: isRoyal ? 'rgba(255,255,255,0.1)' : '#eee' }]}>
                   <Text style={[styles.prayerName, { color: titleColor }]}>{item.label}</Text>
                   <View style={styles.rowRight}>
-                    <Text style={[styles.prayerTime, { color: isRoyal ? '#E6C27A' : '#1a472a' }]}>{formatTimeWithLocale(language, item.time)}</Text>
+                    <Text style={[styles.prayerTime, { color: isRoyal ? '#E6C27A' : '#1a472a' }]}>{formatTimeWithLocale(language, item.time, use12h)}</Text>
                     {item.isShuruq ? (
                       <View style={styles.switchPlaceholder} />
                     ) : settings ? (

@@ -18,11 +18,22 @@ export function formatNumber(_lang: Language, n: number): string {
   return String(n);
 }
 
-/** Format time HH:MM using Latin digits. */
-export function formatTimeWithLocale(_lang: Language, date: Date): string {
-  const h = date.getHours();
+/** Format time HH:MM (24h) or h:MM AM/PM (12h) using Latin digits. */
+export function formatTimeWithLocale(lang: Language, date: Date, use12h?: boolean): string {
+  const h24 = date.getHours();
   const m = date.getMinutes();
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  const padM = String(m).padStart(2, '0');
+  if (!use12h) {
+    return `${String(h24).padStart(2, '0')}:${padM}`;
+  }
+  const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
+  const isPM = h24 >= 12;
+  if (lang === 'ar') {
+    const amPm = isPM ? 'م' : 'ص';
+    return `${String(h12).padStart(2, '0')}:${padM} ${amPm}`;
+  }
+  const amPm = isPM ? 'PM' : 'AM';
+  return `${h12}:${padM} ${amPm}`;
 }
 
 /** Format countdown HH:MM:SS with Latin digits. */
@@ -70,6 +81,9 @@ export const translations: Record<
     sectionAzan: string;
     sectionQuran: string;
     sectionPrayerTimes: string;
+    timeFormat: string;
+    timeFormat12h: string;
+    timeFormat24h: string;
     sectionInfo: string;
     sectionApp: string;
     sectionCredits: string;
@@ -83,6 +97,7 @@ export const translations: Record<
     noLocation: string;
     setLocationManually: string;
     locationSearchPlaceholder: string;
+    locationSearchHint: string;
     useCurrentLocation: string;
     locationPickerTitle: string;
     locationSearchNoResults: string;
@@ -97,6 +112,12 @@ export const translations: Record<
     testNotificationBody: string;
     testNotificationTapHint: string;
     enableNotifications: string;
+    alhamdulillahReminder: string;
+    alhamdulillahReminderHint: string;
+    alhamdulillahNotificationTitle: string;
+    alhamdulillahNotificationBody: string;
+    salawatNotificationTitle: string;
+    salawatNotificationBody: string;
     notificationRevokeHint: string;
     playAzanSound: string;
     selectSound: string;
@@ -115,6 +136,8 @@ export const translations: Record<
     turkeyPresetHint: string;
     shuruq: string;
     prayerOffset: string;
+    adjustPrayerTimes: string;
+    adjustPrayerTimesHint: string;
     notifyForPrayer: string;
     themeStyle: string;
     themeStyleClassic: string;
@@ -162,6 +185,13 @@ export const translations: Record<
     tasbihPresetLahawla: string;
     tasbihPresetTahlil: string;
     tasbihPresetSalawat: string;
+    tasbihAddDhikr: string;
+    tasbihCustomDhikr: string;
+    tasbihDhikrLabel: string;
+    tasbihDhikrTarget: string;
+    tasbihEditTarget: string;
+    tasbihDelete: string;
+    tasbihSettings: string;
     ayah: string;
     verses: string;
     downloadForOffline: string;
@@ -177,6 +207,9 @@ export const translations: Record<
     downloadQuranDone: string;
     downloadQuranError: string;
     quranDownloaded: string;
+    quranViewByVerse: string;
+    quranViewByPage: string;
+    quranPageLabel: string;
     downloadQuranAudio: string;
     downloadQuranAudioSize: string;
     downloadQuranAudioDownloading: string;
@@ -208,6 +241,7 @@ export const translations: Record<
     holdPhoneFlat: string;
     facingQibla: string;
     turnTowardQibla: string;
+    qiblaGlowHint: string;
     noUpcomingPrayer: string;
     firstPrayerTomorrowAt: string;
     save: string;
@@ -306,6 +340,9 @@ export const translations: Record<
     sectionAzan: 'Azan',
     sectionQuran: 'Quran',
     sectionPrayerTimes: 'Prayer times',
+    timeFormat: 'Time format',
+    timeFormat12h: '12-hour',
+    timeFormat24h: '24-hour',
     sectionInfo: 'Info',
     sectionApp: 'App',
     sectionCredits: 'Credits',
@@ -318,7 +355,8 @@ export const translations: Record<
     location: 'Location',
     noLocation: 'No location set',
     setLocationManually: 'Set location manually',
-    locationSearchPlaceholder: 'Search city or place…',
+    locationSearchPlaceholder: 'Search city or country…',
+    locationSearchHint: 'e.g. Tripoli, Libya or city name',
     useCurrentLocation: 'Use my location',
     locationPickerTitle: 'Set location',
     locationSearchNoResults: 'No results found',
@@ -333,6 +371,13 @@ export const translations: Record<
   testNotificationBody: 'A test notification will fire in ~10 seconds. Put the app in background and wait. If you hear the adhan, notifications work.',
   testNotificationTapHint: 'On Android with Expo Go: tap the notification to hear the adhan. With a development build, adhan plays automatically.',
     enableNotifications: 'Enable notifications',
+    alhamdulillahReminder: 'Dhikr reminders (every hour)',
+    alhamdulillahReminderHint:
+      'Each hour on the clock, alternating: alhamdulillah; then Allahumma salli ’ala Muhammad (salawat).',
+    alhamdulillahNotificationTitle: 'Alhamdulillah',
+    alhamdulillahNotificationBody: 'Take a moment to say alhamdulillah.',
+    salawatNotificationTitle: 'Salawat',
+    salawatNotificationBody: 'Take a moment to say: Allahumma salli ’ala Muhammad.',
     notificationRevokeHint: 'To fully disable in system settings, tap here',
     playAzanSound: 'Play Azan sound',
     selectSound: 'Select sound',
@@ -342,7 +387,7 @@ export const translations: Record<
     stopSound: 'Stop sound',
     knownLimitations: 'Known limitations',
     knownLimitationsText:
-      'On iOS, notification sound is limited to 30 seconds. Tapping the notification opens the app and plays the full Azan if "Play Azan sound" is on. On Android, custom adhan as notification sound requires a development build (not Expo Go); silent mode is reflected via notification channel settings.',
+      'On iOS, notification sound is limited to 30 seconds. Tapping the notification opens the app and plays the remainder of the adhan if "Play Azan sound" is on. Full-length adhan files can be added in a future update. On Android, custom adhan as notification sound requires a development build (not Expo Go); silent mode is reflected via notification channel settings.',
     calculationMethod: 'Calculation method',
     asrMethod: 'Asr method',
     highLatitudeRule: 'High latitude rule',
@@ -352,6 +397,8 @@ export const translations: Record<
     turkeyPresetHint: 'Matchar Muslim Pro och officiella tider för Istanbul/Turkiet',
     shuruq: 'Shuruq',
     prayerOffset: 'Offset (min)',
+    adjustPrayerTimes: 'Adjust prayer times',
+    adjustPrayerTimesHint: 'Add or subtract minutes per prayer for your location.',
     notifyForPrayer: 'Notify for this prayer',
     themeStyle: 'Design style',
     themeStyleClassic: 'Classic',
@@ -398,6 +445,13 @@ export const translations: Record<
     tasbihPresetLahawla: 'La hawla wa la quwwata illa billah',
     tasbihPresetTahlil: 'La ilaha illallah',
     tasbihPresetSalawat: 'Allahumma salli ala Muhammad',
+    tasbihAddDhikr: 'Add dhikr',
+    tasbihCustomDhikr: 'Custom dhikr',
+    tasbihDhikrLabel: 'Dhikr phrase',
+    tasbihDhikrTarget: 'Target count',
+    tasbihEditTarget: 'Edit target',
+    tasbihDelete: 'Delete',
+    tasbihSettings: 'Dhikr settings',
     continueReading: 'Continue reading',
     ayah: 'Ayah',
     verses: 'verses',
@@ -414,6 +468,9 @@ export const translations: Record<
     downloadQuranDone: 'Quran downloaded for offline use.',
     downloadQuranError: 'Download failed. Check your connection.',
     quranDownloaded: 'Text downloaded',
+    quranViewByVerse: 'By verse',
+    quranViewByPage: 'By page (mushaf)',
+    quranPageLabel: 'Page',
     downloadQuranAudio: 'Download audio (Juz Amma)',
     downloadQuranAudioSize: 'Last 20 surahs, ~15 MB',
     downloadQuranAudioDownloading: 'Downloading audio…',
@@ -445,6 +502,7 @@ export const translations: Record<
     holdPhoneFlat: 'Hold phone flat',
     facingQibla: 'Facing Qibla',
     turnTowardQibla: 'Turn toward Qibla',
+    qiblaGlowHint: 'When the compass lights up, your phone is pointing toward Qibla',
     noUpcomingPrayer: 'No more prayers today',
     firstPrayerTomorrowAt: '{name} tomorrow at {time}',
     save: 'Save',
@@ -466,7 +524,16 @@ export const translations: Record<
       Maghrib: 'Maghrib',
       Isha: 'Isha',
     },
-    soundOptions: { azan1: 'Azan 1', azan2: 'Azan 2' },
+    soundOptions: {
+      azan1: 'Azan 1',
+      azan2: 'Azan 2 (Qatar)',
+      azan3: 'Azan 3',
+      azan4: 'Azan 4 (Egypt)',
+      azan5: 'Azan 5',
+      azan6: 'Azan 6',
+      azan7: 'Azan 7 (Saudi)',
+      azan8: 'Azan 8',
+    },
     calculationMethodOptions: { MWL: 'MWL', Egypt: 'Egypt', UmmAlQura: 'Umm al-Qura', Karachi: 'Karachi', Diyanet: '★ Recommended' },
     asrMethodOptions: { Shafi: 'Shafi', Hanafi: 'Hanafi' },
     highLatitudeOptions: {
@@ -574,6 +641,9 @@ export const translations: Record<
     sectionAzan: 'الأذان',
     sectionQuran: 'القرآن',
     sectionPrayerTimes: 'أوقات الصلاة',
+    timeFormat: 'تنسيق الوقت',
+    timeFormat12h: '١٢ ساعة',
+    timeFormat24h: '٢٤ ساعة',
     sectionInfo: 'معلومات',
     sectionApp: 'التطبيق',
     sectionCredits: 'شكر وتقدير',
@@ -586,7 +656,8 @@ export const translations: Record<
     location: 'الموقع',
     noLocation: 'لم يتم تعيين الموقع',
     setLocationManually: 'تعيين الموقع يدوياً',
-    locationSearchPlaceholder: 'ابحث عن مدينة أو مكان…',
+    locationSearchPlaceholder: 'ابحث عن مدينة أو بلد…',
+    locationSearchHint: 'مثال: طرابلس، ليبيا',
     useCurrentLocation: 'استخدم موقعي',
     locationPickerTitle: 'تعيين الموقع',
     locationSearchNoResults: 'لم يتم العثور على نتائج',
@@ -601,6 +672,13 @@ export const translations: Record<
   testNotificationBody: 'سيظهر إشعار تجريبي خلال ~10 ثوانٍ. ضع التطبيق في الخلفية وانتظر.',
   testNotificationTapHint: 'على أندرويد: اضغط على الإشعار لسماع الأذان.',
     enableNotifications: 'تفعيل الإشعارات',
+    alhamdulillahReminder: 'تذاكير أذكار (كل ساعة)',
+    alhamdulillahReminderHint:
+      'كل ساعة بالتناوب: الحمد لله، ثم اللَّهُمَّ صَلِّ على مُحَمَّدٍ (الصلاة على النبي).',
+    alhamdulillahNotificationTitle: 'الحمد لله',
+    alhamdulillahNotificationBody: 'تذكّر أن تقول: الحمد لله.',
+    salawatNotificationTitle: 'الصلاة على النبي ﷺ',
+    salawatNotificationBody: 'تذكّر أن تقول: اللَّهُمَّ صَلِّ على مُحَمَّدٍ',
     notificationRevokeHint: 'للتعطيل الكامل في إعدادات النظام، اضغط هنا',
     playAzanSound: 'تشغيل صوت الأذان',
     selectSound: 'اختر الصوت',
@@ -620,6 +698,8 @@ export const translations: Record<
     turkeyPresetHint: 'يطابق Muslim Pro والأوقات الرسمية لإسطنبول/تركيا',
     shuruq: 'الشروق',
     prayerOffset: 'الإزاحة (دقيقة)',
+    adjustPrayerTimes: 'تعديل أوقات الصلاة',
+    adjustPrayerTimesHint: 'أضف أو اطرح دقائق لكل صلاة حسب موقعك.',
     notifyForPrayer: 'إشعار لهذه الصلاة',
     themeStyle: 'النمط',
     themeStyleClassic: 'كلاسيكي',
@@ -666,6 +746,13 @@ export const translations: Record<
     tasbihPresetLahawla: 'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ',
     tasbihPresetTahlil: 'لَا إِلَٰهَ إِلَّا اللَّهُ',
     tasbihPresetSalawat: 'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ',
+    tasbihAddDhikr: 'إضافة ذكر',
+    tasbihCustomDhikr: 'أذكار مخصصة',
+    tasbihDhikrLabel: 'نص الذكر',
+    tasbihDhikrTarget: 'عدد المرات',
+    tasbihEditTarget: 'تعديل العدد',
+    tasbihDelete: 'حذف',
+    tasbihSettings: 'إعدادات الذكر',
     continueReading: 'متابعة القراءة',
     ayah: 'آية',
     verses: 'آيات',
@@ -682,6 +769,9 @@ export const translations: Record<
     downloadQuranDone: 'تم تحميل القرآن للاستخدام دون اتصال.',
     downloadQuranError: 'فشل التحميل. تحقق من اتصالك.',
     quranDownloaded: 'تم تحميل النص',
+    quranViewByVerse: 'بالآيات',
+    quranViewByPage: 'بالصفحات (مصحف)',
+    quranPageLabel: 'صفحة',
     downloadQuranAudio: 'تحميل الصوت (جزء عم)',
     downloadQuranAudioSize: 'آخر 20 سورة، ~15 ميجابايت',
     downloadQuranAudioDownloading: 'جاري تحميل الصوت…',
@@ -713,6 +803,7 @@ export const translations: Record<
     holdPhoneFlat: 'امسك الهاتف بشكل مسطح',
     facingQibla: 'اتجاه القبلة',
     turnTowardQibla: 'استدر نحو القبلة',
+    qiblaGlowHint: 'عندما تضيء البوصلة، هاتفك يشير نحو القبلة',
     noUpcomingPrayer: 'لا مزيد من الصلوات اليوم',
     firstPrayerTomorrowAt: 'غداً {name} الساعة {time}',
     save: 'حفظ',
@@ -734,7 +825,16 @@ export const translations: Record<
       Maghrib: 'المغرب',
       Isha: 'العشاء',
     },
-    soundOptions: { azan1: 'أذان 1', azan2: 'أذان 2' },
+    soundOptions: {
+      azan1: 'أذان 1',
+      azan2: 'أذان 2 (قطر)',
+      azan3: 'أذان 3',
+      azan4: 'أذان 4 (مصر)',
+      azan5: 'أذان 5',
+      azan6: 'أذان 6',
+      azan7: 'أذان 7 (السعودية)',
+      azan8: 'أذان 8',
+    },
     calculationMethodOptions: { MWL: 'رابطة العالم الإسلامي', Egypt: 'مصر', UmmAlQura: 'أم القرى', Karachi: 'كراتشي', Diyanet: '★ الموصى به' },
     asrMethodOptions: { Shafi: 'الشافعي', Hanafi: 'الحنفي' },
     highLatitudeOptions: {
@@ -842,6 +942,9 @@ export const translations: Record<
     sectionAzan: 'Ezan',
     sectionQuran: 'Kuran',
     sectionPrayerTimes: 'Namaz vakitleri',
+    timeFormat: 'Saat formatı',
+    timeFormat12h: '12 saat',
+    timeFormat24h: '24 saat',
     sectionInfo: 'Bilgi',
     sectionApp: 'Uygulama',
     sectionCredits: 'Teşekkürler',
@@ -854,7 +957,8 @@ export const translations: Record<
     location: 'Konum',
     noLocation: 'Konum ayarlanmadı',
     setLocationManually: 'Konumu manuel ayarla',
-    locationSearchPlaceholder: 'Şehir veya yer ara…',
+    locationSearchPlaceholder: 'Şehir veya ülke ara…',
+    locationSearchHint: 'Örn. İstanbul, Türkiye',
     useCurrentLocation: 'Konumumu kullan',
     locationPickerTitle: 'Konum ayarla',
     locationSearchNoResults: 'Sonuç bulunamadı',
@@ -869,6 +973,13 @@ export const translations: Record<
   testNotificationBody: 'Yaklaşık 10 saniye içinde test bildirimi gelecek. Uygulamayı arka plana alıp bekleyin.',
   testNotificationTapHint: 'Android\'de: ezanı duymak için bildirime dokunun.',
     enableNotifications: 'Bildirimleri etkinleştir',
+    alhamdulillahReminder: 'Zikir hatırlatıcıları (her saat)',
+    alhamdulillahReminderHint:
+      'Her saat başı, sırayla: elhamdülillah; ardından Allahümme salli ala Muhammed (salavat).',
+    alhamdulillahNotificationTitle: 'Elhamdülillah',
+    alhamdulillahNotificationBody: 'Elhamdülillah demek için bir an ayırın.',
+    salawatNotificationTitle: 'Salavat',
+    salawatNotificationBody: 'Allahümme salli ala Muhammed demek için bir an ayırın.',
     notificationRevokeHint: 'Sistem ayarlarında tamamen kapatmak için buraya dokunun',
     playAzanSound: 'Ezan sesini çal',
     selectSound: 'Ses seç',
@@ -888,6 +999,8 @@ export const translations: Record<
     turkeyPresetHint: 'Muslim Pro ve İstanbul/Türkiye resmi vakitleriyle uyumlu',
     shuruq: 'Şuruk',
     prayerOffset: 'Sapma (dk)',
+    adjustPrayerTimes: 'Namaz vakitlerini ayarla',
+    adjustPrayerTimesHint: 'Konumunuza göre her namaz için dakika ekleyin veya çıkarın.',
     notifyForPrayer: 'Bu namaz için bildirim',
     themeStyle: 'Tasarım stili',
     themeStyleClassic: 'Klasik',
@@ -934,6 +1047,13 @@ export const translations: Record<
     tasbihPresetLahawla: 'La hawla wa la quwwata illa billah',
     tasbihPresetTahlil: 'La ilaha illallah',
     tasbihPresetSalawat: 'Allahumma salli ala Muhammad',
+    tasbihAddDhikr: 'Zikir ekle',
+    tasbihCustomDhikr: 'Özel zikir',
+    tasbihDhikrLabel: 'Zikir ifadesi',
+    tasbihDhikrTarget: 'Hedef sayı',
+    tasbihEditTarget: 'Hedefi düzenle',
+    tasbihDelete: 'Sil',
+    tasbihSettings: 'Zikir ayarları',
     continueReading: 'Okumaya devam et',
     ayah: 'Ayet',
     verses: 'ayet',
@@ -950,6 +1070,9 @@ export const translations: Record<
     downloadQuranDone: 'Kuran çevrimdışı kullanım için indirildi.',
     downloadQuranError: 'İndirme başarısız. Bağlantınızı kontrol edin.',
     quranDownloaded: 'Metin indirildi',
+    quranViewByVerse: 'Ayet ayet',
+    quranViewByPage: 'Sayfa (mushaf)',
+    quranPageLabel: 'Sayfa',
     downloadQuranAudio: 'Ses indir (Amme Cüzü)',
     downloadQuranAudioSize: 'Son 20 sure, ~15 MB',
     downloadQuranAudioDownloading: 'Ses indiriliyor…',
@@ -981,6 +1104,7 @@ export const translations: Record<
     holdPhoneFlat: 'Telefonu düz tut',
     facingQibla: 'Kıbleye bakıyorsun',
     turnTowardQibla: 'Kıbleye dön',
+    qiblaGlowHint: 'Pusula aydınlandığında telefonunuz kıbleye yöneliktir',
     noUpcomingPrayer: 'Bugün namaz kalmadı',
     firstPrayerTomorrowAt: 'Yarın {name} {time}',
     save: 'Kaydet',
@@ -1111,6 +1235,9 @@ export const translations: Record<
     sectionAzan: 'Adhan',
     sectionQuran: 'Coran',
     sectionPrayerTimes: 'Heures de prière',
+    timeFormat: 'Format de l\'heure',
+    timeFormat12h: '12 heures',
+    timeFormat24h: '24 heures',
     sectionInfo: 'Info',
     sectionApp: 'Application',
     sectionCredits: 'Crédits',
@@ -1123,7 +1250,8 @@ export const translations: Record<
     location: 'Emplacement',
     noLocation: 'Aucun emplacement défini',
     setLocationManually: 'Définir l\'emplacement manuellement',
-    locationSearchPlaceholder: 'Rechercher une ville ou un lieu…',
+    locationSearchPlaceholder: 'Rechercher une ville ou un pays…',
+    locationSearchHint: 'Ex. Tripoli, Libye',
     useCurrentLocation: 'Utiliser ma position',
     locationPickerTitle: 'Définir l\'emplacement',
     locationSearchNoResults: 'Aucun résultat',
@@ -1138,6 +1266,13 @@ export const translations: Record<
   testNotificationBody: 'Une notification de test arrivera dans ~10 secondes. Mettez l\'app en arrière-plan et attendez.',
   testNotificationTapHint: 'Sur Android : appuyez sur la notification pour entendre l\'adhan.',
     enableNotifications: 'Activer les notifications',
+    alhamdulillahReminder: 'Rappels adhkār (chaque heure)',
+    alhamdulillahReminderHint:
+      'Chaque heure pile, en alternance : alhamdulillah, puis Allahumma salli ’ala Muhammad (salawāt).',
+    alhamdulillahNotificationTitle: 'Alhamdulillah',
+    alhamdulillahNotificationBody: 'Prenez un moment pour dire alhamdulillah.',
+    salawatNotificationTitle: 'Salawāt',
+    salawatNotificationBody: 'Prenez un moment pour dire : Allahumma salli ’ala Muhammad.',
     notificationRevokeHint: 'Pour désactiver dans les paramètres système, appuyez ici',
     playAzanSound: 'Jouer le son de l\'Adhan',
     selectSound: 'Choisir le son',
@@ -1157,6 +1292,8 @@ export const translations: Record<
     turkeyPresetHint: 'Correspond à Muslim Pro et aux heures officielles d\'Istanbul/Turquie',
     shuruq: 'Shuruq',
     prayerOffset: 'Décalage (min)',
+    adjustPrayerTimes: 'Ajuster les heures de prière',
+    adjustPrayerTimesHint: 'Ajoutez ou retirez des minutes par prière pour votre lieu.',
     notifyForPrayer: 'Notifier pour cette prière',
     themeStyle: 'Style de design',
     themeStyleClassic: 'Classique',
@@ -1203,6 +1340,13 @@ export const translations: Record<
     tasbihPresetLahawla: 'La hawla wa la quwwata illa billah',
     tasbihPresetTahlil: 'La ilaha illallah',
     tasbihPresetSalawat: 'Allahumma salli ala Muhammad',
+    tasbihAddDhikr: 'Ajouter un dhikr',
+    tasbihCustomDhikr: 'Dhikr personnalisé',
+    tasbihDhikrLabel: 'Phrase du dhikr',
+    tasbihDhikrTarget: 'Nombre cible',
+    tasbihEditTarget: 'Modifier la cible',
+    tasbihDelete: 'Supprimer',
+    tasbihSettings: 'Paramètres du dhikr',
     continueReading: 'Continuer la lecture',
     ayah: 'Ayah',
     verses: 'versets',
@@ -1219,6 +1363,9 @@ export const translations: Record<
     downloadQuranDone: 'Coran téléchargé pour une utilisation hors ligne.',
     downloadQuranError: 'Échec du téléchargement. Vérifiez votre connexion.',
     quranDownloaded: 'Texte téléchargé',
+    quranViewByVerse: 'Par verset',
+    quranViewByPage: 'Par page (mushaf)',
+    quranPageLabel: 'Page',
     downloadQuranAudio: 'Télécharger l\'audio (Juz Amma)',
     downloadQuranAudioSize: '20 dernières sourates, ~15 Mo',
     downloadQuranAudioDownloading: 'Téléchargement audio…',
@@ -1250,6 +1397,7 @@ export const translations: Record<
     holdPhoneFlat: 'Tenez le téléphone à plat',
     facingQibla: 'Face à la Qibla',
     turnTowardQibla: 'Tournez vers la Qibla',
+    qiblaGlowHint: 'Lorsque la boussole s\'illumine, votre téléphone pointe vers la Qibla',
     noUpcomingPrayer: 'Plus de prières aujourd\'hui',
     firstPrayerTomorrowAt: '{name} demain à {time}',
     save: 'Enregistrer',
@@ -1379,6 +1527,9 @@ export const translations: Record<
     sectionAzan: 'Adhan',
     sectionQuran: 'Corán',
     sectionPrayerTimes: 'Horarios de oración',
+    timeFormat: 'Formato de hora',
+    timeFormat12h: '12 horas',
+    timeFormat24h: '24 horas',
     sectionInfo: 'Info',
     sectionApp: 'Aplicación',
     sectionCredits: 'Créditos',
@@ -1391,7 +1542,8 @@ export const translations: Record<
     location: 'Ubicación',
     noLocation: 'Sin ubicación configurada',
     setLocationManually: 'Configurar ubicación manualmente',
-    locationSearchPlaceholder: 'Buscar ciudad o lugar…',
+    locationSearchPlaceholder: 'Buscar ciudad o país…',
+    locationSearchHint: 'Ej. Trípoli, Libia',
     useCurrentLocation: 'Usar mi ubicación',
     locationPickerTitle: 'Configurar ubicación',
     locationSearchNoResults: 'No se encontraron resultados',
@@ -1406,6 +1558,13 @@ export const translations: Record<
   testNotificationBody: 'Una notificación de prueba llegará en ~10 segundos. Pon la app en segundo plano y espera.',
   testNotificationTapHint: 'En Android: toca la notificación para escuchar el adhan.',
     enableNotifications: 'Activar notificaciones',
+    alhamdulillahReminder: 'Recordatorios de dhikr (cada hora)',
+    alhamdulillahReminderHint:
+      'Cada hora en punto, en alternancia: alhamdulillah; luego Allahumma salli ’ala Muhammad (salawat).',
+    alhamdulillahNotificationTitle: 'Alhamdulillah',
+    alhamdulillahNotificationBody: 'Tómate un momento para decir alhamdulillah.',
+    salawatNotificationTitle: 'Salawat',
+    salawatNotificationBody: 'Tómate un momento para decir: Allahumma salli ’ala Muhammad.',
     notificationRevokeHint: 'Para desactivar en la configuración del sistema, toca aquí',
     playAzanSound: 'Reproducir sonido del Adhan',
     selectSound: 'Seleccionar sonido',
@@ -1425,6 +1584,8 @@ export const translations: Record<
     turkeyPresetHint: 'Coincide con Muslim Pro y horarios oficiales de Estambul/Turquía',
     shuruq: 'Shuruq',
     prayerOffset: 'Desplazamiento (min)',
+    adjustPrayerTimes: 'Ajustar horarios de oración',
+    adjustPrayerTimesHint: 'Añade o resta minutos por oración para tu ubicación.',
     notifyForPrayer: 'Notificar para esta oración',
     themeStyle: 'Estilo de diseño',
     themeStyleClassic: 'Clásico',
@@ -1471,6 +1632,13 @@ export const translations: Record<
     tasbihPresetLahawla: 'La hawla wa la quwwata illa billah',
     tasbihPresetTahlil: 'La ilaha illallah',
     tasbihPresetSalawat: 'Allahumma salli ala Muhammad',
+    tasbihAddDhikr: 'Añadir dhikr',
+    tasbihCustomDhikr: 'Dhikr personalizado',
+    tasbihDhikrLabel: 'Frase del dhikr',
+    tasbihDhikrTarget: 'Número objetivo',
+    tasbihEditTarget: 'Editar objetivo',
+    tasbihDelete: 'Eliminar',
+    tasbihSettings: 'Ajustes del dhikr',
     continueReading: 'Continuar leyendo',
     ayah: 'Ayah',
     verses: 'versos',
@@ -1487,6 +1655,9 @@ export const translations: Record<
     downloadQuranDone: 'Corán descargado para uso sin conexión.',
     downloadQuranError: 'Descarga fallida. Comprueba tu conexión.',
     quranDownloaded: 'Texto descargado',
+    quranViewByVerse: 'Por versículo',
+    quranViewByPage: 'Por página (mushaf)',
+    quranPageLabel: 'Página',
     downloadQuranAudio: 'Descargar audio (Juz Amma)',
     downloadQuranAudioSize: 'Últimas 20 suras, ~15 MB',
     downloadQuranAudioDownloading: 'Descargando audio…',
@@ -1518,6 +1689,7 @@ export const translations: Record<
     holdPhoneFlat: 'Mantén el teléfono plano',
     facingQibla: 'De cara a la Qibla',
     turnTowardQibla: 'Gira hacia la Qibla',
+    qiblaGlowHint: 'Cuando la brújula se ilumina, tu teléfono apunta hacia la Qibla',
     noUpcomingPrayer: 'No hay más oraciones hoy',
     firstPrayerTomorrowAt: '{name} mañana a las {time}',
     save: 'Guardar',
@@ -1647,6 +1819,9 @@ export const translations: Record<
     sectionAzan: 'Böneutrop',
     sectionQuran: 'Koran',
     sectionPrayerTimes: 'Bönetider',
+    timeFormat: 'Tidsformat',
+    timeFormat12h: '12 timmar',
+    timeFormat24h: '24 timmar',
     sectionInfo: 'Info',
     sectionApp: 'App',
     sectionCredits: 'Credits',
@@ -1659,7 +1834,8 @@ export const translations: Record<
     location: 'Plats',
     noLocation: 'Ingen plats angiven',
     setLocationManually: 'Ange plats manuellt',
-    locationSearchPlaceholder: 'Sök stad eller plats…',
+    locationSearchPlaceholder: 'Sök stad eller land…',
+    locationSearchHint: 'T.ex. Tripoli, Libyen',
     useCurrentLocation: 'Använd min plats',
     locationPickerTitle: 'Ange plats',
     locationSearchNoResults: 'Inga resultat',
@@ -1674,6 +1850,13 @@ export const translations: Record<
   testNotificationBody: 'En testnotis kommer om ~10 sekunder. Ställ appen i bakgrunden och vänta. Hör du adhan fungerar notiser.',
   testNotificationTapHint: 'På Android med Expo Go: tryck på notisen för att höra böneutropet. Med development build spelas adhan automatiskt.',
     enableNotifications: 'Aktivera notiser',
+    alhamdulillahReminder: 'Dhikr-påminnelser (varje timme)',
+    alhamdulillahReminderHint:
+      'Varje hel timme, växelvis: alhamdulillah och salawat (Allahumma salli ’ala Muhammad).',
+    alhamdulillahNotificationTitle: 'Alhamdulillah',
+    alhamdulillahNotificationBody: 'Ta ett ögonblick och säg alhamdulillah.',
+    salawatNotificationTitle: 'Salawat',
+    salawatNotificationBody: 'Ta ett ögonblick och säg: Allahumma salli ’ala Muhammad.',
     notificationRevokeHint: 'För att stänga av i systeminställningar, tryck här',
     playAzanSound: 'Spela Adhan-ljud',
     selectSound: 'Välj ljud',
@@ -1693,6 +1876,8 @@ export const translations: Record<
     turkeyPresetHint: 'Matchar Muslim Pro och officiella tider för Istanbul/Turkiet',
     shuruq: 'Shuruq',
     prayerOffset: 'Förskjutning (min)',
+    adjustPrayerTimes: 'Justera bönetider',
+    adjustPrayerTimesHint: 'Lägg till eller dra bort minuter per bön för din plats.',
     notifyForPrayer: 'Notifiera för denna bön',
     themeStyle: 'Designstil',
     themeStyleClassic: 'Klassisk',
@@ -1739,6 +1924,13 @@ export const translations: Record<
     tasbihPresetLahawla: 'La hawla wa la quwwata illa billah',
     tasbihPresetTahlil: 'La ilaha illallah',
     tasbihPresetSalawat: 'Allahumma salli ala Muhammad',
+    tasbihAddDhikr: 'Lägg till dhikr',
+    tasbihCustomDhikr: 'Anpassad dhikr',
+    tasbihDhikrLabel: 'Dhikr-fras',
+    tasbihDhikrTarget: 'Måltal',
+    tasbihEditTarget: 'Redigera mål',
+    tasbihDelete: 'Ta bort',
+    tasbihSettings: 'Dhikr-inställningar',
     continueReading: 'Fortsätt läsa',
     ayah: 'Ayah',
     verses: 'verser',
@@ -1755,6 +1947,9 @@ export const translations: Record<
     downloadQuranDone: 'Koranen nedladdad för offline-användning.',
     downloadQuranError: 'Nedladdning misslyckades. Kontrollera din anslutning.',
     quranDownloaded: 'Text nedladdad',
+    quranViewByVerse: 'Per vers',
+    quranViewByPage: 'Per sida (mushaf)',
+    quranPageLabel: 'Sida',
     downloadQuranAudio: 'Ladda ner ljud (Juz Amma)',
     downloadQuranAudioSize: 'Sista 20 surahs, ~15 MB',
     downloadQuranAudioDownloading: 'Laddar ner ljud…',
@@ -1786,6 +1981,7 @@ export const translations: Record<
     holdPhoneFlat: 'Håll telefonen platt',
     facingQibla: 'Mot Qibla',
     turnTowardQibla: 'Vänd mot Qibla',
+    qiblaGlowHint: 'När kompassen lyser upp pekar telefonen mot Qibla',
     noUpcomingPrayer: 'Inga fler böner idag',
     firstPrayerTomorrowAt: '{name} imorgon kl {time}',
     save: 'Spara',
@@ -1915,6 +2111,9 @@ export const translations: Record<
     sectionAzan: 'Adhan',
     sectionQuran: 'Koran',
     sectionPrayerTimes: 'Gebetszeiten',
+    timeFormat: 'Zeitformat',
+    timeFormat12h: '12 Stunden',
+    timeFormat24h: '24 Stunden',
     sectionInfo: 'Info',
     sectionApp: 'App',
     sectionCredits: 'Danksagungen',
@@ -1927,7 +2126,8 @@ export const translations: Record<
     location: 'Standort',
     noLocation: 'Kein Standort festgelegt',
     setLocationManually: 'Standort manuell festlegen',
-    locationSearchPlaceholder: 'Stadt oder Ort suchen…',
+    locationSearchPlaceholder: 'Stadt oder Land suchen…',
+    locationSearchHint: 'z.B. Tripolis, Libyen',
     useCurrentLocation: 'Meinen Standort verwenden',
     locationPickerTitle: 'Standort festlegen',
     locationSearchNoResults: 'Keine Ergebnisse',
@@ -1942,6 +2142,13 @@ export const translations: Record<
   testNotificationBody: 'Eine Testbenachrichtigung kommt in ~10 Sekunden. App in den Hintergrund stellen und warten.',
   testNotificationTapHint: 'Auf Android: Tippen Sie auf die Benachrichtigung, um den Adhan zu hören.',
     enableNotifications: 'Benachrichtigungen aktivieren',
+    alhamdulillahReminder: 'Dhikr-Erinnerungen (stündlich)',
+    alhamdulillahReminderHint:
+      'Zu jeder vollen Stunde, abwechselnd: alhamdulillah; dann Allahumma salli ’ala Muhammad (Salawat).',
+    alhamdulillahNotificationTitle: 'Alhamdulillah',
+    alhamdulillahNotificationBody: 'Nimm dir einen Moment für alhamdulillah.',
+    salawatNotificationTitle: 'Salawat',
+    salawatNotificationBody: 'Nimm dir einen Moment für: Allahumma salli ’ala Muhammad.',
     notificationRevokeHint: 'Zum vollständigen Deaktivieren in den Systemeinstellungen hier tippen',
     playAzanSound: 'Adhan-Sound abspielen',
     selectSound: 'Sound auswählen',
@@ -1961,6 +2168,8 @@ export const translations: Record<
     turkeyPresetHint: 'Entspricht Muslim Pro und offiziellen Zeiten für Istanbul/Türkei',
     shuruq: 'Shuruq',
     prayerOffset: 'Versatz (Min)',
+    adjustPrayerTimes: 'Gebetszeiten anpassen',
+    adjustPrayerTimesHint: 'Minuten pro Gebet für Ihren Ort hinzufügen oder abziehen.',
     notifyForPrayer: 'Für dieses Gebet benachrichtigen',
     themeStyle: 'Designstil',
     themeStyleClassic: 'Klassisch',
@@ -2007,6 +2216,13 @@ export const translations: Record<
     tasbihPresetLahawla: 'La hawla wa la quwwata illa billah',
     tasbihPresetTahlil: 'La ilaha illallah',
     tasbihPresetSalawat: 'Allahumma salli ala Muhammad',
+    tasbihAddDhikr: 'Dhikr hinzufügen',
+    tasbihCustomDhikr: 'Eigener Dhikr',
+    tasbihDhikrLabel: 'Dhikr-Text',
+    tasbihDhikrTarget: 'Zielanzahl',
+    tasbihEditTarget: 'Ziel bearbeiten',
+    tasbihDelete: 'Löschen',
+    tasbihSettings: 'Dhikr-Einstellungen',
     continueReading: 'Weiterlesen',
     ayah: 'Ayah',
     verses: 'Verse',
@@ -2023,6 +2239,9 @@ export const translations: Record<
     downloadQuranDone: 'Koran für Offline-Nutzung heruntergeladen.',
     downloadQuranError: 'Download fehlgeschlagen. Überprüfen Sie Ihre Verbindung.',
     quranDownloaded: 'Text heruntergeladen',
+    quranViewByVerse: 'Nach Vers',
+    quranViewByPage: 'Nach Seite (Mushaf)',
+    quranPageLabel: 'Seite',
     downloadQuranAudio: 'Audio herunterladen (Juz Amma)',
     downloadQuranAudioSize: 'Letzte 20 Suren, ~15 MB',
     downloadQuranAudioDownloading: 'Audio wird heruntergeladen…',
@@ -2054,6 +2273,7 @@ export const translations: Record<
     holdPhoneFlat: 'Handy flach halten',
     facingQibla: 'Zur Qibla gerichtet',
     turnTowardQibla: 'Zur Qibla drehen',
+    qiblaGlowHint: 'Wenn der Kompass aufleuchtet, zeigt dein Handy Richtung Qibla',
     noUpcomingPrayer: 'Keine weiteren Gebete heute',
     firstPrayerTomorrowAt: '{name} morgen um {time}',
     save: 'Speichern',

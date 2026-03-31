@@ -7,8 +7,7 @@ import { View, Platform } from 'react-native';
 import { spacing } from '../theme/spacing';
 import { TimePill } from './TimePill';
 import type { PrayerTime } from '../features/prayer/types';
-import { formatTime } from '../features/prayer/utils/nextPrayer';
-import { getPrayerName, getString } from '../constants/i18n';
+import { getPrayerName, getString, formatTimeWithLocale } from '../constants/i18n';
 import type { Language } from '../features/prayer/types';
 
 type TimePillStackProps = {
@@ -17,6 +16,7 @@ type TimePillStackProps = {
   nextPrayerName: string | null;
   currentPrayerName: string | null;
   language: Language;
+  use12h?: boolean;
   onLongPressPill?: (prayer: PrayerTime) => void;
 };
 
@@ -26,6 +26,7 @@ export const TimePillStack = memo(function TimePillStack({
   nextPrayerName,
   currentPrayerName,
   language,
+  use12h = false,
   onLongPressPill,
 }: TimePillStackProps) {
   const sorted = [...times].sort((a, b) => a.time.getTime() - b.time.getTime());
@@ -63,7 +64,7 @@ export const TimePillStack = memo(function TimePillStack({
           key={item.key}
           prayer={item.prayer ?? { name: 'Fajr', time: item.time, dateKey: '' }}
           label={item.label}
-          time={formatTime(item.time)}
+          time={formatTimeWithLocale(language, item.time, use12h)}
           isActive={item.isActive}
           isPast={item.isPast}
           isNow={item.isNow}

@@ -10,6 +10,8 @@ import uploadRoutes from './routes/upload';
 import adminsRoutes from './routes/admins';
 import qaRoutes from './routes/qa';
 import asmaRoutes from './routes/asma';
+import pushRoutes from './routes/push';
+import { startPushScheduler } from './services/pushScheduler';
 
 dotenv.config();
 
@@ -34,6 +36,7 @@ app.use('/api/qa', qaRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/admins', adminsRoutes);
 app.use('/api', asmaRoutes);
+app.use('/api/push', pushRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -81,6 +84,7 @@ async function start() {
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
+      startPushScheduler();
     });
   } catch (error) {
     console.error('Failed to start server:', error);

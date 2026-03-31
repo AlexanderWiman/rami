@@ -10,6 +10,23 @@ const KEY_SELECTED_RECITER = '@rami/quran_selected_reciter';
 const KEY_LAST_READ = '@rami/quran_last_read';
 const KEY_TAP_VERSE_HINT_SHOWN = '@rami/quran_tap_verse_hint_shown';
 const KEY_AUDIO_POSITION = '@rami/quran_audio_position';
+const KEY_DISPLAY_MODE = '@rami/quran_display_mode';
+
+export type QuranDisplayMode = 'verse' | 'page';
+
+export async function loadQuranDisplayMode(): Promise<QuranDisplayMode> {
+  try {
+    const raw = await AsyncStorage.getItem(KEY_DISPLAY_MODE);
+    if (raw === 'verse' || raw === 'page') return raw;
+  } catch {
+    /* ignore */
+  }
+  return 'verse';
+}
+
+export async function saveQuranDisplayMode(mode: QuranDisplayMode): Promise<void> {
+  await AsyncStorage.setItem(KEY_DISPLAY_MODE, mode);
+}
 
 export async function loadBookmarks(): Promise<Bookmark[]> {
   try {

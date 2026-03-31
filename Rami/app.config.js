@@ -1,17 +1,109 @@
-const appJson = require('./app.json');
-
 module.exports = {
-  ...appJson.expo,
-  android: {
-    ...appJson.expo.android,
-    config: {
-      googleMaps: {
-        apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_APIKEY || process.env.GOOGLE_MAPS_ANDROID_APIKEY,
+  expo: {
+    name: "Burhank برهانك",
+    slug: "burhank",
+    scheme: "burhank",
+    version: "1.2.3",
+    runtimeVersion: {
+      policy: "appVersion",
+    },
+    updates: {
+      fallbackToCacheTimeout: 0,
+      url: "https://u.expo.dev/81f46652-472d-4138-9a21-10d8415590c1",
+      requestHeaders: {
+        "expo-channel-name": "production",
       },
     },
+    orientation: "portrait",
+    icon: "./assets/icon.png",
+    userInterfaceStyle: "automatic",
+    newArchEnabled: true,
+    splash: {
+      image: "./assets/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#000000",
+    },
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: "com.rami.burhank",
+      infoPlist: {
+        UIBackgroundModes: ["audio"],
+      },
+    },
+    android: {
+      versionCode: 27,
+      adaptiveIcon: {
+        foregroundImage: "./assets/adaptive-icon.png",
+        backgroundColor: "#ffffff",
+      },
+      package: "com.rami.burhank",
+      googleServicesFile: "./google-services-3.json",
+      edgeToEdgeEnabled: true,
+      backgroundColor: "#0A1612",
+      permissions: [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "SCHEDULE_EXACT_ALARM",
+        "USE_EXACT_ALARM",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+      ],
+      blockedPermissions: [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+      ],
+      config: {
+        googleMaps: {
+          apiKey:
+            process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_APIKEY ||
+            process.env.GOOGLE_MAPS_ANDROID_APIKEY,
+        },
+      },
+    },
+    web: {
+      favicon: "./assets/favicon.png",
+      bundler: "metro",
+    },
+    plugins: [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          sounds: [
+            "./assets/sounds/azan1_notification.wav",
+            "./assets/sounds/azan2_notification.wav",
+            "./assets/sounds/azan3_notification.wav",
+            "./assets/sounds/azan4_notification.wav",
+            "./assets/sounds/azan5_notification.wav",
+            "./assets/sounds/azan6_notification.wav",
+            "./assets/sounds/azan7_notification.wav",
+            "./assets/sounds/azan8_notification.wav",
+          ],
+          icon: "./assets/adaptive-icon.png",
+          color: "#E6C27A",
+        },
+      ],
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          android: {
+            enableMinifyInReleaseBuilds: true,
+          },
+        },
+      ],
+      "expo-video",
+      "./plugins/withGoogleMapsApiKey",
+    ],
+    extra: {
+      router: {},
+      eas: {
+        projectId: "81f46652-472d-4138-9a21-10d8415590c1",
+      },
+    },
+    owner: "alexanderwiman",
   },
-  plugins: [
-    ...appJson.expo.plugins,
-    './plugins/withGoogleMapsApiKey',
-  ],
 };

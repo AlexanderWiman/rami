@@ -11,7 +11,7 @@ export function getFallbackDataset(language: BukhariContentLanguage): BukhariDat
       id: 1,
       title: isArabic ? 'بدء الوحي' : 'Revelation',
       chapterCount: 1,
-      hadithCount: 2,
+      hadithCount: 1,
     },
     {
       id: 2,
@@ -22,7 +22,7 @@ export function getFallbackDataset(language: BukhariContentLanguage): BukhariDat
   ];
 
   const chaptersByBook = {
-    1: [{ id: 1, title: isArabic ? 'كيف كان بدء الوحي' : 'How revelation began', hadithCount: 2 }],
+    1: [{ id: 1, title: isArabic ? 'كيف كان بدء الوحي' : 'How revelation began', hadithCount: 1 }],
     2: [{ id: 1, title: isArabic ? 'أمور الإيمان' : 'Matters of faith', hadithCount: 2 }],
   };
 
@@ -35,18 +35,8 @@ export function getFallbackDataset(language: BukhariContentLanguage): BukhariDat
         chapterId: 1,
         chapterTitle: chaptersByBook[1][0].title,
         text: isArabic
-          ? 'إِنَّمَا الْأَعْمَالُ بِالنِّيَّاتِ.'
-          : 'Actions are judged by intentions.',
-      },
-      {
-        id: '1-1-2',
-        number: 2,
-        bookId: 1,
-        chapterId: 1,
-        chapterTitle: chaptersByBook[1][0].title,
-        text: isArabic
-          ? 'وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى.'
-          : 'Every person will have only what they intended.',
+          ? 'إِنَّمَا الْأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى.'
+          : 'Actions are judged by intentions, and every person will have only what they intended.',
       },
     ],
     [getBookChapterKey(2, 1)]: [

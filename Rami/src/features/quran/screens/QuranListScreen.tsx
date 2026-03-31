@@ -28,7 +28,7 @@ import { useDockVisibility } from '../../../components/SacredDock';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
 import { BackToHomeBar } from '../../../components/BackToHomeBar';
 import { GlassCard } from '../../../components/GlassCard';
-import { loadSelectedReciter } from '../storage/quranStorage';
+import { loadSelectedReciter, loadQuranDisplayMode, saveQuranDisplayMode, type QuranDisplayMode } from '../storage/quranStorage';
 import { SURAH_LIST, searchSurahs, type SurahMeta } from '../data/surahs';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { downloadFullQuranText, isQuranTextDownloaded } from '../utils/quranTextCache';
@@ -66,6 +66,11 @@ export function QuranListScreen() {
   const [downloadedSurahs, setDownloadedSurahs] = useState<Set<number>>(new Set());
   const [downloadingSurah, setDownloadingSurah] = useState<number | null>(null);
   const [surahProgress, setSurahProgress] = useState<{ done: number; total: number } | null>(null);
+  const [displayMode, setDisplayMode] = useState<QuranDisplayMode>('verse');
+
+  useEffect(() => {
+    loadQuranDisplayMode().then(setDisplayMode);
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -321,6 +326,39 @@ export function QuranListScreen() {
               <Ionicons name="search" size={22} color={isRoyal ? 'rgba(230,194,122,0.95)' : colors.highlight} />
             </TouchableOpacity>
           </View>
+        </View>
+        <View style={styles.viewModeRow}>
+          <TouchableOpacity
+            style={[
+              styles.viewModeChip,
+              { backgroundColor: isRoyal ? 'rgba(10, 25, 18, 0.5)' : colors.surfaceGlass, borderColor: isRoyal ? 'rgba(255,255,255,0.15)' : colors.border },
+              displayMode === 'verse' && { backgroundColor: isRoyal ? 'rgba(230,194,122,0.22)' : colors.highlightGlow, borderColor: isRoyal ? 'rgba(230,194,122,0.5)' : colors.highlight },
+            ]}
+            onPress={async () => {
+              setDisplayMode('verse');
+              await saveQuranDisplayMode('verse');
+            }}
+          >
+            <Text style={[styles.viewModeChipText, { color: displayMode === 'verse' ? (isRoyal ? '#E6C27A' : colors.highlight) : colors.text }]}>
+              {getString(language, 'quranViewByVerse')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.viewModeChip,
+              { backgroundColor: isRoyal ? 'rgba(10, 25, 18, 0.5)' : colors.surfaceGlass, borderColor: isRoyal ? 'rgba(255,255,255,0.15)' : colors.border },
+              displayMode === 'page' && { backgroundColor: isRoyal ? 'rgba(230,194,122,0.22)' : colors.highlightGlow, borderColor: isRoyal ? 'rgba(230,194,122,0.5)' : colors.highlight },
+            ]}
+            onPress={async () => {
+              setDisplayMode('page');
+              await saveQuranDisplayMode('page');
+              router.push('/(tabs)/quran/page/1' as const);
+            }}
+          >
+            <Text style={[styles.viewModeChipText, { color: displayMode === 'page' ? (isRoyal ? '#E6C27A' : colors.highlight) : colors.text }]}>
+              {getString(language, 'quranViewByPage')}
+            </Text>
+          </TouchableOpacity>
         </View>
         <GlassCard padding="lg" rounded="lg" style={styles.downloadCard}>
           <Text style={[styles.downloadCardTitle, { color: isRoyal ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>
@@ -597,6 +635,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: fontSize.md,
   },
+  viewModeRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  viewModeChip: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  viewModeChipText: { fontSize: fontSize.sm },
   downloadCard: {
     marginBottom: spacing.lg,
   },

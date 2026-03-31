@@ -33,6 +33,7 @@ import { PRAYER_NAMES_ORDER } from '../constants/methods';
 import { AZAN_SOUND_KEYS } from '../constants/azan';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize, fontWeight, fontFamily } from '../../../theme/typography';
+import { scheduleTestNotification } from '../notifications/scheduler';
 
 const SOUND_KEYS = AZAN_SOUND_KEYS;
 const OFFSET_MIN = -30;
@@ -52,7 +53,7 @@ export function PrayerSettingsScreen() {
   const { colors, pageBackground, style } = useTheme();
   const isRoyal = style === 'royal';
   const { showDock } = useDockVisibility();
-  const { settings, language, updateSettings, updateLanguage, refreshSchedule, refreshTimes } = usePrayerTimes();
+  const { settings, language, clockFormat, setClockFormat, updateSettings, updateLanguage, refreshSchedule, refreshTimes } = usePrayerTimes();
   const [testingSound, setTestingSound] = useState(false);
   const testPlaybackRef = useRef<null | { stop: () => void }>(null);
   const router = useRouter();
@@ -63,6 +64,7 @@ export function PrayerSettingsScreen() {
 
   // Sync notification permission with system when screen gains focus (user may have changed it in phone settings)
   const [notificationPermissionGranted, setNotificationPermissionGranted] = useState<boolean | null>(null);
+  const [sendingTestPush, setSendingTestPush] = useState(false);
 
   // Stop azan test when user navigates away (e.g. presses back)
   useFocusEffect(
@@ -279,6 +281,24 @@ export function PrayerSettingsScreen() {
               thumbColor={isRoyal ? '#fff' : colors.background}
             />
           </View>
+          {settings.notificationsEnabled && notificationPermissionGranted !== false && (
+            <>
+              <View style={[styles.row, { marginTop: spacing.sm }]}>
+                <Text style={[styles.label, { color: textPrimary, flex: 1, paddingRight: spacing.sm }]}>
+                  {t('alhamdulillahReminder')}
+                </Text>
+                <Switch
+                  value={settings.alhamdulillahReminderEnabled}
+                  onValueChange={(v) => void updateSettings({ ...settings, alhamdulillahReminderEnabled: v })}
+                  trackColor={{ false: isRoyal ? 'rgba(255,255,255,0.2)' : colors.border, true: colors.highlight }}
+                  thumbColor={isRoyal ? '#fff' : colors.background}
+                />
+              </View>
+              <Text style={[styles.refreshScheduleHint, { color: textMuted, marginTop: spacing.xs }]}>
+                {t('alhamdulillahReminderHint')}
+              </Text>
+            </>
+          )}
           {!settings.notificationsEnabled && notificationPermissionGranted && (
             <TouchableOpacity style={styles.revokeHint} onPress={() => Linking.openSettings()}>
               <Text style={[styles.revokeHintText, { color: textMuted }]}>{t('notificationRevokeHint')}</Text>
@@ -288,6 +308,26 @@ export function PrayerSettingsScreen() {
             <Text style={[styles.refreshScheduleBtnText, { color: colors.highlight }]}>{t('refreshSchedule')}</Text>
           </TouchableOpacity>
           <Text style={[styles.refreshScheduleHint, { color: textMuted }]}>{t('refreshScheduleHint')}</Text>
+          <TouchableOpacity
+            style={[styles.testPushBtn, { borderColor: chipBorder, backgroundColor: chipBg }]}
+            onPress={async () => {
+              setSendingTestPush(true);
+              try {
+                await scheduleTestNotification(settings);
+                Alert.alert(t('testNotification'), t('testNotificationBody'));
+              } catch {
+                Alert.alert(t('testNotification'), t('testNotificationTapHint'));
+              } finally {
+                setSendingTestPush(false);
+              }
+            }}
+            disabled={sendingTestPush}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.testPushBtnText, { color: chipActiveText }]}>
+              {sendingTestPush ? '...' : t('testNotification')}
+            </Text>
+          </TouchableOpacity>
         </GlassCard>
 
         {/* Azan */}
@@ -362,6 +402,22 @@ export function PrayerSettingsScreen() {
         {/* Prayer times */}
         <GlassCard padding="lg" rounded="lg" style={styles.prayerTimesSection}>
           <Text style={[styles.sectionTitle, { color: textSecondary }]}>{t('sectionPrayerTimes')}</Text>
+          <Text style={[styles.groupLabel, { color: textSecondary }]}>{t('timeFormat')}</Text>
+          <View style={styles.clockFormatRow}>
+            <TouchableOpacity
+              style={[styles.clockFormatChip, { borderColor: chipBorder, backgroundColor: chipBg }, clockFormat === '12h' && { backgroundColor: chipActiveBg, borderColor: chipActiveBorder }]}
+              onPress={() => setClockFormat('12h')}
+            >
+              <Text style={[styles.clockFormatChipText, { color: textPrimary }, clockFormat === '12h' && { color: chipActiveText, fontWeight: fontWeight.semibold }]}>{t('timeFormat12h')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.clockFormatChip, { borderColor: chipBorder, backgroundColor: chipBg }, clockFormat === '24h' && { backgroundColor: chipActiveBg, borderColor: chipActiveBorder }]}
+              onPress={() => setClockFormat('24h')}
+            >
+              <Text style={[styles.clockFormatChipText, { color: textPrimary }, clockFormat === '24h' && { color: chipActiveText, fontWeight: fontWeight.semibold }]}>{t('timeFormat24h')}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.refreshScheduleHint, { color: textMuted, marginTop: 0, marginBottom: spacing.sm }]}>{t('adjustPrayerTimesHint')}</Text>
           <Text style={[styles.groupLabel, { color: textSecondary }]}>{t('prayerOffset')}</Text>
           {PRAYER_NAMES_ORDER.map((name) => {
             const off = settings.prayerOffsets[name] ?? 0;
@@ -533,6 +589,14 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: fontSize.md, flex: 1 },
   groupLabel: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, marginTop: spacing.md, marginBottom: spacing.xs },
+  clockFormatRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
+  clockFormatChip: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  clockFormatChipText: { fontSize: fontSize.sm },
   soundOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs, marginBottom: spacing.sm },
   soundOption: {
     minWidth: 72,
@@ -553,6 +617,15 @@ const styles = StyleSheet.create({
   refreshScheduleBtn: { paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.xs },
   refreshScheduleHint: { fontSize: 11, marginTop: -spacing.xs },
   refreshScheduleBtnText: { fontSize: fontSize.md, fontWeight: fontWeight.semibold },
+  testPushBtn: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center' as const,
+    marginTop: spacing.md,
+  },
+  testPushBtnText: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold },
   knownLimitationsTitle: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, marginBottom: spacing.xs },
   knownLimitationsText: { fontSize: fontSize.sm, lineHeight: 20, paddingBottom: radius.lg },
   langRow: { flexDirection: 'column', gap: spacing.sm, marginTop: spacing.sm },
