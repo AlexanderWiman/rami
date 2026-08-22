@@ -211,6 +211,7 @@ export const translations: Record<
     tasbihSettings: string;
     ayah: string;
     verses: string;
+    surahLabel: string;
     downloadForOffline: string;
     downloadLabelText: string;
     downloadLabelAudio: string;
@@ -506,6 +507,7 @@ export const translations: Record<
     continueReading: 'Continue reading',
     ayah: 'Ayah',
     verses: 'verses',
+    surahLabel: 'Surah',
     downloadForOffline: 'For offline use',
     downloadLabelText: 'Text',
     downloadLabelAudio: 'Audio',
@@ -841,6 +843,7 @@ export const translations: Record<
     continueReading: 'متابعة القراءة',
     ayah: 'آية',
     verses: 'آيات',
+    surahLabel: 'سورة',
     downloadForOffline: 'للاستخدام دون اتصال',
     downloadLabelText: 'نص',
     downloadLabelAudio: 'صوت',
@@ -1176,6 +1179,7 @@ export const translations: Record<
     continueReading: 'Okumaya devam et',
     ayah: 'Ayet',
     verses: 'ayet',
+    surahLabel: 'Sure',
     downloadForOffline: 'Çevrimdışı kullanım için',
     downloadLabelText: 'Metin',
     downloadLabelAudio: 'Ses',
@@ -1512,6 +1516,7 @@ export const translations: Record<
     continueReading: 'Continuer la lecture',
     ayah: 'Ayah',
     verses: 'versets',
+    surahLabel: 'Sourate',
     downloadForOffline: 'Pour utilisation hors ligne',
     downloadLabelText: 'Texte',
     downloadLabelAudio: 'Audio',
@@ -1847,6 +1852,7 @@ export const translations: Record<
     continueReading: 'Continuar leyendo',
     ayah: 'Ayah',
     verses: 'versos',
+    surahLabel: 'Sura',
     downloadForOffline: 'Para uso sin conexión',
     downloadLabelText: 'Texto',
     downloadLabelAudio: 'Audio',
@@ -2182,6 +2188,7 @@ export const translations: Record<
     continueReading: 'Fortsätt läsa',
     ayah: 'Ayah',
     verses: 'verser',
+    surahLabel: 'Surah',
     downloadForOffline: 'För offline-användning',
     downloadLabelText: 'Text',
     downloadLabelAudio: 'Ljud',
@@ -2517,6 +2524,7 @@ export const translations: Record<
     continueReading: 'Weiterlesen',
     ayah: 'Ayah',
     verses: 'Verse',
+    surahLabel: 'Sure',
     downloadForOffline: 'Für Offline-Nutzung',
     downloadLabelText: 'Text',
     downloadLabelAudio: 'Audio',

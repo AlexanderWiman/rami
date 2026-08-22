@@ -606,6 +606,60 @@ export function useQuranAudio() {
     cleanup();
   }, [cleanup]);
 
+  /**
+   * Verse-by-verse recitation from `ayahInSurah` to the end of the surah.
+   *
+   * Unlike playFromAyah (one long surah file) this keeps a queue, so
+   * currentAyah advances as the recitation moves on — which is what lets the
+   * mushaf highlight follow along and turn the page.
+   */
+  const playVerseByVerse = useCallback(
+    async (surahNumber: number, ayahInSurah: number) => {
+      const surah = SURAH_LIST.find((s) => s.number === surahNumber);
+      if (!surah) return;
+
+      const reciter = await loadSelectedReciter();
+      _dbg('playVerseByVerse', { reciter, surahNumber, ayahInSurah });
+      verseFinishFiredRef.current = null;
+      lastVerseStartedRef.current = null;
+      queueRef.current = {
+        surah: surahNumber,
+        fromAyah: ayahInSurah,
+        ayahCount: surah.ayahCount,
+        reciter,
+      };
+      setState((s) => ({
+        ...s,
+        isPreparing: true,
+        isFullSurahPlaying: false,
+        currentSurah: surahNumber,
+        currentAyah: ayahInSurah,
+      }));
+      updateDebug({
+        queue: { surah: surahNumber, fromAyah: ayahInSurah, ayahCount: surah.ayahCount },
+        event: `Queue ${surahNumber}:${ayahInSurah}→${surah.ayahCount}`,
+      });
+
+      let uri: string;
+      try {
+        uri = await getResolvedAyahAudioUri(surahNumber, ayahInSurah, reciter);
+      } catch {
+        uri = getAyahAudioUrl(surahNumber, ayahInSurah, reciter);
+      }
+      setupPlayer(
+        uri,
+        () => onVerseFinishedRef.current(),
+        surahNumber,
+        ayahInSurah,
+        getEarlyAdvanceSec(reciter),
+        reciter,
+        getAyahAudioUrl(surahNumber, ayahInSurah, reciter)
+      );
+      startPreloadForNext(surahNumber, ayahInSurah, surah.ayahCount, reciter);
+    },
+    [setupPlayer, startPreloadForNext, updateDebug]
+  );
+
   const playFromAyah = useCallback(
     async (surahNumber: number, ayahInSurah: number) => {
       const surah = SURAH_LIST.find((s) => s.number === surahNumber);
@@ -676,5 +730,5 @@ export function useQuranAudio() {
     setState((s) => ({ ...s, error: null }));
   }, []);
 
-  return { playAyah, playFromAyah, pause, resume, stop, clearError, state, debugInfo };
+  return { playAyah, playFromAyah, playVerseByVerse, pause, resume, stop, clearError, state, debugInfo };
 }

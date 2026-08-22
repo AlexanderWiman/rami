@@ -28,10 +28,12 @@ import { useLocalSearchParams } from 'expo-router';
 import { useFonts, Amiri_400Regular } from '@expo-google-fonts/amiri';
 import { useTheme } from '../../../theme/ThemeContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import type { Language } from '../../prayer/types';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
 import { BackBar } from '../../../components/BackBar';
 import { getString } from '../../../constants/i18n';
 import { getTotalPages } from '../data/quranPageMapping';
+import { SURAH_LIST } from '../data/surahs';
 import { getMushafPage, type MushafPageData } from '../api/mushafPage';
 import { ensurePageFont, prefetchPageFont } from '../utils/qcfFont';
 import { MushafPage, PageStyleSwatch, getMushafTheme } from '../components/MushafPage';
@@ -62,6 +64,7 @@ type PanelProps = {
   pageStyle: QuranPageStyle;
   fontReady: boolean;
   activeVerseKey: string | null;
+  language: Language;
   onPressVerse?: (verseKey: string) => void;
 };
 
@@ -72,6 +75,7 @@ const PagePanel = memo(function PagePanel({
   pageStyle,
   fontReady,
   activeVerseKey,
+  language,
   onPressVerse,
 }: PanelProps) {
   const contentWidth = windowWidth - PAGE_MARGIN * 2 - spacing.sm * 2;
@@ -88,6 +92,7 @@ const PagePanel = memo(function PagePanel({
         pageStyle={pageStyle}
         contentWidth={contentWidth}
         fontReady={fontReady}
+        language={language}
         onPressVerse={onPressVerse}
       />
     </ScrollView>
@@ -111,7 +116,7 @@ export function QuranPageViewScreen() {
   const initialPage = Math.max(1, Math.min(TOTAL_PAGES, parseInt(params.page ?? '1', 10) || 1));
   const [fontsLoaded] = useFonts({ Amiri_400Regular });
 
-  const { state: audioState, playFromAyah, pause } = useQuranAudioContext();
+  const { state: audioState, playVerseByVerse, pause, resume, stop } = useQuranAudioContext();
 
   type PageState = {
     displayPage: number;
@@ -222,15 +227,33 @@ export function QuranPageViewScreen() {
         pause();
         return;
       }
-      void playFromAyah(surah, ayah);
+      if (isThisVerse && audioState.isPaused) {
+        resume();
+        return;
+      }
+      void playVerseByVerse(surah, ayah);
     },
-    [audioState.currentSurah, audioState.currentAyah, audioState.isPlaying, playFromAyah, pause]
+    [
+      audioState.currentSurah,
+      audioState.currentAyah,
+      audioState.isPlaying,
+      audioState.isPaused,
+      playVerseByVerse,
+      pause,
+      resume,
+    ]
   );
 
   const activeVerseKey =
     audioState.currentSurah != null && audioState.currentAyah != null
       ? `${audioState.currentSurah}:${audioState.currentAyah}`
       : null;
+
+  const isAudioActive = audioState.isPlaying || audioState.isPaused || audioState.isPreparing;
+  const playingSurah = SURAH_LIST.find((s) => s.number === audioState.currentSurah);
+  const playingLabel = playingSurah
+    ? `${language === 'ar' ? playingSurah.nameAr : playingSurah.nameEn} ${audioState.currentAyah ?? ''}`.trim()
+    : getString(language, 'playRecitation');
 
   // Follow the recitation across page boundaries: when the verse being recited
   // is not on this page but is on the next one, turn the page.
@@ -341,6 +364,7 @@ export function QuranPageViewScreen() {
                 pageStyle={pageStyle}
                 fontReady={fontReady}
                 activeVerseKey={activeVerseKey}
+                language={language}
                 onPressVerse={handlePressVerse}
               />
             </View>
@@ -358,11 +382,43 @@ export function QuranPageViewScreen() {
                   pageStyle={pageStyle}
                   fontReady={fontReadyPages.has(incomingPage) && fontsLoaded}
                   activeVerseKey={activeVerseKey}
+                  language={language}
                 />
               </Animated.View>
             )}
           </View>
         ) : null}
+
+        {isAudioActive && (
+          <View style={[styles.playerBar, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
+            <Text style={[styles.playerLabel, { color: colors.text }]} numberOfLines={1}>
+              {playingLabel}
+            </Text>
+            <TouchableOpacity
+              onPress={() => (audioState.isPlaying ? pause() : resume())}
+              style={styles.navBtn}
+              accessibilityRole="button"
+              accessibilityLabel={getString(
+                language,
+                audioState.isPlaying ? 'pauseRecitation' : 'resumeRecitation'
+              )}
+            >
+              <Ionicons
+                name={audioState.isPlaying ? 'pause' : 'play'}
+                size={22}
+                color={colors.text}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => stop()}
+              style={styles.navBtn}
+              accessibilityRole="button"
+              accessibilityLabel={getString(language, 'stopRecitation')}
+            >
+              <Ionicons name="stop" size={22} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </ScreenWrapper>
   );
@@ -390,6 +446,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   styleLabel: { flex: 1, fontSize: fontSize.xs },
+  playerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  playerLabel: { flex: 1, fontSize: fontSize.sm, fontWeight: '600' },
   slider: { flex: 1, overflow: 'hidden' },
   panel: { flex: 1 },
   panelAbsolute: { position: 'absolute', left: 0, top: 0, bottom: 0 },

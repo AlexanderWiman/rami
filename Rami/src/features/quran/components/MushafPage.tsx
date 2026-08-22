@@ -15,6 +15,8 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, type TextLayoutEventData, type NativeSyntheticEvent } from 'react-native';
 import { SURAH_LIST } from '../data/surahs';
+import { getString } from '../../../constants/i18n';
+import type { Language } from '../../prayer/types';
 import { getPageFontFamily } from '../utils/qcfFont';
 import type { MushafLine, MushafPageData, MushafWord } from '../api/mushafPage';
 import type { QuranPageStyle } from '../storage/quranStorage';
@@ -90,8 +92,11 @@ function toVerseRuns(words: MushafWord[]): VerseRun[] {
   return runs;
 }
 
-function getSurahName(surah: number): string {
-  return SURAH_LIST.find((s) => s.number === surah)?.nameAr ?? String(surah);
+/** Surah name in the reading language — Arabic script only when reading Arabic. */
+function getSurahName(surah: number, language: Language): string {
+  const meta = SURAH_LIST.find((s) => s.number === surah);
+  if (!meta) return String(surah);
+  return language === 'ar' ? meta.nameAr : meta.nameEn;
 }
 
 /**
@@ -186,6 +191,8 @@ interface MushafPageProps {
   contentWidth: number;
   /** False until the page's QCF font is registered — falls back to Uthmani text. */
   fontReady: boolean;
+  /** Reading language — decides the script of the surah-name banner. */
+  language: Language;
   onPressVerse?: (verseKey: string) => void;
 }
 
@@ -195,6 +202,7 @@ export function MushafPage({
   pageStyle,
   contentWidth,
   fontReady,
+  language,
   onPressVerse,
 }: MushafPageProps) {
   const theme = getMushafTheme(pageStyle);
@@ -240,8 +248,14 @@ export function MushafPage({
               key={`s-${line.lineNumber}`}
               style={[styles.banner, { borderColor: theme.banner, backgroundColor: theme.bannerBg }]}
             >
-              <Text style={[styles.bannerText, { color: theme.ornament, fontFamily: AMIRI }]}>
-                سورة {getSurahName(line.surah)}
+              <Text
+                style={[
+                  styles.bannerText,
+                  { color: theme.ornament },
+                  language === 'ar' ? { fontFamily: AMIRI } : styles.bannerTextLatin,
+                ]}
+              >
+                {getString(language, 'surahLabel')} {getSurahName(line.surah, language)}
               </Text>
             </View>
           );
@@ -330,6 +344,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bannerText: { fontSize: fontSizeTokens.md, writingDirection: 'rtl' },
+  bannerTextLatin: { writingDirection: 'ltr', fontWeight: '600' },
   basmala: {
     fontSize: fontSizeTokens.lg,
     textAlign: 'center',
