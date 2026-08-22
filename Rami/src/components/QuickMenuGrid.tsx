@@ -3,14 +3,7 @@
  * Full theme: royal fill/stroke, textOnSurface, highlight/accent badges; RTL; 44px+ touch.
  */
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Platform,
-  I18nManager,
-} from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -39,7 +32,9 @@ export type QuickMenuIconName =
   | 'adkhar'
   | 'settings'
   | 'forum'
-  | 'calendar';
+  | 'calendar'
+  | 'hadith'
+  | 'support';
 
 export type QuickMenuItem = {
   key: string;
@@ -131,6 +126,23 @@ export function QuickMenuIcon({ name, color }: { name: QuickMenuIconName; color:
       return (
         <Svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24">
           <Path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" {...strokeProps} />
+        </Svg>
+      );
+    case 'hadith':
+      // Scroll with a check mark — grading/authentication of a hadith
+      return (
+        <Svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24">
+          <Path d="M5 4h11a2 2 0 0 1 2 2v12a2 2 0 0 0 2 2H7a2 2 0 0 1-2-2V4z" {...strokeProps} />
+          <Path d="M8 8h7M8 11.5h7" {...strokeProps} />
+          <Path d="M8.5 16.5l2 2 4-4.5" {...strokeProps} />
+        </Svg>
+      );
+    case 'support':
+      // Open hands holding a heart — support us
+      return (
+        <Svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24">
+          <Path d="M12 8.6l-.8-.8a2.4 2.4 0 0 0-3.4 3.4L12 15.4l4.2-4.2a2.4 2.4 0 0 0-3.4-3.4z" {...strokeProps} />
+          <Path d="M3 12v4a5 5 0 0 0 2 4h4M21 12v4a5 5 0 0 1-2 4h-4" {...strokeProps} />
         </Svg>
       );
     case 'calendar':
@@ -243,7 +255,7 @@ export function QuickMenuGrid({ items, variant = 'light' }: QuickMenuGridProps) 
         />
       </Svg>
       <View style={[styles.grid, { padding: PANEL_PADDING }]}>
-        <View style={[styles.row, I18nManager.isRTL && styles.rowRtl]}>
+        <View style={styles.row}>
           {row1.map((item) => (
             <GridItem
               key={item.key}
@@ -254,7 +266,7 @@ export function QuickMenuGrid({ items, variant = 'light' }: QuickMenuGridProps) 
             />
           ))}
         </View>
-        <View style={[styles.row, row3.length === 0 && styles.rowLast, I18nManager.isRTL && styles.rowRtl]}>
+        <View style={[styles.row, row3.length === 0 && styles.rowLast]}>
           {row2.map((item) => (
             <GridItem
               key={item.key}
@@ -266,7 +278,7 @@ export function QuickMenuGrid({ items, variant = 'light' }: QuickMenuGridProps) 
           ))}
         </View>
         {row3.length > 0 && (
-          <View style={[styles.row, styles.rowLast, I18nManager.isRTL && styles.rowRtl]}>
+          <View style={[styles.row, styles.rowLast]}>
             {row3.map((item) => (
               <GridItem
                 key={item.key}
@@ -306,9 +318,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: GUTTER,
     marginBottom: GUTTER,
-  },
-  rowRtl: {
-    flexDirection: 'row-reverse',
   },
   rowLast: {
     marginBottom: 0,
@@ -366,9 +375,11 @@ export function getMenuItems(
   language: Language
 ): Array<Omit<QuickMenuItem, 'onPress'> & { route?: string }> {
   return [
+    { key: 'hadith', label: getString(language, 'hadithGrading'), iconName: 'hadith', route: '/hadith' },
     { key: 'prayer', label: getString(language, 'prayerTimes'), iconName: 'prayer', route: '/prayer-times' },
-    { key: 'quran', label: getString(language, 'navQuran'), iconName: 'quran', route: '/quran' },
     { key: 'bukhari', label: getString(language, 'navBukhari'), iconName: 'bukhari', route: '/bukhari' },
+    { key: 'quran', label: getString(language, 'navQuran'), iconName: 'quran', route: '/quran' },
+    { key: 'support', label: getString(language, 'supportUs'), iconName: 'support', route: '/support' },
     { key: 'qibla', label: getString(language, 'navQibla'), iconName: 'qibla', route: '/qibla' },
     { key: 'calendar', label: getString(language, 'calendarTitle'), iconName: 'calendar', route: '/calendar' },
     { key: 'tasbih', label: getString(language, 'tasbihTitle'), iconName: 'tasbih', route: '/tasbih' },

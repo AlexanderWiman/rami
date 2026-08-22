@@ -40,7 +40,6 @@ export function useAsmaAudio() {
     subscriptionRef.current?.remove();
     subscriptionRef.current = null;
     try {
-      playerRef.current?.clearLockScreenControls?.();
       playerRef.current?.pause();
       playerRef.current?.remove();
     } catch {

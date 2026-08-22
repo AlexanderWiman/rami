@@ -2,8 +2,9 @@ import { Asset } from 'expo-asset';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { Platform } from 'react-native';
 import { AZAN_SOUND_KEYS } from '../constants/azan';
+import { CUSTOM_AZAN_KEY } from '../constants/customAzanKey';
 
-export type SoundKey = (typeof AZAN_SOUND_KEYS)[number];
+export type SoundKey = (typeof AZAN_SOUND_KEYS)[number] | typeof CUSTOM_AZAN_KEY;
 
 const NOTIFICATION_DURATION_SEC = 30;
 
@@ -19,8 +20,19 @@ const BUNDLED_NOTIFICATION_SOUNDS: Record<string, number> = {
   azan8: require('../../../../assets/sounds/azan8_notification.wav'),
 };
 
-/** Resolve local URI for bundled azan sound. Returns null if soundKey unknown. */
+/**
+ * Resolve local URI for an azan sound: the user's own file for CUSTOM_AZAN_KEY,
+ * otherwise a bundled asset. Returns null if soundKey is unknown or the user's
+ * file has been removed from the device.
+ */
 async function getBundledAzanUri(soundKey: string): Promise<string | null> {
+  if (soundKey === CUSTOM_AZAN_KEY) {
+    // Required lazily so this module — which loads during app startup — does
+    // not drag the custom-azan storage (and its file-system dependency) along.
+    const { loadCustomAzan } = require('../storage/customAzan') as typeof import('../storage/customAzan');
+    const custom = await loadCustomAzan();
+    return custom?.uri ?? null;
+  }
   const moduleId = BUNDLED_NOTIFICATION_SOUNDS[soundKey];
   if (moduleId == null) return null;
   const asset = Asset.fromModule(moduleId);
@@ -191,7 +203,7 @@ export async function playAzanSoundControlled(
 }
 
 export function isSoundAvailable(key: SoundKey): boolean {
-  return key in BUNDLED_NOTIFICATION_SOUNDS;
+  return key === CUSTOM_AZAN_KEY || key in BUNDLED_NOTIFICATION_SOUNDS;
 }
 
 /**
@@ -203,6 +215,12 @@ export async function playBundledAzanRemainder(
   triggerDateMs: number,
   respectSilentMode: boolean
 ): Promise<PlayAzanResult> {
+  // A user-supplied file is never used as the notification sound, so there is no
+  // "remainder" to seek to — play the whole file from the start instead.
+  if (soundKey === CUSTOM_AZAN_KEY) {
+    return playAzanSound(soundKey, respectSilentMode);
+  }
+
   const uri = await getBundledAzanUri(soundKey);
   if (!uri) {
     return { success: false, error: `No bundled sound for ${soundKey}` };

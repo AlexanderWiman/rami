@@ -1,7 +1,7 @@
 /**
- * Personal Space — soft glass cards, toggles glow when active, Azan as wave-style options.
+ * Personal Space — soft glass cards; Adhan via stylad drop-down (sheet + blur).
  */
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { useFocusEffect } from 'expo-router';
 import {
   View,
@@ -10,13 +10,19 @@ import {
   ScrollView,
   Switch,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  Modal,
   Alert,
   Linking,
   Share,
   Platform,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  useWindowDimensions,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
@@ -26,14 +32,21 @@ import { ScreenWrapper } from '../../../components/ScreenWrapper';
 import { BackToHomeBar } from '../../../components/BackToHomeBar';
 import { GlassCard } from '../../../components/GlassCard';
 import { usePrayerTimes } from '../hooks/usePrayerTimes';
-import { playAzanSoundControlled } from '../utils/playAzan';
+import { playAzanSoundControlled, type SoundKey } from '../utils/playAzan';
 import { getString, getSoundLabel, translations } from '../../../constants/i18n';
-import type { PrayerSettings, Language } from '../types';
+import type { Language } from '../types';
 import { PRAYER_NAMES_ORDER } from '../constants/methods';
 import { AZAN_SOUND_KEYS } from '../constants/azan';
+import {
+  CUSTOM_AZAN_KEY,
+  clearCustomAzan,
+  loadCustomAzan,
+  pickCustomAzan,
+  type CustomAzan,
+} from '../storage/customAzan';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize, fontWeight, fontFamily } from '../../../theme/typography';
-import { scheduleTestNotification } from '../notifications/scheduler';
+import { hapticSelection } from '../../../utils/haptics';
 
 const SOUND_KEYS = AZAN_SOUND_KEYS;
 const OFFSET_MIN = -30;
@@ -50,7 +63,7 @@ const STORE_URL_ANDROID = 'https://play.google.com/store/apps/details?id=com.ram
 const STORE_URL_IOS = STORE_URL_ANDROID;
 
 export function PrayerSettingsScreen() {
-  const { colors, pageBackground, style } = useTheme();
+  const { colors, pageBackground, style, scheme } = useTheme();
   const isRoyal = style === 'royal';
   const { showDock } = useDockVisibility();
   const { settings, language, clockFormat, setClockFormat, updateSettings, updateLanguage, refreshSchedule, refreshTimes } = usePrayerTimes();
@@ -65,6 +78,22 @@ export function PrayerSettingsScreen() {
   // Sync notification permission with system when screen gains focus (user may have changed it in phone settings)
   const [notificationPermissionGranted, setNotificationPermissionGranted] = useState<boolean | null>(null);
   const [sendingTestPush, setSendingTestPush] = useState(false);
+  const [azanPickerOpen, setAzanPickerOpen] = useState(false);
+  const [customAzan, setCustomAzan] = useState<CustomAzan | null>(null);
+  const insets = useSafeAreaInsets();
+
+  // Load the user's own adhan file (if any) so the picker can show its name.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void loadCustomAzan().then((azan) => {
+        if (active) setCustomAzan(azan);
+      });
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   // Stop azan test when user navigates away (e.g. presses back)
   useFocusEffect(
@@ -118,6 +147,12 @@ export function PrayerSettingsScreen() {
   const chipActiveBorder = isRoyal ? 'rgba(230, 194, 122, 0.5)' : colors.highlight;
   const chipActiveText = isRoyal ? '#E6C27A' : colors.highlight;
 
+  const { height: windowHeight } = useWindowDimensions();
+  const azanPickerMaxHeight = useMemo(
+    () => Math.min(windowHeight * 0.52, 380),
+    [windowHeight]
+  );
+
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = e.nativeEvent.contentOffset.y;
@@ -129,7 +164,7 @@ export function PrayerSettingsScreen() {
 
   const respectSilent = settings?.respectSilentMode ?? true;
   const playPreview = useCallback(
-    async (soundKey: (typeof AZAN_SOUND_KEYS)[number]) => {
+    async (soundKey: SoundKey) => {
       if (testPlaybackRef.current) {
         testPlaybackRef.current.stop();
         testPlaybackRef.current = null;
@@ -150,15 +185,40 @@ export function PrayerSettingsScreen() {
     [respectSilent]
   );
 
-  const handleSelectSound = useCallback(
-    (key: (typeof AZAN_SOUND_KEYS)[number]) => {
-      if (settings) {
-        updateSettings({ ...settings, selectedSound: key });
-        playPreview(key);
-      }
+  const pickAzanSound = useCallback(
+    async (key: SoundKey) => {
+      if (!settings) return;
+      await hapticSelection();
+      updateSettings({ ...settings, selectedSound: key });
+      setAzanPickerOpen(false);
     },
-    [settings, updateSettings, playPreview]
+    [settings, updateSettings]
   );
+
+  /** Pick an audio file from the phone and select it as the adhan sound. */
+  const handlePickCustomAzan = useCallback(async () => {
+    if (!settings) return;
+    const result = await pickCustomAzan();
+    if (result.status === 'canceled') return;
+    if (result.status === 'error') {
+      Alert.alert(t('customAzan'), t('customAzanError'));
+      return;
+    }
+    setCustomAzan(result.azan);
+    await hapticSelection();
+    updateSettings({ ...settings, selectedSound: CUSTOM_AZAN_KEY });
+    setAzanPickerOpen(false);
+  }, [settings, updateSettings, t]);
+
+  /** Forget the user's file and fall back to the first bundled adhan. */
+  const handleRemoveCustomAzan = useCallback(async () => {
+    if (!settings) return;
+    await clearCustomAzan();
+    setCustomAzan(null);
+    if (settings.selectedSound === CUSTOM_AZAN_KEY) {
+      updateSettings({ ...settings, selectedSound: AZAN_SOUND_KEYS[0] });
+    }
+  }, [settings, updateSettings]);
 
   const handleTestSound = useCallback(async () => {
     if (testingSound && testPlaybackRef.current) {
@@ -168,7 +228,7 @@ export function PrayerSettingsScreen() {
       return;
     }
     if (settings) {
-      await playPreview(settings.selectedSound as (typeof AZAN_SOUND_KEYS)[number]);
+      await playPreview(settings.selectedSound as SoundKey);
     }
   }, [testingSound, settings, playPreview]);
 
@@ -313,6 +373,10 @@ export function PrayerSettingsScreen() {
             onPress={async () => {
               setSendingTestPush(true);
               try {
+                if (Platform.OS === 'android' && Constants.appOwnership === 'expo') {
+                  throw new Error('notifications_unavailable_in_expo_go_android');
+                }
+                const { scheduleTestNotification } = await import('../notifications/scheduler');
                 await scheduleTestNotification(settings);
                 Alert.alert(t('testNotification'), t('testNotificationBody'));
               } catch {
@@ -331,71 +395,76 @@ export function PrayerSettingsScreen() {
         </GlassCard>
 
         {/* Azan */}
-        <GlassCard padding="lg" rounded="lg" style={styles.section}>
+        <GlassCard padding="lg" rounded="lg" fillContent={false} style={styles.azanSection}>
+          <View style={styles.azanCardBody}>
           <Text style={[styles.sectionTitle, { color: textSecondary }]}>{t('sectionAzan')}</Text>
           <View style={styles.row}>
             <Text style={[styles.label, { color: textPrimary }]}>{t('playAzanSound')}</Text>
             <Switch
               value={settings.playAzanSound}
               onValueChange={(v) => updateSettings({ ...settings, playAzanSound: v })}
-              trackColor={{ false: colors.border, true: colors.highlight }}
-              thumbColor={colors.background}
+              trackColor={{ false: isRoyal ? 'rgba(255,255,255,0.2)' : colors.border, true: colors.highlight }}
+              thumbColor={isRoyal ? '#fff' : colors.background}
             />
           </View>
-
-          <Text style={[styles.groupLabel, { color: textSecondary }]}>{t('selectSound')}</Text>
-          <View style={styles.soundOptions}>
-            {SOUND_KEYS.map((key) => (
-              <TouchableOpacity
-                key={key}
-                activeOpacity={0.8}
-                style={[
-                  styles.soundOption,
-                  { borderColor: chipBorder, backgroundColor: chipBg },
-                  settings.selectedSound === key && { backgroundColor: chipActiveBg, borderColor: chipActiveBorder },
-                ]}
-                onPress={() => handleSelectSound(key)}
-              >
-                <View style={styles.waveRow}>
-                  {[4, 8, 12, 8, 4].map((h, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.waveBar,
-                        {
-                          height: h,
-                          backgroundColor: settings.selectedSound === key ? chipActiveText : textMuted,
-                        },
-                      ]}
-                    />
-                  ))}
-                </View>
-                <Text
-                  style={[
-                    styles.soundOptionText,
-                    { color: settings.selectedSound === key ? textPrimary : textMuted },
-                    settings.selectedSound === key && { fontWeight: fontWeight.semibold, color: chipActiveText },
-                  ]}
-                >
-                  {getSoundLabel(language, key)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <TouchableOpacity style={[styles.testBtn, { backgroundColor: colors.highlight }]} onPress={handleTestSound}>
-            <Text style={[styles.testBtnText, { color: colors.background }]}>
-              {testingSound ? t('stopSound') : t('testSound')}
-            </Text>
-          </TouchableOpacity>
           <View style={styles.row}>
             <Text style={[styles.label, { color: textPrimary }]}>{t('respectSilentMode')}</Text>
             <Switch
               value={settings.respectSilentMode}
               onValueChange={(v) => updateSettings({ ...settings, respectSilentMode: v })}
-              trackColor={{ false: colors.border, true: colors.highlight }}
-              thumbColor={colors.background}
+              trackColor={{ false: isRoyal ? 'rgba(255,255,255,0.2)' : colors.border, true: colors.highlight }}
+              thumbColor={isRoyal ? '#fff' : colors.background}
             />
+          </View>
+
+          <Text style={[styles.groupLabel, { color: textSecondary }]}>{t('selectSound')}</Text>
+          <TouchableOpacity
+            style={[
+              styles.soundDropdownTrigger,
+              { borderColor: chipBorder, backgroundColor: chipBg },
+              !settings.playAzanSound && styles.soundDropdownTriggerMuted,
+            ]}
+            onPress={() => setAzanPickerOpen(true)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={t('selectSound')}
+            accessibilityHint={getSoundLabel(language, settings.selectedSound)}
+          >
+            <View style={styles.soundDropdownTriggerInner}>
+              <View style={styles.waveRow}>
+                {[4, 8, 12, 8, 4].map((h, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.waveBar,
+                      {
+                        height: h,
+                        backgroundColor: chipActiveText,
+                        opacity: settings.playAzanSound ? 1 : 0.35,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+              <Text
+                style={[styles.soundDropdownLabel, { color: textPrimary }]}
+                numberOfLines={2}
+              >
+                {getSoundLabel(language, settings.selectedSound)}
+              </Text>
+              <Ionicons name="chevron-down" size={22} color={textMuted} />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.testPushBtn, { borderColor: chipBorder, backgroundColor: chipBg }]}
+            onPress={handleTestSound}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.testPushBtnText, { color: chipActiveText }]}>
+              {testingSound ? t('stopSound') : t('testSound')}
+            </Text>
+          </TouchableOpacity>
           </View>
         </GlassCard>
 
@@ -553,6 +622,171 @@ export function PrayerSettingsScreen() {
           v{Constants.expoConfig?.version ?? '?'}
         </Text>
       </ScrollView>
+
+      <Modal
+        transparent
+        visible={azanPickerOpen}
+        animationType="fade"
+        onRequestClose={() => setAzanPickerOpen(false)}
+        statusBarTranslucent
+      >
+        <View style={styles.azanPickerRoot}>
+          <TouchableWithoutFeedback onPress={() => setAzanPickerOpen(false)}>
+            <View style={StyleSheet.absoluteFill}>
+              {Platform.OS === 'ios' ? (
+                <BlurView
+                  intensity={48}
+                  tint={scheme === 'dark' ? 'dark' : 'light'}
+                  style={StyleSheet.absoluteFill}
+                />
+              ) : (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.52)' }]} />
+              )}
+            </View>
+          </TouchableWithoutFeedback>
+          <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, styles.azanPickerSheetWrap]}>
+            <View
+              style={[
+                styles.azanPickerSheet,
+                {
+                  borderColor: chipBorder,
+                  backgroundColor: isRoyal ? 'rgba(10, 25, 18, 0.97)' : colors.surface,
+                  paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.sm,
+                },
+              ]}
+            >
+              <View style={styles.azanPickerHandleWrap}>
+                <View style={[styles.azanPickerHandle, { backgroundColor: textMuted }]} />
+              </View>
+              <Text style={[styles.azanPickerTitle, { color: textSecondary }]}>{t('selectSound')}</Text>
+              <ScrollView
+                style={{ maxHeight: azanPickerMaxHeight }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                {SOUND_KEYS.map((key, index) => {
+                  const selected = settings.selectedSound === key;
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      activeOpacity={0.75}
+                      style={[
+                        styles.azanPickerRow,
+                        index < SOUND_KEYS.length - 1 && {
+                          borderBottomWidth: StyleSheet.hairlineWidth,
+                          borderBottomColor: chipBorder,
+                        },
+                      ]}
+                      onPress={() => void pickAzanSound(key)}
+                    >
+                      <View style={styles.waveRow}>
+                        {[4, 8, 12, 8, 4].map((h, i) => (
+                          <View
+                            key={i}
+                            style={[
+                              styles.waveBar,
+                              {
+                                height: h,
+                                backgroundColor: selected ? chipActiveText : textMuted,
+                                opacity: selected ? 1 : 0.55,
+                              },
+                            ]}
+                          />
+                        ))}
+                      </View>
+                      <Text
+                        style={[
+                          styles.azanPickerRowLabel,
+                          { color: textPrimary },
+                          selected && { color: chipActiveText, fontWeight: fontWeight.semibold },
+                        ]}
+                      >
+                        {getSoundLabel(language, key)}
+                      </Text>
+                      {selected ? (
+                        <Ionicons name="checkmark-circle" size={24} color={chipActiveText} />
+                      ) : (
+                        <View style={styles.azanPickerRowCheckPlaceholder} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+
+                {/* User's own adhan file */}
+                <View style={[styles.azanPickerCustomWrap, { borderTopColor: chipBorder }]}>
+                  <TouchableOpacity
+                    activeOpacity={0.75}
+                    style={styles.azanPickerRow}
+                    onPress={() => void handlePickCustomAzan()}
+                  >
+                    <Ionicons
+                      name="folder-open-outline"
+                      size={20}
+                      color={
+                        settings.selectedSound === CUSTOM_AZAN_KEY ? chipActiveText : textMuted
+                      }
+                      style={styles.azanPickerCustomIcon}
+                    />
+                    <View style={styles.azanPickerCustomLabels}>
+                      <Text
+                        style={[
+                          styles.azanPickerRowLabel,
+                          styles.azanPickerCustomLabel,
+                          { color: textPrimary },
+                          settings.selectedSound === CUSTOM_AZAN_KEY && {
+                            color: chipActiveText,
+                            fontWeight: fontWeight.semibold,
+                          },
+                        ]}
+                      >
+                        {t('customAzan')}
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        style={[styles.azanPickerCustomHint, { color: textMuted }]}
+                      >
+                        {customAzan ? customAzan.name : t('customAzanPick')}
+                      </Text>
+                    </View>
+                    {settings.selectedSound === CUSTOM_AZAN_KEY ? (
+                      <Ionicons name="checkmark-circle" size={24} color={chipActiveText} />
+                    ) : (
+                      <View style={styles.azanPickerRowCheckPlaceholder} />
+                    )}
+                  </TouchableOpacity>
+
+                  {customAzan ? (
+                    <View style={styles.azanPickerCustomActions}>
+                      {settings.selectedSound !== CUSTOM_AZAN_KEY ? (
+                        <TouchableOpacity
+                          activeOpacity={0.75}
+                          onPress={() => void pickAzanSound(CUSTOM_AZAN_KEY)}
+                        >
+                          <Text style={[styles.azanPickerCustomAction, { color: chipActiveText }]}>
+                            {t('selectSound')}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : null}
+                      <TouchableOpacity
+                        activeOpacity={0.75}
+                        onPress={() => void handleRemoveCustomAzan()}
+                      >
+                        <Text style={[styles.azanPickerCustomAction, { color: textMuted }]}>
+                          {t('customAzanRemove')}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : null}
+
+                  <Text style={[styles.azanPickerCustomNote, { color: textMuted }]}>
+                    {t('customAzanNotificationNote')}
+                  </Text>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenWrapper>
   );
 }
@@ -573,7 +807,8 @@ const styles = StyleSheet.create({
   },
   locationBtnText: { fontSize: fontSize.md, fontWeight: fontWeight.semibold },
   section: { marginTop: spacing.lg, marginBottom: spacing.md },
-  prayerTimesSection: { marginTop: spacing.lg, marginBottom: spacing.md },
+  azanSection: { marginTop: spacing.lg, marginBottom: spacing.sm },
+  prayerTimesSection: { marginTop: spacing.md, marginBottom: spacing.md },
   sectionTitle: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
@@ -597,21 +832,75 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   clockFormatChipText: { fontSize: fontSize.sm },
-  soundOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs, marginBottom: spacing.sm },
-  soundOption: {
-    minWidth: 72,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
+  soundDropdownTrigger: {
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
+    overflow: 'hidden',
   },
-  waveRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 3, marginBottom: spacing.xs },
+  soundDropdownTriggerMuted: { opacity: 0.72 },
+  soundDropdownTriggerInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  soundDropdownLabel: { flex: 1, fontSize: fontSize.md, lineHeight: 22 },
+  waveRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
   waveBar: { width: 4, borderRadius: 2 },
-  soundOptionText: { fontSize: fontSize.sm },
-  testBtn: { paddingVertical: spacing.md, borderRadius: radius.lg, alignItems: 'center', marginTop: spacing.md },
-  testBtnDisabled: { opacity: 0.6 },
-  testBtnText: { fontSize: fontSize.md, fontWeight: fontWeight.semibold },
+  azanPickerRoot: { flex: 1 },
+  azanPickerSheetWrap: { justifyContent: 'flex-end' },
+  azanPickerSheet: {
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+  },
+  azanPickerHandleWrap: { alignItems: 'center', paddingBottom: spacing.sm },
+  azanPickerHandle: { width: 36, height: 4, borderRadius: 2, opacity: 0.45 },
+  azanPickerTitle: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: spacing.xs,
+  },
+  azanPickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    paddingRight: spacing.xs,
+  },
+  azanPickerRowLabel: { flex: 1, fontSize: fontSize.md, lineHeight: 22 },
+  azanPickerRowCheckPlaceholder: { width: 24, height: 24 },
+  azanPickerCustomWrap: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginTop: spacing.xs,
+    paddingTop: spacing.xs,
+  },
+  azanPickerCustomIcon: { width: 28, textAlign: 'center' },
+  azanPickerCustomLabels: { flex: 1 },
+  azanPickerCustomLabel: { flex: 0 },
+  azanPickerCustomHint: { fontSize: fontSize.xs, lineHeight: 16, marginTop: 2 },
+  azanPickerCustomActions: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xs,
+  },
+  azanPickerCustomAction: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold },
+  azanPickerCustomNote: {
+    fontSize: fontSize.xs,
+    lineHeight: 16,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xs,
+  },
+  azanCardBody: { paddingBottom: spacing.lg },
   revokeHint: { paddingVertical: spacing.xs, paddingHorizontal: 0 },
   revokeHintText: { fontSize: 12 },
   refreshScheduleBtn: { paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.xs },

@@ -11,8 +11,51 @@ const KEY_LAST_READ = '@rami/quran_last_read';
 const KEY_TAP_VERSE_HINT_SHOWN = '@rami/quran_tap_verse_hint_shown';
 const KEY_AUDIO_POSITION = '@rami/quran_audio_position';
 const KEY_DISPLAY_MODE = '@rami/quran_display_mode';
+const KEY_SURAH_LAYOUT = '@rami/quran_surah_layout';
+const KEY_PAGE_STYLE = '@rami/quran_page_style';
 
 export type QuranDisplayMode = 'verse' | 'page';
+
+/** Surah index layout: a 3-per-row grid (default, easier to scan) or one per row. */
+export type QuranSurahLayout = 'grid' | 'list';
+
+/**
+ * Visual style of the Quran page. All three are free:
+ *  - 'paper'  light lined mushaf paper (the app's original look)
+ *  - 'night'  dark page with light script
+ *  - 'royal'  deep green with gold ornaments
+ */
+export type QuranPageStyle = 'paper' | 'night' | 'royal';
+
+export const QURAN_PAGE_STYLES: readonly QuranPageStyle[] = ['paper', 'night', 'royal'];
+
+export async function loadQuranSurahLayout(): Promise<QuranSurahLayout> {
+  try {
+    const raw = await AsyncStorage.getItem(KEY_SURAH_LAYOUT);
+    if (raw === 'grid' || raw === 'list') return raw;
+  } catch {
+    /* ignore */
+  }
+  return 'grid';
+}
+
+export async function saveQuranSurahLayout(layout: QuranSurahLayout): Promise<void> {
+  await AsyncStorage.setItem(KEY_SURAH_LAYOUT, layout);
+}
+
+export async function loadQuranPageStyle(): Promise<QuranPageStyle> {
+  try {
+    const raw = await AsyncStorage.getItem(KEY_PAGE_STYLE);
+    if (raw === 'paper' || raw === 'night' || raw === 'royal') return raw;
+  } catch {
+    /* ignore */
+  }
+  return 'paper';
+}
+
+export async function saveQuranPageStyle(style: QuranPageStyle): Promise<void> {
+  await AsyncStorage.setItem(KEY_PAGE_STYLE, style);
+}
 
 export async function loadQuranDisplayMode(): Promise<QuranDisplayMode> {
   try {

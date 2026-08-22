@@ -22,7 +22,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const system = useColorScheme();
-  const scheme: ColorScheme = system ?? 'light';
+  const scheme: ColorScheme = system === 'dark' ? 'dark' : 'light';
   // Always use royal theme
   const style: ThemeStyle = 'royal';
 
@@ -43,6 +43,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
-  return ctx;
+  if (ctx) return ctx;
+
+  // Fallback: avoid hard crash if a route renders outside provider
+  // (for example when Expo Router layout initialization fails in dev).
+  const system = useColorScheme();
+  const scheme: ColorScheme = system === 'dark' ? 'dark' : 'light';
+  const style: ThemeStyle = 'royal';
+  const colors = getThemeColors(scheme, style);
+  return {
+    scheme,
+    style,
+    colors,
+    pageBackground: 'transparent',
+    setStyle: () => {},
+  };
 }

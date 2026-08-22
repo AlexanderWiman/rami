@@ -3,7 +3,7 @@ module.exports = {
     name: "Burhank برهانك",
     slug: "burhank",
     scheme: "burhank",
-    version: "1.2.3",
+    version: "1.2.9",
     runtimeVersion: {
       policy: "appVersion",
     },
@@ -31,7 +31,7 @@ module.exports = {
       },
     },
     android: {
-      versionCode: 27,
+      versionCode: 36,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
@@ -68,7 +68,11 @@ module.exports = {
       bundler: "metro",
     },
     plugins: [
+      "expo-status-bar",
       "expo-router",
+      "expo-asset",
+      "expo-audio",
+      "expo-image",
       [
         "expo-notifications",
         {
@@ -96,6 +100,15 @@ module.exports = {
         },
       ],
       "expo-video",
+      [
+        "expo-localization",
+        {
+          supportedLocales: {
+            ios: ["en", "ar", "sv", "tr", "fr", "es", "de"],
+            android: ["en", "ar", "sv", "tr", "fr", "es", "de"],
+          },
+        },
+      ],
       "./plugins/withGoogleMapsApiKey",
     ],
     extra: {

@@ -158,7 +158,7 @@ export function useQuranAudio() {
     subscriptionRef.current = null;
     cleanupPreload();
     try {
-      playerRef.current?.clearLockScreenControls?.();
+      // remove() releases native player, which clears lock screen; clearLockScreenControls can crash Android.
       playerRef.current?.pause();
       playerRef.current?.remove();
     } catch {
@@ -246,7 +246,6 @@ export function useQuranAudio() {
       subscriptionRef.current?.remove();
       subscriptionRef.current = null;
       try {
-        playerRef.current?.clearLockScreenControls?.();
         playerRef.current?.pause();
         playerRef.current?.remove();
       } catch {

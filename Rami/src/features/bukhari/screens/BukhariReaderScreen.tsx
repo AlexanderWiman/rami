@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  I18nManager,
   Keyboard,
   Modal,
   Platform,
@@ -24,6 +23,7 @@ import { BackToHomeBar } from '../../../components/BackToHomeBar';
 import { GlassCard } from '../../../components/GlassCard';
 import { useTheme } from '../../../theme/ThemeContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useLayoutRtl } from '../../../hooks/useArabicFullRtl';
 import { fontFamily, fontSize, fontWeight, lineHeight } from '../../../theme/typography';
 import { spacing, radius } from '../../../theme/spacing';
 import { getString } from '../../../constants/i18n';
@@ -111,8 +111,8 @@ const HadithRow = memo(function HadithRow({
 export function BukhariReaderScreen() {
   const { colors, style: themeStyle } = useTheme();
   const isRoyal = themeStyle === 'royal';
-  const isRtl = I18nManager.isRTL;
   const { language } = useLanguage();
+  const isRtl = useLayoutRtl();
   const router = useRouter();
   const params = useLocalSearchParams<{ book: string; chapter: string; hadith?: string }>();
   const bookId = Number.parseInt(params.book ?? '1', 10);
@@ -468,7 +468,7 @@ export function BukhariReaderScreen() {
         listHeaderHeight +
         measuredHeights
           .slice(0, index)
-          .reduce((sum, h) => sum + (h ?? ITEM_ESTIMATE_HEIGHT), 0);
+          .reduce<number>((sum, h) => sum + (h ?? ITEM_ESTIMATE_HEIGHT), 0);
       return { length, offset, index };
     },
     [listHeaderHeight, measuredHeights]
@@ -585,7 +585,7 @@ export function BukhariReaderScreen() {
             }}
             placeholder={navLabels.jumpPlaceholder}
             returnKeyType="search"
-            onSubmitEditing={jumpToHadith}
+            onSubmitEditing={() => jumpToHadith()}
             blurOnSubmit
             style={[
               styles.jumpInput,
@@ -599,7 +599,7 @@ export function BukhariReaderScreen() {
           />
           <TouchableOpacity
             style={[styles.jumpButton, { borderColor: isRoyal ? 'rgba(230,194,122,0.4)' : colors.border }]}
-            onPress={jumpToHadith}
+            onPress={() => jumpToHadith()}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             activeOpacity={0.7}
           >

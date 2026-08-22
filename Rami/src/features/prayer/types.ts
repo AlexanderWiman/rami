@@ -21,10 +21,10 @@ export interface PrayerTimesForDay {
   sunrise?: Date | null;
 }
 
-/** Calculation method: AlAdhan API method id. MWL=2, Egypt=3, UmmAlQura=4, Karachi=5 */
-export type CalculationMethodId = 2 | 3 | 4 | 5 | 7 | 8 | 12;
+/** Calculation method: AlAdhan API method id. */
+export type CalculationMethodId = 1 | 3 | 4 | 5 | 13 | 19 | 21;
 /** UI-facing calculation method key */
-export type CalculationMethodKey = 'MWL' | 'Egypt' | 'UmmAlQura' | 'Karachi' | 'Diyanet';
+export type CalculationMethodKey = 'MWL' | 'Egypt' | 'UmmAlQura' | 'Karachi' | 'Diyanet' | 'Algeria' | 'Morocco';
 
 /** Asr: Shafi (shadow = 1) or Hanafi (shadow = 2). AlAdhan school 0=Shafi, 1=Hanafi */
 export type AsrMethodKey = 'Shafi' | 'Hanafi';
@@ -45,6 +45,8 @@ export type PrayerOffsetMinutes = Record<PrayerName, number>;
 /** Per-prayer notification on/off */
 export type PrayerNotifyFlags = Record<PrayerName, boolean>;
 
+export type PrayerPresetSource = 'auto' | 'manual';
+
 export interface PrayerSettings {
   /** Version for migrations; bump when shape changes */
   settingsVersion: number;
@@ -59,6 +61,10 @@ export interface PrayerSettings {
   asrMethod: AsrMethodKey;
   /** High latitude rule */
   highLatitudeRule: HighLatitudeRuleKey;
+  /** Whether calculation settings follow country presets or user overrides */
+  presetSource: PrayerPresetSource;
+  /** ISO country code used for the current automatic preset */
+  presetCountryCode?: string | null;
   /** Minutes to add to each prayer time (-10 to +10) */
   prayerOffsets: PrayerOffsetMinutes;
   /** Notify for this prayer (only used when notificationsEnabled is true) */

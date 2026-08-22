@@ -1,6 +1,10 @@
 /**
- * Quran page view (mushaf layout) — one page at a time (1–604).
- * Slide animation when changing page; preloads adjacent pages for instant turn.
+ * Quran page view — the printed mushaf, one page at a time (1–604).
+ *
+ * Each page is rendered with its own QCF font so the lines break where the
+ * printed mushaf breaks them, and the verse being recited is highlighted and
+ * followed as playback moves through the page. Three page styles are offered
+ * (paper / night / royal), all free.
  */
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import {
@@ -19,48 +23,58 @@ import Animated, {
   runOnJS,
   Easing,
 } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
+import { useFonts, Amiri_400Regular } from '@expo-google-fonts/amiri';
 import { useTheme } from '../../../theme/ThemeContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
 import { BackBar } from '../../../components/BackBar';
 import { getString } from '../../../constants/i18n';
-import { getVersesForPage, getTotalPages } from '../data/quranPageMapping';
-import { getSurahText } from '../utils/quranTextCache';
+import { getTotalPages } from '../data/quranPageMapping';
+import { getMushafPage, type MushafPageData } from '../api/mushafPage';
+import { ensurePageFont, prefetchPageFont } from '../utils/qcfFont';
+import { MushafPage, PageStyleSwatch, getMushafTheme } from '../components/MushafPage';
+import {
+  loadQuranPageStyle,
+  saveQuranPageStyle,
+  QURAN_PAGE_STYLES,
+  type QuranPageStyle,
+} from '../storage/quranStorage';
+import { useQuranAudioContext } from '../context/QuranAudioContext';
+import { hapticLight } from '../../../utils/haptics';
 import { spacing, radius } from '../../../theme/spacing';
-import { fontSize, fontFamily } from '../../../theme/typography';
+import { fontSize } from '../../../theme/typography';
 
 const TOTAL_PAGES = getTotalPages();
-const PAGE_BG_LIGHT = '#f3e7d6';
-const PAGE_BG_ROYAL = 'rgba(10, 25, 18, 0.92)';
-const TEXT_ON_LIGHT = '#1a1a1a';
-const TEXT_MUTED_ON_LIGHT = 'rgba(30, 25, 20, 0.75)';
 const SLIDE_DURATION_MS = 280;
+const PAGE_MARGIN = spacing.md;
 
-/** Page cache at module level so it survives remount. */
-const pageCache: Record<number, VerseRow[]> = {};
+/** Loaded pages kept at module level so page turns are instant on return. */
+const pageCache: Record<number, MushafPageData> = {};
+/** Pages whose QCF font is registered in this session. */
+const fontReadyPages = new Set<number>();
 
-type VerseRow = { surah: number; ayah: number; ar?: string; en?: string };
-
-type PagePanelContentProps = {
-  list: VerseRow[];
+type PanelProps = {
+  data: MushafPageData;
   panelKey: string;
   windowWidth: number;
-  pageBg: string;
-  textMuted: string;
-  textPrimary: string;
-  language: string;
+  pageStyle: QuranPageStyle;
+  fontReady: boolean;
+  activeVerseKey: string | null;
+  onPressVerse?: (verseKey: string) => void;
 };
 
-const PagePanelContent = memo(function PagePanelContent({
-  list,
+const PagePanel = memo(function PagePanel({
+  data,
   panelKey,
   windowWidth,
-  pageBg,
-  textMuted,
-  textPrimary,
-  language,
-}: PagePanelContentProps) {
+  pageStyle,
+  fontReady,
+  activeVerseKey,
+  onPressVerse,
+}: PanelProps) {
+  const contentWidth = windowWidth - PAGE_MARGIN * 2 - spacing.sm * 2;
   return (
     <ScrollView
       key={panelKey}
@@ -68,192 +82,174 @@ const PagePanelContent = memo(function PagePanelContent({
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      <View style={[styles.pageSurface, { backgroundColor: pageBg }]}>
-        {list.map((v, i) => (
-          <View key={`${v.surah}-${v.ayah}-${i}`} style={styles.verseRow}>
-            <Text style={[styles.verseNum, { color: textMuted }]}>{v.ayah}</Text>
-            <Text style={[styles.verseAr, { color: textPrimary }, language === 'ar' && styles.verseArRtl]}>
-              {v.ar ?? '…'}
-            </Text>
-            {v.en != null && language !== 'ar' && (
-              <Text style={[styles.verseEn, { color: textMuted }]}>{v.en}</Text>
-            )}
-          </View>
-        ))}
-      </View>
+      <MushafPage
+        data={data}
+        activeVerseKey={activeVerseKey}
+        pageStyle={pageStyle}
+        contentWidth={contentWidth}
+        fontReady={fontReady}
+        onPressVerse={onPressVerse}
+      />
     </ScrollView>
   );
 });
 
-async function loadPageData(page: number): Promise<VerseRow[]> {
-  const refs = getVersesForPage(page);
-  const surahs = [...new Set(refs.map((r) => r.surah))];
-  const texts: Record<number, Record<number, { ar?: string; en?: string }>> = {};
-  for (const s of surahs) {
-    const t = await getSurahText(s);
-    if (t) texts[s] = t;
-  }
-  return refs.map((r) => {
-    const row = texts[r.surah]?.[r.ayah];
-    return { surah: r.surah, ayah: r.ayah, ar: row?.ar, en: row?.en };
-  });
+/** Page data plus its font, so a page is only shown once both are ready. */
+async function loadPage(page: number): Promise<MushafPageData | null> {
+  const data = pageCache[page] ?? (await getMushafPage(page));
+  if (!data) return null;
+  pageCache[page] = data;
+  if (await ensurePageFont(page)) fontReadyPages.add(page);
+  return data;
 }
 
 export function QuranPageViewScreen() {
-  const { colors, style: themeStyle } = useTheme();
-  const isRoyal = themeStyle === 'royal';
+  const { colors } = useTheme();
   const { language } = useLanguage();
   const { width: windowWidth } = useWindowDimensions();
   const params = useLocalSearchParams<{ page?: string }>();
   const initialPage = Math.max(1, Math.min(TOTAL_PAGES, parseInt(params.page ?? '1', 10) || 1));
+  const [fontsLoaded] = useFonts({ Amiri_400Regular });
+
+  const { state: audioState, playFromAyah, pause } = useQuranAudioContext();
 
   type PageState = {
     displayPage: number;
-    verses: VerseRow[];
+    data: MushafPageData | null;
     incomingPage: number | null;
-    incomingVerses: VerseRow[] | null;
+    incomingData: MushafPageData | null;
   };
   const [pageState, setPageState] = useState<PageState>({
     displayPage: initialPage,
-    verses: [],
+    data: null,
     incomingPage: null,
-    incomingVerses: null,
+    incomingData: null,
   });
-  const { displayPage, verses, incomingPage, incomingVerses } = pageState;
+  const { displayPage, data, incomingPage, incomingData } = pageState;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const loadingAdjacentRef = useRef(false);
+  const [pageStyle, setPageStyle] = useState<QuranPageStyle>('paper');
+  const [showStyles, setShowStyles] = useState(false);
+  /** Bumped when a font finishes registering, to re-render with real glyphs. */
+  const [fontTick, setFontTick] = useState(0);
+  const turningRef = useRef(false);
 
   const incomingX = useSharedValue(windowWidth);
 
-  const loadPage = useCallback(async (page: number) => {
+  useEffect(() => {
+    loadQuranPageStyle().then(setPageStyle);
+  }, []);
+
+  const fetchPage = useCallback(async (page: number) => {
     setLoading(true);
     setError(null);
-    try {
-      const list = await loadPageData(page);
-      pageCache[page] = list;
-      setPageState((prev) => ({ ...prev, verses: list }));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load page');
-      setPageState((prev) => ({ ...prev, verses: [] }));
-    } finally {
-      setLoading(false);
+    const result = await loadPage(page);
+    if (result) {
+      setPageState((prev) => ({ ...prev, data: result }));
+      setFontTick((n) => n + 1);
+    } else {
+      setError(getString(language, 'quranLoadError'));
+      setPageState((prev) => ({ ...prev, data: null }));
     }
-  }, []);
-
-  const preloadPage = useCallback((page: number) => {
-    if (page < 1 || page > TOTAL_PAGES || pageCache[page] != null) return;
-    loadPageData(page).then((list) => {
-      pageCache[page] = list;
-    });
-  }, []);
+    setLoading(false);
+  }, [language]);
 
   useEffect(() => {
-    setPageState((prev) => ({ ...prev, displayPage: initialPage, incomingPage: null, incomingVerses: null }));
-    loadPage(initialPage);
-  }, [initialPage, loadPage]);
+    setPageState({ displayPage: initialPage, data: null, incomingPage: null, incomingData: null });
+    void fetchPage(initialPage);
+  }, [initialPage, fetchPage]);
 
+  // Warm the neighbours so a page turn does not wait on the network.
   useEffect(() => {
-    if (verses.length > 0 && !loading) {
-      preloadPage(displayPage + 1);
-      preloadPage(displayPage - 1);
-    }
-  }, [displayPage, verses.length, loading, preloadPage]);
-
-  const finishTransition = useCallback(
-    (nextPage: number, nextVerses: VerseRow[]) => {
-      setPageState({
-        displayPage: nextPage,
-        verses: nextVerses,
-        incomingPage: null,
-        incomingVerses: null,
+    if (!data || loading) return;
+    for (const page of [displayPage + 1, displayPage - 1]) {
+      if (page < 1 || page > TOTAL_PAGES || pageCache[page]) continue;
+      void getMushafPage(page).then((d) => {
+        if (d) pageCache[page] = d;
       });
-      preloadPage(nextPage + 1);
-      preloadPage(nextPage - 1);
+      prefetchPageFont(page);
+    }
+  }, [displayPage, data, loading]);
+
+  const finishTransition = useCallback((nextPage: number, nextData: MushafPageData) => {
+    setPageState({
+      displayPage: nextPage,
+      data: nextData,
+      incomingPage: null,
+      incomingData: null,
+    });
+    turningRef.current = false;
+  }, []);
+
+  const turnTo = useCallback(
+    async (nextPage: number, direction: 1 | -1) => {
+      if (nextPage < 1 || nextPage > TOTAL_PAGES) return;
+      if (incomingPage != null || turningRef.current) return;
+      turningRef.current = true;
+      const nextData = await loadPage(nextPage);
+      if (!nextData) {
+        turningRef.current = false;
+        setError(getString(language, 'quranLoadError'));
+        return;
+      }
+      setPageState((prev) => ({ ...prev, incomingPage: nextPage, incomingData: nextData }));
+      incomingX.value = direction * windowWidth;
+      incomingX.value = withTiming(
+        0,
+        { duration: SLIDE_DURATION_MS, easing: Easing.out(Easing.cubic) },
+        () => {
+          runOnJS(finishTransition)(nextPage, nextData);
+        }
+      );
     },
-    [preloadPage]
+    [incomingPage, incomingX, windowWidth, finishTransition, language]
   );
 
-  const goNext = useCallback(() => {
-    if (displayPage >= TOTAL_PAGES || incomingPage != null || loadingAdjacentRef.current) return;
-    const nextPage = displayPage + 1;
-    const cached = pageCache[nextPage];
-    if (cached) {
-      setPageState((prev) => ({ ...prev, incomingPage: nextPage, incomingVerses: cached }));
-      incomingX.value = windowWidth;
-      incomingX.value = withTiming(
-        0,
-        { duration: SLIDE_DURATION_MS, easing: Easing.out(Easing.cubic) },
-        () => {
-          runOnJS(finishTransition)(nextPage, cached);
-        }
-      );
-    } else {
-      loadingAdjacentRef.current = true;
-      loadPageData(nextPage).then((list) => {
-        pageCache[nextPage] = list;
-        loadingAdjacentRef.current = false;
-        setPageState((prev) => ({ ...prev, incomingPage: nextPage, incomingVerses: list }));
-        incomingX.value = windowWidth;
-        incomingX.value = withTiming(
-          0,
-          { duration: SLIDE_DURATION_MS, easing: Easing.out(Easing.cubic) },
-          () => {
-            runOnJS(finishTransition)(nextPage, list);
-          }
-        );
-      });
-    }
-  }, [displayPage, incomingPage, finishTransition, incomingX, windowWidth]);
+  const pickStyle = useCallback(async (style: QuranPageStyle) => {
+    await hapticLight();
+    setPageStyle(style);
+    await saveQuranPageStyle(style);
+  }, []);
 
-  const goPrev = useCallback(() => {
-    if (displayPage <= 1 || incomingPage != null || loadingAdjacentRef.current) return;
-    const prevPage = displayPage - 1;
-    const cached = pageCache[prevPage];
-    if (cached) {
-      setPageState((prev) => ({ ...prev, incomingPage: prevPage, incomingVerses: cached }));
-      incomingX.value = -windowWidth;
-      incomingX.value = withTiming(
-        0,
-        { duration: SLIDE_DURATION_MS, easing: Easing.out(Easing.cubic) },
-        () => {
-          runOnJS(finishTransition)(prevPage, cached);
-        }
-      );
-    } else {
-      loadingAdjacentRef.current = true;
-      loadPageData(prevPage).then((list) => {
-        pageCache[prevPage] = list;
-        loadingAdjacentRef.current = false;
-        setPageState((prev) => ({ ...prev, incomingPage: prevPage, incomingVerses: list }));
-        incomingX.value = -windowWidth;
-        incomingX.value = withTiming(
-          0,
-          { duration: SLIDE_DURATION_MS, easing: Easing.out(Easing.cubic) },
-          () => {
-            runOnJS(finishTransition)(prevPage, list);
-          }
-        );
-      });
-    }
-  }, [displayPage, incomingPage, finishTransition, incomingX, windowWidth]);
+  /** Tapping a verse starts (or pauses) recitation from that verse. */
+  const handlePressVerse = useCallback(
+    (verseKey: string) => {
+      const [surah, ayah] = verseKey.split(':').map(Number);
+      if (!surah || !ayah) return;
+      const isThisVerse =
+        audioState.currentSurah === surah && audioState.currentAyah === ayah;
+      if (isThisVerse && audioState.isPlaying) {
+        pause();
+        return;
+      }
+      void playFromAyah(surah, ayah);
+    },
+    [audioState.currentSurah, audioState.currentAyah, audioState.isPlaying, playFromAyah, pause]
+  );
 
+  const activeVerseKey =
+    audioState.currentSurah != null && audioState.currentAyah != null
+      ? `${audioState.currentSurah}:${audioState.currentAyah}`
+      : null;
+
+  // Follow the recitation across page boundaries: when the verse being recited
+  // is not on this page but is on the next one, turn the page.
+  useEffect(() => {
+    if (!activeVerseKey || !data || incomingPage != null) return;
+    if (data.verseKeys.includes(activeVerseKey)) return;
+    const next = pageCache[displayPage + 1];
+    if (next?.verseKeys.includes(activeVerseKey)) {
+      void turnTo(displayPage + 1, 1);
+    }
+  }, [activeVerseKey, data, displayPage, incomingPage, turnTo]);
+
+  const theme = getMushafTheme(pageStyle);
   const pageLabel = getString(language, 'quranPageLabel');
-  const pageBg = isRoyal ? PAGE_BG_ROYAL : PAGE_BG_LIGHT;
-  const textPrimary = isRoyal ? 'rgba(255,255,255,0.95)' : TEXT_ON_LIGHT;
-  const textMuted = isRoyal ? 'rgba(255,255,255,0.6)' : TEXT_MUTED_ON_LIGHT;
+  const fontReady = fontReadyPages.has(displayPage) && fontsLoaded;
 
   const incomingPanelStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: incomingX.value }],
   }));
-
-  const panelContentProps = {
-    windowWidth,
-    pageBg,
-    textMuted,
-    textPrimary,
-    language,
-  };
 
   return (
     <ScreenWrapper>
@@ -261,68 +257,112 @@ export function QuranPageViewScreen() {
         <BackBar />
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity
-            onPress={goPrev}
+            onPress={() => void turnTo(displayPage - 1, -1)}
             disabled={displayPage <= 1 || loading || incomingPage != null}
             style={styles.navBtn}
+            accessibilityRole="button"
           >
-            <Text
-              style={[
-                styles.navBtnText,
-                { color: displayPage <= 1 || incomingPage != null ? textMuted : textPrimary },
-              ]}
-            >
-              ←
-            </Text>
+            <Ionicons
+              name="chevron-back"
+              size={24}
+              color={displayPage <= 1 ? colors.textMuted : colors.text}
+            />
           </TouchableOpacity>
-          <Text style={[styles.pageTitle, { color: textPrimary }]}>
+          <Text style={[styles.pageTitle, { color: colors.text }]}>
             {pageLabel} {displayPage} / {TOTAL_PAGES}
           </Text>
-          <TouchableOpacity
-            onPress={goNext}
-            disabled={displayPage >= TOTAL_PAGES || loading || incomingPage != null}
-            style={styles.navBtn}
-          >
-            <Text
-              style={[
-                styles.navBtnText,
-                { color: displayPage >= TOTAL_PAGES || incomingPage != null ? textMuted : textPrimary },
-              ]}
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              onPress={() => setShowStyles((v) => !v)}
+              style={styles.navBtn}
+              accessibilityRole="button"
+              accessibilityLabel={getString(language, 'quranPageStyle')}
             >
-              →
-            </Text>
-          </TouchableOpacity>
+              <Ionicons
+                name="color-palette-outline"
+                size={22}
+                color={showStyles ? colors.highlight : colors.text}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => void turnTo(displayPage + 1, 1)}
+              disabled={displayPage >= TOTAL_PAGES || loading || incomingPage != null}
+              style={styles.navBtn}
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name="chevron-forward"
+                size={24}
+                color={displayPage >= TOTAL_PAGES ? colors.textMuted : colors.text}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-        {loading && verses.length === 0 ? (
+
+        {showStyles && (
+          <View style={[styles.styleRow, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.styleLabel, { color: colors.textMuted }]}>
+              {getString(language, 'quranPageStyle')}
+            </Text>
+            {QURAN_PAGE_STYLES.map((style) => (
+              <PageStyleSwatch
+                key={style}
+                pageStyle={style}
+                selected={pageStyle === style}
+                onPress={() => void pickStyle(style)}
+              />
+            ))}
+          </View>
+        )}
+
+        {loading && !data ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={colors.highlight} />
           </View>
-        ) : error && verses.length === 0 ? (
+        ) : error && !data ? (
           <View style={styles.centered}>
             <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-          </View>
-        ) : (
-          <View style={[styles.slider, { width: windowWidth }]}>
-            <View
-              key="current"
-              style={[styles.panel, { width: windowWidth }]}
-              collapsable={false}
+            <TouchableOpacity
+              onPress={() => void fetchPage(displayPage)}
+              style={[styles.retryBtn, { borderColor: colors.border }]}
             >
-              {verses.length > 0 && (
-                <PagePanelContent list={verses} panelKey="current" {...panelContentProps} />
-              )}
+              <Text style={[styles.retryText, { color: colors.text }]}>
+                {getString(language, 'retry')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : data ? (
+          <View style={[styles.slider, { width: windowWidth, backgroundColor: theme.pageBg }]}>
+            <View key="current" style={[styles.panel, { width: windowWidth }]} collapsable={false}>
+              <PagePanel
+                data={data}
+                panelKey={`current-${displayPage}-${fontTick}`}
+                windowWidth={windowWidth}
+                pageStyle={pageStyle}
+                fontReady={fontReady}
+                activeVerseKey={activeVerseKey}
+                onPressVerse={handlePressVerse}
+              />
             </View>
-            {incomingPage != null && incomingVerses != null && (
+            {incomingPage != null && incomingData != null && (
               <Animated.View
                 key="incoming"
                 style={[styles.panel, styles.panelAbsolute, { width: windowWidth }, incomingPanelStyle]}
                 pointerEvents="none"
                 collapsable={false}
               >
-                <PagePanelContent list={incomingVerses} panelKey="incoming" {...panelContentProps} />
+                <PagePanel
+                  data={incomingData}
+                  panelKey={`incoming-${incomingPage}`}
+                  windowWidth={windowWidth}
+                  pageStyle={pageStyle}
+                  fontReady={fontReadyPages.has(incomingPage) && fontsLoaded}
+                  activeVerseKey={activeVerseKey}
+                />
               </Animated.View>
             )}
           </View>
-        )}
+        ) : null}
       </View>
     </ScreenWrapper>
   );
@@ -334,43 +374,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  navBtn: { padding: spacing.sm },
-  navBtnText: { fontSize: fontSize.lg },
-  pageTitle: { fontSize: fontSize.md, fontWeight: '600' },
-  slider: {
-    flex: 1,
-    overflow: 'hidden',
+  headerRight: { flexDirection: 'row', alignItems: 'center' },
+  navBtn: { padding: spacing.xs, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  pageTitle: { fontSize: fontSize.sm, fontWeight: '600' },
+  styleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  panel: {
-    flex: 1,
-  },
-  panelAbsolute: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-  },
+  styleLabel: { flex: 1, fontSize: fontSize.xs },
+  slider: { flex: 1, overflow: 'hidden' },
+  panel: { flex: 1 },
+  panelAbsolute: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   panelScroll: { flex: 1 },
-  scrollContent: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  pageSurface: {
-    borderRadius: 12,
-    padding: spacing.lg,
-    paddingVertical: spacing.xl,
-    minHeight: 200,
-  },
-  verseRow: { marginBottom: spacing.sm },
-  verseNum: { fontSize: fontSize.xs, marginBottom: 2 },
-  verseAr: {
-    fontSize: fontSize.lg,
-    fontFamily: fontFamily.arabic,
-    lineHeight: fontSize.lg * 1.8,
-  },
-  verseArRtl: { textAlign: 'right' },
-  verseEn: { fontSize: fontSize.sm, marginTop: 2, fontStyle: 'italic' },
+  scrollContent: { padding: PAGE_MARGIN, paddingBottom: spacing.xxl },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { fontSize: fontSize.sm },
+  errorText: { fontSize: fontSize.sm, textAlign: 'center', paddingHorizontal: spacing.lg },
+  retryBtn: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  retryText: { fontSize: fontSize.sm },
 });
