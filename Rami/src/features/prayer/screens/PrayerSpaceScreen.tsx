@@ -13,7 +13,6 @@ import {
   Pressable,
   RefreshControl,
   Alert,
-  I18nManager,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '../../../theme/ThemeContext';
@@ -40,6 +39,9 @@ import { hapticLight } from '../../../utils/haptics';
 const ROYAL_BADGE_BG = 'rgba(31,111,84,0.22)';
 const ROYAL_BADGE_RING = 'rgba(230,194,122,0.55)';
 
+/** Menu keys rendered as flank buttons around the orb instead of in the grid. */
+const FLANK_KEYS = ['prayer', 'quran', 'hadith', 'bukhari'];
+
 export function PrayerSpaceScreen() {
   const { colors, style: themeStyle } = useTheme();
   const isRoyal = themeStyle === 'royal';
@@ -63,7 +65,6 @@ export function PrayerSpaceScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [radialOpen, setRadialOpen] = useState(false);
   const [quickSettingsPrayer, setQuickSettingsPrayer] = useState<import('../types').PrayerName | null>(null);
-
   const nextPrayerLabel = nextPrayer ? getPrayerName(language, nextPrayer.prayer.name) : '';
   const muteLabel = getString(language, 'muteNextPrayer');
   const comingSoon = getString(language, 'comingSoon');
@@ -90,7 +91,59 @@ export function PrayerSpaceScreen() {
 
   const prayerItem = menuItems.find((m) => m.key === 'prayer');
   const quranItem = menuItems.find((m) => m.key === 'quran');
-  const gridItems = menuItems.filter((m) => m.key !== 'prayer' && m.key !== 'quran');
+  // Hadith grading sits above prayer times, Bukhari above the Quran (customer request).
+  const hadithItem = menuItems.find((m) => m.key === 'hadith');
+  const bukhariItem = menuItems.find((m) => m.key === 'bukhari');
+  const gridItems = menuItems.filter((m) => !FLANK_KEYS.includes(m.key));
+
+  type FlankItem = (typeof menuItems)[number] | undefined;
+
+  /**
+   * One flank button next to the orb. 'large' is the main destination
+   * (prayer times / Quran); 'small' is the icon stacked above it.
+   */
+  const renderFlankButton = (item: FlankItem, size: 'large' | 'small') => {
+    if (!item) return null;
+    const isSmall = size === 'small';
+    return (
+      <Pressable
+        style={({ pressed }) => [
+          styles.flankButton,
+          isSmall && styles.flankButtonSmall,
+          pressed && styles.flankButtonPressed,
+        ]}
+        onPress={() => {
+          hapticLight();
+          item.onPress();
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={item.label}
+      >
+        <View
+          style={[
+            styles.flankBadge,
+            isSmall && styles.flankBadgeSmall,
+            {
+              backgroundColor: isRoyal ? ROYAL_BADGE_BG : colors.highlightGlow,
+              borderColor: isRoyal ? ROYAL_BADGE_RING : colors.accentMuted,
+            },
+          ]}
+        >
+          <QuickMenuIcon name={item.iconName} color={isRoyal ? colors.accent : colors.textOnSurface} />
+        </View>
+        <Text
+          style={[
+            styles.flankLabel,
+            isSmall && styles.flankLabelSmall,
+            { color: isRoyal ? colors.accent : colors.textOnSurface },
+          ]}
+          numberOfLines={2}
+        >
+          {item.label}
+        </Text>
+      </Pressable>
+    );
+  };
 
   const currentPrayerName = useMemo(() => {
     if (!today?.times.length) return null;
@@ -190,28 +243,11 @@ export function PrayerSpaceScreen() {
           </View>
         )}
 
-        <View style={[styles.orbRow, I18nManager.isRTL && styles.orbRowRtl]}>
-          {prayerItem && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.flankButton,
-                pressed && styles.flankButtonPressed,
-              ]}
-              onPress={() => {
-                hapticLight();
-                prayerItem.onPress();
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={prayerItem.label}
-            >
-              <View style={[styles.flankBadge, { backgroundColor: isRoyal ? ROYAL_BADGE_BG : colors.highlightGlow, borderColor: isRoyal ? ROYAL_BADGE_RING : colors.accentMuted }]}>
-                <QuickMenuIcon name={prayerItem.iconName} color={isRoyal ? colors.accent : colors.textOnSurface} />
-              </View>
-              <Text style={[styles.flankLabel, { color: isRoyal ? colors.accent : colors.textOnSurface }]} numberOfLines={2}>
-                {prayerItem.label}
-              </Text>
-            </Pressable>
-          )}
+        <View style={styles.orbRow}>
+          <View style={styles.flankColumn}>
+            {renderFlankButton(hadithItem, 'small')}
+            {renderFlankButton(prayerItem, 'large')}
+          </View>
           <View style={styles.orbSection}>
             <NextPrayerOrb
               nextPrayer={nextPrayer ?? null}
@@ -223,27 +259,10 @@ export function PrayerSpaceScreen() {
               isPrayerTimeNow={isPrayerTimeNow}
             />
           </View>
-          {quranItem && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.flankButton,
-                pressed && styles.flankButtonPressed,
-              ]}
-              onPress={() => {
-                hapticLight();
-                quranItem.onPress();
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={quranItem.label}
-            >
-              <View style={[styles.flankBadge, { backgroundColor: isRoyal ? ROYAL_BADGE_BG : colors.highlightGlow, borderColor: isRoyal ? ROYAL_BADGE_RING : colors.accentMuted }]}>
-                <QuickMenuIcon name={quranItem.iconName} color={isRoyal ? colors.accent : colors.textOnSurface} />
-              </View>
-              <Text style={[styles.flankLabel, { color: isRoyal ? colors.accent : colors.textOnSurface }]} numberOfLines={2}>
-                {quranItem.label}
-              </Text>
-            </Pressable>
-          )}
+          <View style={styles.flankColumn}>
+            {renderFlankButton(bukhariItem, 'small')}
+            {renderFlankButton(quranItem, 'large')}
+          </View>
         </View>
         <View style={styles.quickMenuSection}>
           <QuickMenuGrid items={gridItems} />
@@ -323,9 +342,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     width: '100%',
   },
-  orbRowRtl: {
-    flexDirection: 'row-reverse',
-  },
   orbSection: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -339,6 +355,17 @@ const styles = StyleSheet.create({
     maxWidth: 88,
     minHeight: 44,
   },
+  flankButtonSmall: {
+    flex: 0,
+    marginBottom: spacing.sm,
+  },
+  flankColumn: {
+    flex: 1,
+    flexShrink: 1,
+    maxWidth: 88,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
   flankButtonPressed: {
     opacity: 0.8,
   },
@@ -351,11 +378,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.xs,
   },
+  flankBadgeSmall: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    marginBottom: spacing.xxs,
+  },
   flankLabel: {
     fontSize: fontSize.xs,
     fontWeight: fontWeight.semibold,
     textAlign: 'center',
     maxWidth: 76,
+  },
+  flankLabelSmall: {
+    fontSize: 11,
+    fontWeight: fontWeight.medium,
   },
   quickMenuSection: {
     marginBottom: spacing.lg,

@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   playButtonOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -5,6 +5,7 @@
 import React from 'react';
 import { View, ImageBackground, StyleSheet, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useArabicFullRtl } from '../hooks/useArabicFullRtl';
 
 type ScreenWrapperProps = {
   children: React.ReactNode;
@@ -14,10 +15,13 @@ type ScreenWrapperProps = {
 };
 
 export function ScreenWrapper({ children, style, edges = ['top'], disableBackground = false }: ScreenWrapperProps) {
+  const arabicFullRtl = useArabicFullRtl();
+  const body = arabicFullRtl ? <View style={styles.rtlRoot}>{children}</View> : children;
+
   if (disableBackground) {
     return (
       <SafeAreaView style={[styles.safeArea, style]} edges={edges}>
-        {children}
+        {body}
       </SafeAreaView>
     );
   }
@@ -29,7 +33,7 @@ export function ScreenWrapper({ children, style, edges = ['top'], disableBackgro
     >
       <View style={styles.overlay} />
       <SafeAreaView style={styles.safeArea} edges={edges}>
-        {children}
+        {body}
       </SafeAreaView>
     </ImageBackground>
   );
@@ -38,8 +42,9 @@ export function ScreenWrapper({ children, style, edges = ['top'], disableBackgro
 const styles = StyleSheet.create({
   container: { flex: 1 },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
   },
   safeArea: { flex: 1, backgroundColor: 'transparent' },
+  rtlRoot: { flex: 1, direction: 'rtl' },
 });

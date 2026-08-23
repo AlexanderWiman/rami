@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.94)',
   },
   centered: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
   },

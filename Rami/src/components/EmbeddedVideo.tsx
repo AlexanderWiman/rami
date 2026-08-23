@@ -22,7 +22,7 @@ export function EmbeddedVideo({ uri, style }: EmbeddedVideoProps) {
         style={styles.video}
         nativeControls
         contentFit="contain"
-        allowsFullscreen
+        fullscreenOptions={{ enable: true }}
         allowsPictureInPicture
       />
     </View>

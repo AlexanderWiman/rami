@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Location from 'expo-location';
+import Constants from 'expo-constants';
 import type {
   PrayerTimesForDay,
   NextPrayerResult,
@@ -30,14 +31,15 @@ import {
 } from '../storage/prayerSettings';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getString } from '../../../constants/i18n';
-import {
-  scheduleTodayNotifications,
-  cancelAllPrayerNotifications,
-  scheduleAlhamdulillahReminder,
-} from '../notifications/scheduler';
-import { ensureAndroidNotificationChannels } from '../notifications/channels';
 import { prefetchPrayerTimesForWeek } from '../api/prayerPrefetch';
 import { syncPreferencesToBackend } from '../../../services/pushRegistration';
+import {
+  applyPresetToSettings,
+  countryNameToCode,
+  getPrayerPresetForCountry,
+  isSamePrayerPreset,
+  normalizeCountryCode,
+} from '../constants/presets';
 
 function toDateKey(d: Date): string {
   const y = d.getFullYear();
@@ -48,6 +50,29 @@ function toDateKey(d: Date): string {
 
 // Module-level cache for municipality label - persists across component remounts within same session
 let _cachedMunicipality: string | null = null;
+const isExpoGoAndroid = Platform.OS === 'android' && Constants.appOwnership === 'expo';
+
+function countryCodeFromAddress(address: Location.LocationGeocodedAddress | null | undefined): string | null {
+  if (!address) return null;
+  const withIso = address as Location.LocationGeocodedAddress & { isoCountryCode?: string; countryCode?: string };
+  return normalizeCountryCode(withIso.isoCountryCode) ?? normalizeCountryCode(withIso.countryCode) ?? countryNameToCode(address.country);
+}
+
+function countryCodeFromLocation(loc: CachedLocation | null | undefined): string | null {
+  return normalizeCountryCode(loc?.countryCode) ?? countryNameToCode(loc?.country);
+}
+
+async function withScheduler<T>(fn: (m: typeof import('../notifications/scheduler')) => Promise<T>): Promise<T | undefined> {
+  if (isExpoGoAndroid) return undefined;
+  const m = await import('../notifications/scheduler');
+  return fn(m);
+}
+
+async function withChannels<T>(fn: (m: typeof import('../notifications/channels')) => Promise<T>): Promise<T | undefined> {
+  if (isExpoGoAndroid) return undefined;
+  const m = await import('../notifications/channels');
+  return fn(m);
+}
 
 /** Call when user manually selects a new location — clears stale cache so the new label is used. */
 export function clearLocationCache(): void {
@@ -59,6 +84,7 @@ export function clearLocationCache(): void {
  * to mitigate Samsung/Android battery optimization clearing scheduled alarms.
  */
 export async function reschedulePrayerNotificationsFromStorage(): Promise<void> {
+  if (isExpoGoAndroid) return;
   try {
     const settings = await loadPrayerSettings();
     if (!settings.notificationsEnabled) return;
@@ -98,9 +124,9 @@ export async function reschedulePrayerNotificationsFromStorage(): Promise<void> 
     );
     const { loadLanguage } = await import('../storage/prayerSettings');
     const lang = await loadLanguage();
-    await cancelAllPrayerNotifications();
-    await scheduleTodayNotifications(times, settings, lang);
-    await scheduleAlhamdulillahReminder(settings, lang);
+    await withScheduler((m) => m.cancelAllPrayerNotifications());
+    await withScheduler((m) => m.scheduleTodayNotifications(times, settings, lang));
+    await withScheduler((m) => m.scheduleAlhamdulillahReminder(settings, lang));
   } catch {
     /* ignore */
   }
@@ -186,10 +212,33 @@ export function usePrayerTimes() {
     const skipFastPath = forceFullRefreshRef.current;
     if (skipFastPath) forceFullRefreshRef.current = false;
 
-    const s = await loadPrayerSettings();
-    setSettingsState(s);
+    let s = await loadPrayerSettings();
     const cachedLoc = await loadLocation();
-    const { method, school, latitudeAdjustmentMethod } = settingsToAladhanParams(s);
+    const applyAutoPresetForLocation = async (settingsToCheck: PrayerSettings, locToCheck: CachedLocation | null) => {
+      if (settingsToCheck.presetSource === 'manual') return settingsToCheck;
+      const countryCode = countryCodeFromLocation(locToCheck);
+      if (!countryCode) return settingsToCheck;
+      const preset = getPrayerPresetForCountry(countryCode);
+      if (
+        settingsToCheck.presetCountryCode === preset.countryCode &&
+        isSamePrayerPreset(settingsToCheck, preset)
+      ) {
+        return settingsToCheck;
+      }
+      const nextSettings = applyPresetToSettings(settingsToCheck, countryCode);
+      await savePrayerSettings(nextSettings);
+      setSettingsState(nextSettings);
+      syncPreferencesToBackend({
+        calculationMethod: nextSettings.calculationMethod,
+        asrMethod: nextSettings.asrMethod,
+        highLatitudeRule: nextSettings.highLatitudeRule,
+      }).catch(() => {});
+      return nextSettings;
+    };
+
+    s = await applyAutoPresetForLocation(s, cachedLoc);
+    setSettingsState(s);
+    let { method, school, latitudeAdjustmentMethod } = settingsToAladhanParams(s);
 
     // Load cached municipality - prefer module-level cache, then ref, then AsyncStorage
     if (!_cachedMunicipality && !lastMunicipalityLabel.current) {
@@ -240,11 +289,13 @@ export function usePrayerTimes() {
       }
     }
 
-    async function setLabelFromCoords(lat: number, lon: number) {
+    async function setLabelFromCoords(lat: number, lon: number, options?: { manual?: boolean }): Promise<CachedLocation | null> {
       try {
         const addresses = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
         const first = addresses[0];
         if (first) {
+          const countryCode = countryCodeFromAddress(first) ?? undefined;
+          const country = first.country ?? undefined;
           // Build label from available fields - works globally (not just Sweden)
           // Priority: city > subregion (kommun) > district > region (län) — subregion is municipality in Sweden
           let locality = first.city || first.subregion || first.district || first.region;
@@ -278,7 +329,7 @@ export function usePrayerTimes() {
             _cachedMunicipality = nextLabel;
             lastMunicipalityLabel.current = nextLabel;
             saveMunicipalityLabel(nextLabel).catch(() => {});
-            saveLocation({ lat, lon, label: nextLabel }).catch(() => {});
+            saveLocation({ lat, lon, label: nextLabel, countryCode, country, manual: options?.manual }).catch(() => {});
           }
           let fallbackLabel: string | null = null;
           if (isRegionOnly) {
@@ -305,10 +356,12 @@ export function usePrayerTimes() {
             }
           }
           const finalLabel = isRegionOnly && fallbackLabel ? fallbackLabel : nextLabel;
+          const loc = { lat, lon, label: finalLabel || undefined, countryCode, country, manual: options?.manual };
           if (finalLabel) {
-            saveLocation({ lat, lon, label: finalLabel }).catch(() => {});
+            saveLocation(loc).catch(() => {});
           }
           setLocationLabel(finalLabel || `${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+          return loc;
         } else {
           try {
             const nm = await fetch(
@@ -319,12 +372,15 @@ export function usePrayerTimes() {
             if (a) {
               const p = [a.city, a.town, a.village, a.municipality, a.county, a.state, a.country].filter(Boolean);
               const label = p.length > 0 ? p.join(', ') : '';
+              const countryCode = normalizeCountryCode(a.country_code) ?? undefined;
+              const country = typeof a.country === 'string' ? a.country : undefined;
               if (label) {
                 _cachedMunicipality = label;
                 lastMunicipalityLabel.current = label;
                 saveMunicipalityLabel(label).catch(() => {});
-                saveLocation({ lat, lon, label }).catch(() => {});
+                saveLocation({ lat, lon, label, countryCode, country, manual: options?.manual }).catch(() => {});
                 setLocationLabel(label);
+                return { lat, lon, label, countryCode, country, manual: options?.manual };
               } else {
                 setLocationLabel(`${lat.toFixed(2)}, ${lon.toFixed(2)}`);
               }
@@ -338,7 +394,10 @@ export function usePrayerTimes() {
       } catch {
         setLocationLabel('');
       }
+      return null;
     }
+
+    let activeLoc: CachedLocation | null = cachedLoc;
 
     // When user set manual location, use it and skip GPS.
     if (cachedLoc?.manual) {
@@ -349,6 +408,10 @@ export function usePrayerTimes() {
       if (cachedLoc.label) {
         _cachedMunicipality = cachedLoc.label;
         lastMunicipalityLabel.current = cachedLoc.label;
+      }
+      if (!cachedLoc.countryCode) {
+        activeLoc = (await setLabelFromCoords(lat, lon, { manual: true })) ?? cachedLoc;
+        setLocationState(activeLoc);
       }
     } else {
     // Otherwise: use current position. Fallback to cached when GPS unavailable or permission denied.
@@ -365,7 +428,7 @@ export function usePrayerTimes() {
             _cachedMunicipality = cachedLoc.label;
             lastMunicipalityLabel.current = cachedLoc.label;
           }
-          setLabelFromCoords(lat, lon);
+          activeLoc = (await setLabelFromCoords(lat, lon, { manual: cachedLoc.manual })) ?? cachedLoc;
         } else {
           setError('Location permission denied');
           setLoading(false);
@@ -391,7 +454,8 @@ export function usePrayerTimes() {
         }
         lat = pos.coords.latitude;
         lon = pos.coords.longitude;
-        const currentLoc = { lat, lon };
+        const currentLoc = { lat, lon, manual: false };
+        activeLoc = currentLoc;
         setLocationState(currentLoc);
         saveLocation(currentLoc).catch(() => {});
         if (cachedLoc?.label) {
@@ -399,28 +463,33 @@ export function usePrayerTimes() {
           _cachedMunicipality = cachedLoc.label;
           lastMunicipalityLabel.current = cachedLoc.label;
         }
-        setLabelFromCoords(lat, lon);
+        activeLoc = (await setLabelFromCoords(lat, lon, { manual: false })) ?? currentLoc;
+        setLocationState(activeLoc);
       }
     } catch (e) {
       if (cachedLoc) {
         lat = cachedLoc.lat;
         lon = cachedLoc.lon;
+        activeLoc = cachedLoc;
         setLocationState(cachedLoc);
         if (cachedLoc.label) {
           setLocationLabel(cachedLoc.label);
           _cachedMunicipality = cachedLoc.label;
           lastMunicipalityLabel.current = cachedLoc.label;
         }
-        setLabelFromCoords(lat, lon);
+        activeLoc = (await setLabelFromCoords(lat, lon, { manual: cachedLoc.manual })) ?? cachedLoc;
+        setLocationState(activeLoc);
       } else {
         const lastKnown = await Location.getLastKnownPositionAsync({ maxAge: 600000 });
         if (lastKnown) {
           lat = lastKnown.coords.latitude;
           lon = lastKnown.coords.longitude;
-          const loc = { lat, lon };
+          const loc = { lat, lon, manual: false };
+          activeLoc = loc;
           setLocationState(loc);
           saveLocation(loc).catch(() => {});
-          setLabelFromCoords(lat, lon);
+          activeLoc = (await setLabelFromCoords(lat, lon, { manual: false })) ?? loc;
+          setLocationState(activeLoc);
         } else {
           setError(e instanceof Error ? e.message : 'Could not get location');
           setLoading(false);
@@ -428,6 +497,18 @@ export function usePrayerTimes() {
         }
       }
     }
+    }
+
+    s = await applyAutoPresetForLocation(s, activeLoc);
+    ({ method, school, latitudeAdjustmentMethod } = settingsToAladhanParams(s));
+    if (activeLoc) {
+      syncPreferencesToBackend({
+        latitude: activeLoc.lat,
+        longitude: activeLoc.lon,
+        calculationMethod: s.calculationMethod,
+        asrMethod: s.asrMethod,
+        highLatitudeRule: s.highLatitudeRule,
+      }).catch(() => {});
     }
 
     const cachedJson = await getCachedPrayerTimes(dateKey, lat, lon, method, school, latitudeAdjustmentMethod);
@@ -514,7 +595,16 @@ export function usePrayerTimes() {
       prefetchPrayerTimesForWeek().catch(() => {});
     }
     setLoading(false);
-  }, [dateKey, language, settings?.calculationMethod, settings?.asrMethod, settings?.highLatitudeRule, fetchAndSetTomorrow]);
+  }, [
+    dateKey,
+    language,
+    settings?.calculationMethod,
+    settings?.asrMethod,
+    settings?.highLatitudeRule,
+    settings?.presetSource,
+    settings?.presetCountryCode,
+    fetchAndSetTomorrow,
+  ]);
 
   useEffect(() => {
     loadPrayerSettings().then((s) => {
@@ -559,11 +649,11 @@ export function usePrayerTimes() {
     await savePrayerSettings(s);
     refreshTimes();
     if (today && s.notificationsEnabled) {
-      await cancelAllPrayerNotifications();
-      await scheduleTodayNotifications(today.times, s, language);
-      await scheduleAlhamdulillahReminder(s, language);
+      await withScheduler((m) => m.cancelAllPrayerNotifications());
+      await withScheduler((m) => m.scheduleTodayNotifications(today.times, s, language));
+      await withScheduler((m) => m.scheduleAlhamdulillahReminder(s, language));
     } else if (!s.notificationsEnabled) {
-      await cancelAllPrayerNotifications();
+      await withScheduler((m) => m.cancelAllPrayerNotifications());
     }
     // Sync to backend for remote push (fire-and-forget)
     syncPreferencesToBackend({
@@ -588,9 +678,9 @@ export function usePrayerTimes() {
 
   const refreshSchedule = useCallback(async () => {
     if (!today || !settings) return;
-    await cancelAllPrayerNotifications();
-    await scheduleTodayNotifications(today.times, settings, language);
-    await scheduleAlhamdulillahReminder(settings, language);
+    await withScheduler((m) => m.cancelAllPrayerNotifications());
+    await withScheduler((m) => m.scheduleTodayNotifications(today.times, settings, language));
+    await withScheduler((m) => m.scheduleAlhamdulillahReminder(settings, language));
   }, [today, settings, language]);
 
   const setClockFormat = useCallback((format: ClockFormat) => {
@@ -607,13 +697,13 @@ export function usePrayerTimes() {
       await prevLock;
       const latest = await loadPrayerSettings();
       if (!latest.notificationsEnabled) {
-        await cancelAllPrayerNotifications();
+        await withScheduler((m) => m.cancelAllPrayerNotifications());
         return;
       }
-      await ensureAndroidNotificationChannels();
-      await cancelAllPrayerNotifications();
-      await scheduleTodayNotifications(today.times, latest, language);
-      await scheduleAlhamdulillahReminder(latest, language);
+      await withChannels((m) => m.ensureAndroidNotificationChannels());
+      await withScheduler((m) => m.cancelAllPrayerNotifications());
+      await withScheduler((m) => m.scheduleTodayNotifications(today.times, latest, language));
+      await withScheduler((m) => m.scheduleAlhamdulillahReminder(latest, language));
     })();
   }, [
     today?.dateKey,

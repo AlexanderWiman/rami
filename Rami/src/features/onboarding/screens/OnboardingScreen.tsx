@@ -13,11 +13,12 @@ import type { Language } from '../../prayer/types';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { t } from '../../../constants/i18n';
+import { countryNameToCode, normalizeCountryCode } from '../../prayer/constants/presets';
 
 const STEPS = 3;
 
 /** Fallback when location services are unavailable (e.g. simulator, location off). */
-const DEFAULT_LOCATION = { lat: 59.3293, lon: 18.0686, label: 'Stockholm' };
+const DEFAULT_LOCATION = { lat: 59.3293, lon: 18.0686, label: 'Stockholm', countryCode: 'SE', country: 'Sweden' };
 
 const textShadow = Platform.select({
   ios: { textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
@@ -75,7 +76,23 @@ export function OnboardingScreen() {
             if (lastKnown) pos = lastKnown;
           }
           if (pos) {
-            await saveLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            let countryCode: string | undefined;
+            let country: string | undefined;
+            try {
+              const [first] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
+              const withIso = first as (Location.LocationGeocodedAddress & { isoCountryCode?: string; countryCode?: string }) | undefined;
+              country = first?.country ?? undefined;
+              countryCode =
+                normalizeCountryCode(withIso?.isoCountryCode) ??
+                normalizeCountryCode(withIso?.countryCode) ??
+                countryNameToCode(country) ??
+                undefined;
+            } catch {
+              /* keep location without country metadata */
+            }
+            await saveLocation({ lat, lon, countryCode, country });
           } else {
             throw new Error('No location');
           }

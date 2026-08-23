@@ -108,7 +108,7 @@ export function RadialMenu({
 
 const styles = StyleSheet.create({
   centre: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -1,10 +1,9 @@
 import 'expo-asset';
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ThemeProvider as NavigationThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
+import { ThemeProvider as NavigationThemeProvider, DarkTheme, DefaultTheme } from "expo-router/react-navigation";
 import * as Notifications from 'expo-notifications';
-import { router } from 'expo-router';
 import { useColorScheme } from 'react-native';
 import { Platform } from 'react-native';
 import { setAudioModeAsync } from 'expo-audio';
@@ -201,6 +200,8 @@ export default function RootLayout() {
               <Stack.Screen name="names" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="tasbih" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="adkhar" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
+              <Stack.Screen name="hadith" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
+              <Stack.Screen name="support" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="location-picker" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="prayer-times" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="admin" options={{ contentStyle: { backgroundColor: 'transparent' } }} />

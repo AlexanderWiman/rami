@@ -926,7 +926,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   headerTint: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: HEADER_BG,
   },
   header: {
@@ -1033,7 +1033,7 @@ const styles = StyleSheet.create({
   debugVerseBlock: { borderWidth: 2, borderColor: '#2962ff' },
 
   pageBackground: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 0,
     backgroundColor: PAGE_BG_BASE,
   },
@@ -1049,7 +1049,7 @@ const styles = StyleSheet.create({
     paddingBottom: 44,
   },
   pageLines: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   pageLine: {
     position: 'absolute',

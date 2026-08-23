@@ -4,7 +4,7 @@
  * Royal theme: dark gold glass with gold border.
  */
 import React from 'react';
-import { View, StyleSheet, ViewStyle, Platform } from 'react-native';
+import { View, StyleSheet, ViewStyle, StyleProp, Platform } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 import { useTheme } from '../theme/ThemeContext';
 import { spacing, radius } from '../theme/spacing';
@@ -15,7 +15,7 @@ const ROYAL_STROKE = 'rgba(230, 194, 122, 0.28)';
 
 type GlassCardProps = {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   padding?: keyof typeof spacing;
   rounded?: keyof typeof radius;
   fillColor?: string;

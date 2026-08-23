@@ -11,6 +11,7 @@ import adminsRoutes from './routes/admins';
 import qaRoutes from './routes/qa';
 import asmaRoutes from './routes/asma';
 import pushRoutes from './routes/push';
+import hadithRoutes from './routes/hadith';
 import { startPushScheduler } from './services/pushScheduler';
 
 dotenv.config();
@@ -37,6 +38,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/admins', adminsRoutes);
 app.use('/api', asmaRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/hadith', hadithRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

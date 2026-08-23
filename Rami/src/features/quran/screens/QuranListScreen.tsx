@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from "expo-router/react-navigation";
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '../../../theme/ThemeContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -28,7 +28,15 @@ import { useDockVisibility } from '../../../components/SacredDock';
 import { ScreenWrapper } from '../../../components/ScreenWrapper';
 import { BackToHomeBar } from '../../../components/BackToHomeBar';
 import { GlassCard } from '../../../components/GlassCard';
-import { loadSelectedReciter, loadQuranDisplayMode, saveQuranDisplayMode, type QuranDisplayMode } from '../storage/quranStorage';
+import {
+  loadSelectedReciter,
+  loadQuranDisplayMode,
+  saveQuranDisplayMode,
+  loadQuranSurahLayout,
+  saveQuranSurahLayout,
+  type QuranDisplayMode,
+  type QuranSurahLayout,
+} from '../storage/quranStorage';
 import { SURAH_LIST, searchSurahs, type SurahMeta } from '../data/surahs';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { downloadFullQuranText, isQuranTextDownloaded } from '../utils/quranTextCache';
@@ -67,10 +75,18 @@ export function QuranListScreen() {
   const [downloadingSurah, setDownloadingSurah] = useState<number | null>(null);
   const [surahProgress, setSurahProgress] = useState<{ done: number; total: number } | null>(null);
   const [displayMode, setDisplayMode] = useState<QuranDisplayMode>('verse');
+  const [surahLayout, setSurahLayout] = useState<QuranSurahLayout>('grid');
 
   useEffect(() => {
     loadQuranDisplayMode().then(setDisplayMode);
+    loadQuranSurahLayout().then(setSurahLayout);
   }, []);
+
+  const toggleSurahLayout = useCallback(async () => {
+    const next: QuranSurahLayout = surahLayout === 'grid' ? 'list' : 'grid';
+    setSurahLayout(next);
+    await saveQuranSurahLayout(next);
+  }, [surahLayout]);
 
   useEffect(() => {
     Promise.all([
@@ -206,6 +222,60 @@ export function QuranListScreen() {
       });
   }, [downloading, quranDownloaded, language]);
 
+  /** Compact tile for the 3-per-row grid: number, name, verse count. */
+  const renderGridItem = useCallback(
+    ({ item, index }: { item: SurahMeta; index: number }) => {
+      const isDownloaded = downloadedSurahs.has(item.number);
+      const isPending = pendingSurah === item.number;
+      return (
+        <Animated.View entering={FadeIn.delay(Math.min(index, 20) * 20).duration(260)} style={styles.gridCell}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              if (pendingSurah !== null) return;
+              setPendingSurah(item.number);
+              setTimeout(() => {
+                router.push(`/quran/${item.number}` as const);
+              }, 0);
+            }}
+            disabled={isPending}
+          >
+            <GlassCard
+              padding="sm"
+              rounded="lg"
+              style={styles.gridCard}
+              fillColor={isPending ? colors.highlightGlow : undefined}
+              strokeColor={isPending ? colors.highlight : undefined}
+            >
+              <View style={styles.gridTopRow}>
+                <Text style={[styles.gridNum, { color: colors.highlight }]}>{item.number}</Text>
+                {isPending ? (
+                  <ActivityIndicator size="small" color={colors.highlight} />
+                ) : isDownloaded ? (
+                  <Ionicons name="checkmark-circle" size={14} color={colors.highlight} />
+                ) : (
+                  <View style={styles.gridBadgePlaceholder} />
+                )}
+              </View>
+              <Text
+                style={[styles.gridName, { color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text }]}
+                numberOfLines={2}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
+                {language === 'ar' ? item.nameAr : item.nameEn}
+              </Text>
+              <Text style={[styles.gridAyahs, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>
+                {item.ayahCount}
+              </Text>
+            </GlassCard>
+          </TouchableOpacity>
+        </Animated.View>
+      );
+    },
+    [language, router, colors, pendingSurah, downloadedSurahs, isRoyal]
+  );
+
   const renderItem = useCallback(
     ({ item, index }: { item: SurahMeta; index: number }) => {
       const isDownloaded = downloadedSurahs.has(item.number);
@@ -324,6 +394,26 @@ export function QuranListScreen() {
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <Ionicons name="search" size={22} color={isRoyal ? 'rgba(230,194,122,0.95)' : colors.highlight} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={getString(language, surahLayout === 'grid' ? 'quranLayoutList' : 'quranLayoutGrid')}
+              style={[
+                styles.searchIconBtn,
+                {
+                  backgroundColor: isRoyal ? 'rgba(230,194,122,0.35)' : colors.highlightGlow,
+                  borderWidth: 1,
+                  borderColor: isRoyal ? 'rgba(230,194,122,0.6)' : colors.highlight,
+                },
+              ]}
+              onPress={() => void toggleSurahLayout()}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons
+                name={surahLayout === 'grid' ? 'list' : 'grid'}
+                size={20}
+                color={isRoyal ? 'rgba(230,194,122,0.95)' : colors.highlight}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -459,10 +549,14 @@ export function QuranListScreen() {
           )}
         </GlassCard>
         <FlatList
+          // numColumns cannot change on the fly, so remount when the layout flips.
+          key={surahLayout}
           data={list}
           keyExtractor={(item) => String(item.number)}
-          renderItem={renderItem}
-          extraData={{ pendingSurah, downloadedSurahs, downloadingSurah, surahProgress }}
+          renderItem={surahLayout === 'grid' ? renderGridItem : renderItem}
+          numColumns={surahLayout === 'grid' ? 3 : 1}
+          columnWrapperStyle={surahLayout === 'grid' ? styles.gridRow : undefined}
+          extraData={{ pendingSurah, downloadedSurahs, downloadingSurah, surahProgress, surahLayout }}
           scrollEnabled={false}
           ListEmptyComponent={
             <Text style={[styles.empty, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>{getString(language, 'noResults')}</Text>
@@ -701,6 +795,24 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   surahTouch: { marginBottom: Platform.OS === 'android' ? spacing.xxs : spacing.xs },
+  gridRow: { gap: spacing.xs },
+  gridCell: { flex: 1, marginBottom: spacing.xs },
+  gridCard: { minHeight: 96 },
+  gridTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xxs,
+  },
+  gridNum: { fontSize: fontSize.xs, fontWeight: fontWeight.semibold },
+  gridBadgePlaceholder: { width: 14, height: 14 },
+  gridName: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  gridAyahs: { fontSize: 11, textAlign: 'center', marginTop: 2 },
   surahCard: {},
   surahRow: {
     flexDirection: 'row',

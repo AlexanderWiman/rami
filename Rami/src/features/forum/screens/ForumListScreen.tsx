@@ -1,7 +1,7 @@
 /**
  * Forum List Screen — displays all threads in a list with cards.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,9 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../theme/ThemeContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useDockVisibility } from '../../../components/SacredDock';
@@ -22,10 +23,12 @@ import { ScreenWrapper } from '../../../components/ScreenWrapper';
 import { BackToHomeBar } from '../../../components/BackToHomeBar';
 import { GlassCard } from '../../../components/GlassCard';
 import { getThreads } from '../api';
+import { loadFavoriteThreadIds, toggleFavoriteThread } from '../storage/forumFavorites';
 import type { Thread } from '../types';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize, fontWeight, fontFamily } from '../../../theme/typography';
 import { LOCALE_BY_LANGUAGE } from '../../../constants/i18n';
+import { hapticSelection } from '../../../utils/haptics';
 
 const SCROLL_UP_THRESHOLD = 30;
 const lastScrollY = { current: 0 };
@@ -38,6 +41,9 @@ const forumStrings = {
     pinned: 'Pinned',
     loadError: 'Failed to load posts',
     retry: 'Retry',
+    favorites: 'Favourites',
+    showAll: 'All',
+    noFavorites: 'No favourites yet — tap the star on a post to save it',
   },
   ar: {
     title: 'المجتمع',
@@ -45,6 +51,9 @@ const forumStrings = {
     pinned: 'مثبت',
     loadError: 'فشل في تحميل المنشورات',
     retry: 'إعادة المحاولة',
+    favorites: 'المفضلة',
+    showAll: 'الكل',
+    noFavorites: 'لا توجد مفضلة بعد — اضغط على النجمة لحفظ المنشور',
   },
   tr: {
     title: 'Topluluk',
@@ -52,11 +61,14 @@ const forumStrings = {
     pinned: 'Sabitlenmiş',
     loadError: 'Gönderiler yüklenemedi',
     retry: 'Tekrar dene',
+    favorites: 'Favoriler',
+    showAll: 'Tümü',
+    noFavorites: 'Henüz favori yok — kaydetmek için yıldıza dokun',
   },
-  fr: { title: 'Communauté', noThreads: 'Aucune publication', pinned: 'Épinglé', loadError: 'Échec du chargement', retry: 'Réessayer' },
-  es: { title: 'Comunidad', noThreads: 'Sin publicaciones', pinned: 'Fijado', loadError: 'Error al cargar', retry: 'Reintentar' },
-  sv: { title: 'Gemenskap', noThreads: 'Inga inlägg än', pinned: 'Fastnaglad', loadError: 'Kunde inte ladda', retry: 'Försök igen' },
-  de: { title: 'Community', noThreads: 'Noch keine Beiträge', pinned: 'Angeheftet', loadError: 'Laden fehlgeschlagen', retry: 'Erneut versuchen' },
+  fr: { title: 'Communauté', noThreads: 'Aucune publication', pinned: 'Épinglé', loadError: 'Échec du chargement', retry: 'Réessayer', favorites: 'Favoris', showAll: 'Tout', noFavorites: 'Aucun favori — touchez l’étoile pour enregistrer' },
+  es: { title: 'Comunidad', noThreads: 'Sin publicaciones', pinned: 'Fijado', loadError: 'Error al cargar', retry: 'Reintentar', favorites: 'Favoritos', showAll: 'Todo', noFavorites: 'Sin favoritos — toca la estrella para guardar' },
+  sv: { title: 'Gemenskap', noThreads: 'Inga inlägg än', pinned: 'Fastnaglad', loadError: 'Kunde inte ladda', retry: 'Försök igen', favorites: 'Favoriter', showAll: 'Alla', noFavorites: 'Inga favoriter än — tryck på stjärnan för att spara' },
+  de: { title: 'Community', noThreads: 'Noch keine Beiträge', pinned: 'Angeheftet', loadError: 'Laden fehlgeschlagen', retry: 'Erneut versuchen', favorites: 'Favoriten', showAll: 'Alle', noFavorites: 'Noch keine Favoriten — tippe auf den Stern zum Speichern' },
 };
 
 export function ForumListScreen() {
@@ -70,6 +82,8 @@ export function ForumListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
 
   const strings = forumStrings[language] || forumStrings.en;
 
@@ -89,6 +103,36 @@ export function ForumListScreen() {
   useEffect(() => {
     loadThreads();
   }, [loadThreads]);
+
+  // Favourites live on the device, so re-read them whenever the list is shown.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void loadFavoriteThreadIds().then((ids) => {
+        if (active) setFavoriteIds(ids);
+      });
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
+
+  const onToggleFavorite = useCallback(async (threadId: number) => {
+    await hapticSelection();
+    const next = await toggleFavoriteThread(threadId);
+    setFavoriteIds(next);
+  }, []);
+
+  /** Favourites first, then pinned, otherwise the order the backend returned. */
+  const visibleThreads = useMemo(() => {
+    const isFavorite = (t: Thread) => favoriteIds.includes(t.id);
+    const base = favoritesOnly ? threads.filter(isFavorite) : threads;
+    return [...base].sort((a, b) => {
+      const favDiff = Number(isFavorite(b)) - Number(isFavorite(a));
+      if (favDiff !== 0) return favDiff;
+      return Number(b.pinned) - Number(a.pinned);
+    });
+  }, [threads, favoriteIds, favoritesOnly]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -113,7 +157,9 @@ export function ForumListScreen() {
     });
   };
 
-  const renderThread = (thread: Thread, index: number) => (
+  const renderThread = (thread: Thread, index: number) => {
+    const isFavorite = favoriteIds.includes(thread.id);
+    return (
     <Animated.View key={thread.id} entering={FadeIn.delay(index * 40).duration(320)}>
       <TouchableOpacity
         activeOpacity={0.8}
@@ -137,15 +183,39 @@ export function ForumListScreen() {
                 </Text>
               </View>
             )}
-            <Text
-              style={[
-                styles.itemTitle,
-                { color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text },
-              ]}
-              numberOfLines={2}
-            >
-              {thread.title}
-            </Text>
+            <View style={styles.titleWithStar}>
+              <Text
+                style={[
+                  styles.itemTitle,
+                  { color: isRoyal ? 'rgba(255,255,255,0.95)' : colors.text },
+                ]}
+                numberOfLines={2}
+              >
+                {thread.title}
+              </Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={strings.favorites}
+                accessibilityState={{ selected: isFavorite }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                onPress={() => void onToggleFavorite(thread.id)}
+                style={styles.starButton}
+              >
+                <Ionicons
+                  name={isFavorite ? 'star' : 'star-outline'}
+                  size={22}
+                  color={
+                    isFavorite
+                      ? isRoyal
+                        ? '#E6C27A'
+                        : colors.highlight
+                      : isRoyal
+                        ? 'rgba(255,255,255,0.45)'
+                        : colors.textMuted
+                  }
+                />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.metaRow}>
             <Text style={[styles.metaText, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>
@@ -158,7 +228,8 @@ export function ForumListScreen() {
         </GlassCard>
       </TouchableOpacity>
     </Animated.View>
-  );
+    );
+  };
 
   return (
     <ScreenWrapper>
@@ -178,6 +249,52 @@ export function ForumListScreen() {
         <View style={styles.header}>
           <BackToHomeBar />
           <Text style={[styles.title, { color: colors.text }]}>{strings.title}</Text>
+          {favoriteIds.length > 0 ? (
+            <View style={styles.filterRow}>
+              {([false, true] as const).map((onlyFavorites) => {
+                const active = favoritesOnly === onlyFavorites;
+                return (
+                  <TouchableOpacity
+                    key={String(onlyFavorites)}
+                    activeOpacity={0.8}
+                    onPress={() => setFavoritesOnly(onlyFavorites)}
+                    style={[
+                      styles.filterChip,
+                      {
+                        borderColor: active
+                          ? isRoyal
+                            ? 'rgba(230, 194, 122, 0.5)'
+                            : colors.highlight
+                          : colors.border,
+                        backgroundColor: active
+                          ? isRoyal
+                            ? 'rgba(230, 194, 122, 0.18)'
+                            : colors.highlightGlow
+                          : 'transparent',
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        {
+                          color: active
+                            ? isRoyal
+                              ? '#E6C27A'
+                              : colors.highlight
+                            : isRoyal
+                              ? 'rgba(255,255,255,0.7)'
+                              : colors.textMuted,
+                        },
+                      ]}
+                    >
+                      {onlyFavorites ? `★ ${strings.favorites}` : strings.showAll}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : null}
         </View>
 
         {loading ? (
@@ -194,14 +311,14 @@ export function ForumListScreen() {
               <Text style={[styles.retryText, { color: colors.text }]}>{strings.retry}</Text>
             </TouchableOpacity>
           </View>
-        ) : threads.length === 0 ? (
+        ) : visibleThreads.length === 0 ? (
           <View style={styles.centered}>
             <Text style={[styles.emptyText, { color: isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted }]}>
-              {strings.noThreads}
+              {favoritesOnly ? strings.noFavorites : strings.noThreads}
             </Text>
           </View>
         ) : (
-          threads.map(renderThread)
+          visibleThreads.map(renderThread)
         )}
       </ScrollView>
     </ScreenWrapper>
@@ -224,7 +341,18 @@ const styles = StyleSheet.create({
   },
   itemTouch: { marginBottom: spacing.sm },
   titleRow: { marginBottom: spacing.xs },
+  titleWithStar: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs },
+  starButton: { paddingTop: 1 },
+  filterRow: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.sm },
+  filterChip: {
+    paddingVertical: spacing.xxs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  filterChipText: { fontSize: fontSize.xs, fontWeight: fontWeight.medium },
   itemTitle: {
+    flex: 1,
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
     lineHeight: 22,

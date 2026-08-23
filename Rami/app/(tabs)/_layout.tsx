@@ -5,13 +5,22 @@
  */
 import { View, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
+import Constants from 'expo-constants';
 import { DockVisibilityProvider } from '../../src/components/SacredDock';
-import { PrayerNotificationRescheduler } from '../../src/features/prayer/components/PrayerNotificationRescheduler';
+
+let PrayerNotificationRescheduler: (() => React.JSX.Element) | null = null;
+if (Constants.appOwnership !== 'expo') {
+  try {
+    PrayerNotificationRescheduler = require('../../src/features/prayer/components/PrayerNotificationRescheduler').PrayerNotificationRescheduler;
+  } catch {
+    PrayerNotificationRescheduler = null;
+  }
+}
 
 export default function TabsLayout() {
   return (
     <DockVisibilityProvider>
-      <PrayerNotificationRescheduler />
+      {PrayerNotificationRescheduler ? <PrayerNotificationRescheduler /> : null}
       <View style={styles.container}>
         <Tabs
           screenOptions={{

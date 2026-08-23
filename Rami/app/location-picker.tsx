@@ -23,6 +23,7 @@ import { getString } from '../src/constants/i18n';
 import { saveLocation, saveMunicipalityLabel } from '../src/features/prayer/storage/prayerSettings';
 import type { CachedLocation } from '../src/features/prayer/storage/prayerSettings';
 import { clearLocationCache } from '../src/features/prayer/hooks/usePrayerTimes';
+import { countryNameToCode, normalizeCountryCode } from '../src/features/prayer/constants/presets';
 import { spacing, radius } from '../src/theme/spacing';
 import { fontSize, fontWeight, fontFamily } from '../src/theme/typography';
 
@@ -30,6 +31,8 @@ type GeocodeResult = {
   lat: number;
   lon: number;
   label: string;
+  countryCode?: string;
+  country?: string;
 };
 
 export default function LocationPickerScreen() {
@@ -62,6 +65,17 @@ export default function LocationPickerScreen() {
     return parts.length > 0 ? parts.join(', ') : '';
   }, []);
 
+  const countryCodeFromAddress = useCallback((first?: Location.LocationGeocodedAddress | null) => {
+    if (!first) return undefined;
+    const withIso = first as Location.LocationGeocodedAddress & { isoCountryCode?: string; countryCode?: string };
+    return (
+      normalizeCountryCode(withIso.isoCountryCode) ??
+      normalizeCountryCode(withIso.countryCode) ??
+      countryNameToCode(first.country) ??
+      undefined
+    );
+  }, []);
+
   const handleSearch = useCallback(async (overrideQuery?: string) => {
     const q = (overrideQuery ?? query).trim();
     if (!q || q.length < 2) return;
@@ -76,11 +90,16 @@ export default function LocationPickerScreen() {
       } catch {
         geocoded = [];
       }
-      type NominatimSearchItem = { lat: string; lon: string; display_name?: string };
+      type NominatimSearchItem = {
+        lat: string;
+        lon: string;
+        display_name?: string;
+        address?: { country?: string; country_code?: string };
+      };
       let nominatimResults: NominatimSearchItem[] | null = null;
       if (geocoded.length === 0) {
         nominatimResults = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=8`,
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=8&addressdetails=1`,
           { headers: { 'User-Agent': 'RamiPrayerApp/1.0' } }
         ).then((r) => r.json());
         geocoded = (nominatimResults || []).map((p) => ({
@@ -95,12 +114,21 @@ export default function LocationPickerScreen() {
           geocoded.slice(0, 8).map(async (g, i) => {
             const fromNominatim = nominatimResults?.[i]?.display_name;
             if (fromNominatim) {
-              return { lat: g.latitude, lon: g.longitude, label: fromNominatim };
+              const address = nominatimResults?.[i]?.address;
+              return {
+                lat: g.latitude,
+                lon: g.longitude,
+                label: fromNominatim,
+                countryCode: normalizeCountryCode(address?.country_code) ?? countryNameToCode(address?.country) ?? undefined,
+                country: address?.country,
+              };
             }
             try {
               const addr = await Location.reverseGeocodeAsync({ latitude: g.latitude, longitude: g.longitude });
               const first = addr[0];
               let label = first ? buildLabel(first) : '';
+              let countryCode = countryCodeFromAddress(first);
+              let country = first?.country ?? undefined;
               const hasCityLevel = first && !!(first.city || first.subregion || first.district);
               const isRegionOnly = first && !hasCityLevel && !!(first.region || first.country);
               if (isRegionOnly || !label) {
@@ -113,9 +141,11 @@ export default function LocationPickerScreen() {
                   const p = [a.city, a.town, a.village, a.municipality, a.county, a.state, a.country].filter(Boolean);
                   const nmLabel = p.join(', ');
                   if (nmLabel) label = nmLabel;
+                  countryCode = countryCode ?? normalizeCountryCode(a.country_code) ?? countryNameToCode(a.country) ?? undefined;
+                  country = country ?? a.country;
                 }
               }
-              return { lat: g.latitude, lon: g.longitude, label: label || `${g.latitude.toFixed(2)}, ${g.longitude.toFixed(2)}` };
+              return { lat: g.latitude, lon: g.longitude, label: label || `${g.latitude.toFixed(2)}, ${g.longitude.toFixed(2)}`, countryCode, country };
             } catch {
               return { lat: g.latitude, lon: g.longitude, label: `${g.latitude.toFixed(2)}, ${g.longitude.toFixed(2)}` };
             }
@@ -129,7 +159,7 @@ export default function LocationPickerScreen() {
     } finally {
       setLoading(false);
     }
-  }, [query, buildLabel]);
+  }, [query, buildLabel, countryCodeFromAddress]);
   const runSearch = () => handleSearch();
   const runSearchCountry = (country: string) => handleSearch(country);
 
@@ -146,6 +176,8 @@ export default function LocationPickerScreen() {
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
       let label = '';
+      let countryCode: string | undefined;
+      let country: string | undefined;
       try {
         const addrs = await Location.reverseGeocodeAsync({
           latitude: coords.lat,
@@ -153,6 +185,8 @@ export default function LocationPickerScreen() {
         });
         const first = addrs[0];
         if (first) {
+          countryCode = countryCodeFromAddress(first);
+          country = first.country ?? undefined;
           const locality = first.city || first.subregion || first.district || first.region;
           const parts = locality ? [locality, first.country] : [first.region, first.country];
           label = parts.filter(Boolean).join(', ') || '';
@@ -168,6 +202,8 @@ export default function LocationPickerScreen() {
               if (a) {
                 const p = [a.city, a.town, a.village, a.municipality, a.county, a.state, a.country].filter(Boolean);
                 label = p.length > 0 ? p.join(', ') : label;
+                countryCode = countryCode ?? normalizeCountryCode(a.country_code) ?? countryNameToCode(a.country) ?? undefined;
+                country = country ?? a.country;
               }
             } catch {
               /* keep label as region */
@@ -184,6 +220,8 @@ export default function LocationPickerScreen() {
             if (a) {
               const p = [a.city, a.town, a.village, a.municipality, a.county, a.state, a.country].filter(Boolean);
               label = p.length > 0 ? p.join(', ') : '';
+              countryCode = countryCode ?? normalizeCountryCode(a.country_code) ?? countryNameToCode(a.country) ?? undefined;
+              country = country ?? a.country;
             }
           } catch {
             /* ignore */
@@ -192,7 +230,7 @@ export default function LocationPickerScreen() {
       } catch {
         label = `${coords.lat.toFixed(2)}, ${coords.lon.toFixed(2)}`;
       }
-      const loc: CachedLocation = { ...coords, label: label || undefined, manual: false };
+      const loc: CachedLocation = { ...coords, label: label || undefined, countryCode, country, manual: false };
       await saveLocation(loc);
       if (label) await saveMunicipalityLabel(label);
       clearLocationCache();
@@ -202,12 +240,19 @@ export default function LocationPickerScreen() {
     } finally {
       setGpsLoading(false);
     }
-  }, [language, router]);
+  }, [language, router, countryCodeFromAddress]);
 
   const handleSelectResult = useCallback(
     async (item: GeocodeResult) => {
       Keyboard.dismiss();
-      const loc: CachedLocation = { lat: item.lat, lon: item.lon, label: item.label, manual: true };
+      const loc: CachedLocation = {
+        lat: item.lat,
+        lon: item.lon,
+        label: item.label,
+        countryCode: item.countryCode,
+        country: item.country,
+        manual: true,
+      };
       await saveLocation(loc);
       if (item.label) await saveMunicipalityLabel(item.label);
       clearLocationCache();
@@ -245,7 +290,9 @@ export default function LocationPickerScreen() {
             placeholderTextColor={textMuted}
             value={query}
             onChangeText={setQuery}
-            onSubmitEditing={handleSearch}
+            onSubmitEditing={() => {
+              void handleSearch();
+            }}
             returnKeyType="search"
             autoCapitalize="none"
             autoCorrect={false}

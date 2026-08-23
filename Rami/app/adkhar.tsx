@@ -10,8 +10,12 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  TextInput,
+  Modal,
   useWindowDimensions,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
@@ -22,6 +26,13 @@ import { BackToHomeBar } from '../src/components/BackToHomeBar';
 import { GlassCard } from '../src/components/GlassCard';
 import { getString } from '../src/constants/i18n';
 import { ADHKAR_SECTIONS } from '../src/features/adkhar/data/adhkar';
+import {
+  loadAdhkarTargets,
+  saveAdhkarTarget,
+  clampTarget,
+  TARGET_PRESETS,
+  type AdhkarTargets,
+} from '../src/features/adkhar/storage/adhkarTargets';
 import type { AdhkarSection, AdhkarItem } from '../src/features/adkhar/data/adhkar';
 import { spacing, radius } from '../src/theme/spacing';
 import { fontSize, fontWeight, fontFamily, lineHeight } from '../src/theme/typography';
@@ -53,18 +64,34 @@ export default function AdkharScreen() {
   const [selectedCategory, setSelectedCategory] = useState<AdhkarSection['category']>('morning');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [tapCount, setTapCount] = useState(0);
+  const [rounds, setRounds] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [targets, setTargets] = useState<AdhkarTargets>({});
+  const [targetPickerOpen, setTargetPickerOpen] = useState(false);
+  const [customTargetText, setCustomTargetText] = useState('');
+
+  useEffect(() => {
+    loadAdhkarTargets().then(setTargets);
+  }, []);
 
   const activeSection = ADHKAR_SECTIONS.find((s) => s.category === selectedCategory);
   const items = activeSection?.items ?? [];
   const currentItem = items[currentIndex];
-  // Use item.count as target when present and > 1 (e.g. 33, 34 for post-prayer dhikr); otherwise 3 taps to go to next card
-  const targetCount = currentItem?.count != null && currentItem.count > 1 ? currentItem.count : 3;
+  // The dhikr's own count (1 = single tap to advance, 3/7/33 etc. = repeat);
+  // default 3 taps when the dhikr does not specify one.
+  const defaultCount =
+    currentItem != null && typeof currentItem.count === 'number' && currentItem.count >= 1
+      ? currentItem.count
+      : 3;
+  // A target the user picked for this dhikr wins over the default.
+  const targetCount =
+    currentItem != null && targets[currentItem.id] != null ? targets[currentItem.id] : defaultCount;
 
   const translateX = useSharedValue(0);
 
   useEffect(() => {
     setTapCount(0);
+    setRounds(0);
   }, [currentIndex, selectedCategory]);
 
   const cardText = isRoyal ? 'rgba(255,255,255,0.95)' : colors.text;
@@ -99,19 +126,46 @@ export default function AdkharScreen() {
     if (tapCount >= targetCount) {
       setTapCount(0);
       hapticLight();
+      return;
+    }
+    const nextCount = tapCount + 1;
+    setTapCount(nextCount);
+    if (nextCount === targetCount) {
+      hapticSuccess();
+      setTapCount(0);
+      setRounds((r) => r + 1);
+      setShowCelebration(true);
+      goToNext();
     } else {
-      const nextCount = tapCount + 1;
-      setTapCount(nextCount);
-      if (nextCount === targetCount) {
-        hapticSuccess();
-        setTapCount(0);
-        setShowCelebration(true);
-        goToNext();
-      } else {
-        hapticLight();
-      }
+      hapticLight();
     }
   }, [tapCount, targetCount, goToNext]);
+
+  /** Picks a repetition target for the current dhikr; null restores its default. */
+  const pickTarget = useCallback(
+    async (value: number | null) => {
+      if (!currentItem) return;
+      await hapticLight();
+      const next = await saveAdhkarTarget(currentItem.id, value);
+      setTargets(next);
+      setTapCount(0);
+      setTargetPickerOpen(false);
+      setCustomTargetText('');
+    },
+    [currentItem]
+  );
+
+  const applyCustomTarget = useCallback(() => {
+    const parsed = parseInt(customTargetText, 10);
+    if (Number.isNaN(parsed)) return;
+    void pickTarget(clampTarget(parsed));
+  }, [customTargetText, pickTarget]);
+
+  const resetCounter = useCallback(() => {
+    setTapCount(0);
+    setRounds(0);
+    hapticLight();
+  }, []);
 
   const panGesture = Gesture.Pan()
     .activeOffsetX([-20, 20])
@@ -148,11 +202,10 @@ export default function AdkharScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.arabic, { color: cardText }]}>{item.arabic}</Text>
+        <View style={[styles.cardDivider, { borderTopColor: chipBorder }]} />
         <Text style={[styles.transliteration, { color: cardTextSecondary }]}>{item.transliteration}</Text>
+        <View style={[styles.cardDivider, { borderTopColor: chipBorder }]} />
         <Text style={[styles.meaning, { color: cardTextMuted }]}>{item.meaning}</Text>
-        {item.count != null && (
-          <Text style={[styles.countHint, { color: cardTextMuted }]}>{item.count}x</Text>
-        )}
       </ScrollView>
     </GlassCard>
   );
@@ -286,14 +339,154 @@ export default function AdkharScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-              <Text style={[styles.pageCounter, { color: colors.textMuted }]}>
-                {currentIndex + 1} / {items.length}
-              </Text>
+              <View style={styles.counterMeta}>
+                <Text style={[styles.counterBig, { color: cardText }]}>
+                  {tapCount}
+                  <Text style={[styles.counterBigTarget, { color: cardTextMuted }]}>/{targetCount}</Text>
+                </Text>
+                <Text style={[styles.roundsText, { color: cardTextMuted }]}>
+                  {getString(language, 'adhkarRounds')}: {rounds}
+                </Text>
+                <Text style={[styles.pageCounter, { color: colors.textMuted }]}>
+                  {currentIndex + 1} / {items.length}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  setCustomTargetText('');
+                  setTargetPickerOpen(true);
+                }}
+                style={[styles.actionChip, { borderColor: chipBorder, backgroundColor: chipBg }]}
+              >
+                <Ionicons name="repeat" size={16} color={chipActiveText} />
+                <Text style={[styles.actionChipText, { color: cardText }]}>
+                  {getString(language, 'adhkarRepetitions')}: {targetCount}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={resetCounter}
+                accessibilityLabel={getString(language, 'adhkarResetCounter')}
+                style={[styles.actionChip, { borderColor: chipBorder, backgroundColor: chipBg }]}
+              >
+                <Ionicons name="refresh" size={16} color={cardTextMuted} />
+              </TouchableOpacity>
             </View>
 
             <Text style={[styles.swipeHint, { color: colors.textMuted, paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>{swipeHint}</Text>
           </>
         )}
+
+        {/* Repetition picker */}
+        <Modal
+          visible={targetPickerOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setTargetPickerOpen(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setTargetPickerOpen(false)}>
+            <View style={styles.sheetBackdrop} />
+          </TouchableWithoutFeedback>
+          <View
+            style={[
+              styles.sheet,
+              {
+                backgroundColor: isRoyal ? 'rgba(10, 25, 18, 0.97)' : colors.surface,
+                borderColor: chipBorder,
+                paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.sm,
+              },
+            ]}
+          >
+            <View style={styles.sheetHeader}>
+              <TouchableOpacity onPress={() => setTargetPickerOpen(false)} hitSlop={12}>
+                <Ionicons name="close" size={22} color={cardTextMuted} />
+              </TouchableOpacity>
+              <Text style={[styles.sheetTitle, { color: cardText }]}>
+                {getString(language, 'adhkarAdjustRepetitions')}
+              </Text>
+              <View style={styles.sheetHeaderSpacer} />
+            </View>
+
+            <View style={styles.sheetGrid}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => void pickTarget(null)}
+                style={[
+                  styles.sheetOption,
+                  { borderColor: chipBorder },
+                  currentItem != null && targets[currentItem.id] == null && {
+                    borderColor: chipActiveBorder,
+                    backgroundColor: chipActiveBg,
+                  },
+                ]}
+              >
+                <Text style={[styles.sheetOptionText, { color: cardText }]}>
+                  {getString(language, 'adhkarDefaultCount')} ({defaultCount})
+                </Text>
+              </TouchableOpacity>
+              {TARGET_PRESETS.map((preset) => {
+                const selected = currentItem != null && targets[currentItem.id] === preset;
+                return (
+                  <TouchableOpacity
+                    key={preset}
+                    activeOpacity={0.8}
+                    onPress={() => void pickTarget(preset)}
+                    style={[
+                      styles.sheetOption,
+                      { borderColor: chipBorder },
+                      selected && { borderColor: chipActiveBorder, backgroundColor: chipActiveBg },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.sheetOptionText,
+                        { color: selected ? chipActiveText : cardText },
+                      ]}
+                    >
+                      {preset}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.customRow}>
+              <TextInput
+                value={customTargetText}
+                onChangeText={(text) => setCustomTargetText(text.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+                placeholder={getString(language, 'adhkarCustomize')}
+                placeholderTextColor={cardTextMuted}
+                style={[styles.customInput, { color: cardText, borderColor: chipBorder }]}
+                onSubmitEditing={applyCustomTarget}
+                returnKeyType="done"
+                maxLength={5}
+              />
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={applyCustomTarget}
+                disabled={customTargetText.length === 0}
+                style={[
+                  styles.customApply,
+                  { borderColor: customTargetText.length === 0 ? chipBorder : chipActiveBorder },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.sheetOptionText,
+                    { color: customTargetText.length === 0 ? cardTextMuted : chipActiveText },
+                  ]}
+                >
+                  {getString(language, 'done')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     </ScreenWrapper>
   );
@@ -384,7 +577,86 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     lineHeight: fontSize.sm * lineHeight.normal,
   },
-  countHint: { fontSize: fontSize.xs, marginTop: spacing.xs },
+  cardDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginVertical: spacing.sm,
+  },
+  counterMeta: { alignItems: 'flex-start' },
+  counterBig: { fontSize: 40, fontWeight: fontWeight.regular, lineHeight: 46 },
+  counterBigTarget: { fontSize: fontSize.lg },
+  roundsText: { fontSize: fontSize.xs, marginTop: 2 },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  actionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xxs,
+    minHeight: 40,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  actionChipText: { fontSize: fontSize.xs, fontWeight: fontWeight.medium },
+  sheetBackdrop: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  sheetHeaderSpacer: { width: 22 },
+  sheetTitle: { fontSize: fontSize.md, fontWeight: fontWeight.semibold },
+  sheetGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  sheetOption: {
+    flexGrow: 1,
+    minWidth: '30%',
+    minHeight: 52,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetOptionText: { fontSize: fontSize.md, fontWeight: fontWeight.medium },
+  customRow: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.sm },
+  customInput: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    fontSize: fontSize.md,
+    textAlign: 'center',
+  },
+  customApply: {
+    minWidth: 96,
+    minHeight: 52,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   swipeHint: {
     fontSize: fontSize.xs,
     textAlign: 'center',

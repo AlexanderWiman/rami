@@ -11,6 +11,8 @@ export const CALCULATION_METHOD_TO_ID: Record<CalculationMethodKey, number> = {
   UmmAlQura: 4, // Umm Al-Qura University, Makkah
   Karachi: 1,   // University of Islamic Sciences, Karachi
   Diyanet: 13,  // Diyanet İşleri Başkanlığı, Turkey (Muslim Pro, Istanbul)
+  Algeria: 19,  // Algeria
+  Morocco: 21,  // Morocco
 };
 
 export const ASR_METHOD_TO_SCHOOL: Record<AsrMethodKey, number> = {

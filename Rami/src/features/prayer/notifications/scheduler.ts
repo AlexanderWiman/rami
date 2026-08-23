@@ -17,6 +17,7 @@ import {
   getPrayerChannelIdForSound,
   ensureAndroidNotificationChannels,
   ensurePrayerChannelForSound,
+  areBundledNotificationAzanSoundsAvailable,
 } from './channels';
 
 /** Prefix for hourly dhikr slot ids (`${prefix}-${index}`). Rescheduled whenever prayer notifications refresh. */
@@ -60,7 +61,10 @@ export async function scheduleTodayNotifications(
 
   // Always ensure Android channels exist (needed for both local AND remote push sound)
   await ensureAndroidNotificationChannels();
-  const useCustomSound = settings.playAzanSound && isAzanSoundKey(settings.selectedSound);
+  const useCustomSound =
+    settings.playAzanSound &&
+    isAzanSoundKey(settings.selectedSound) &&
+    areBundledNotificationAzanSoundsAvailable();
   if (useCustomSound) await ensurePrayerChannelForSound(settings.selectedSound);
 
   // Always schedule local notifications regardless of remote push status.
@@ -74,7 +78,12 @@ export async function scheduleTodayNotifications(
         ? getPrayerChannelIdForSound(settings.selectedSound)
         : PRAYER_CHANNEL_ID
       : undefined;
-  const sound = Platform.OS === 'ios' ? (useCustomSound ? getNotificationSoundName(settings.selectedSound) : true) : true;
+  // Android: sound is controlled by the notification channel, NOT the content field.
+  // Passing sound in content creates an android.net.Uri internally which is not
+  // java.io.Serializable — causing scheduling to silently fail.
+  const iosSound = useCustomSound
+    ? getNotificationSoundName(settings.selectedSound)
+    : 'default';
   for (const p of prayerTimes) {
     if (!settings.prayerNotify[p.name]) continue;
     if (p.time.getTime() <= now) continue;
@@ -82,19 +91,21 @@ export async function scheduleTodayNotifications(
     const titleEn = `It's time for ${p.name}`;
     const titleAr = `حان وقت ${getPrayerName('ar', p.name)}`;
     const title = lang === 'ar' ? titleAr : titleEn;
+    // Android: data and sound fields use non-serializable Java types (JSONObject, Uri)
+    // internally in expo-notifications, causing scheduling to silently fail.
+    // On Android, sound is handled by the notification channel; data is encoded in the title.
+    const content =
+      Platform.OS === 'ios'
+        ? {
+            title,
+            body: '',
+            sound: iosSound,
+            vibrate: [0, 250, 250, 250] as number[],
+            data: { ramiKind: 'prayer', prayerName: p.name, screen: '/', playAzan: String(settings.playAzanSound) },
+          }
+        : { title, body: '', vibrate: [0, 250, 250, 250] as number[] };
     await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body: '',
-        sound,
-        vibrate: [0, 250, 250, 250],
-        data: {
-          ramiKind: 'prayer' as const,
-          prayerName: p.name,
-          screen: '/',
-          playAzan: settings.playAzanSound,
-        },
-      },
+      content,
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: p.time,
@@ -126,17 +137,23 @@ export async function scheduleAlhamdulillahReminder(
   let fireAt = nextCalendarHourAfterNow();
   for (let i = 0; i < DHIKR_HOURLY_SLOT_COUNT; i++) {
     const isAlham = i % 2 === 0;
+    const dhikrContent =
+      Platform.OS === 'ios'
+        ? {
+            title: isAlham ? titleAlham : titleSalawat,
+            body: isAlham ? bodyAlham : bodySalawat,
+            sound: 'default' as const,
+            vibrate: [0, 250, 250, 250] as number[],
+            data: isAlham ? { ramiKind: 'alhamdulillah', screen: '/' } : { ramiKind: 'salawat', screen: '/' },
+          }
+        : {
+            title: isAlham ? titleAlham : titleSalawat,
+            body: isAlham ? bodyAlham : bodySalawat,
+            vibrate: [0, 250, 250, 250] as number[],
+          };
     await Notifications.scheduleNotificationAsync({
       identifier: `${DHIKR_HOURLY_NOTIFICATION_ID_PREFIX}-${i}`,
-      content: {
-        title: isAlham ? titleAlham : titleSalawat,
-        body: isAlham ? bodyAlham : bodySalawat,
-        sound: true,
-        vibrate: [0, 250, 250, 250],
-        data: isAlham
-          ? { ramiKind: 'alhamdulillah' as const, screen: '/' }
-          : { ramiKind: 'salawat' as const, screen: '/' },
-      },
+      content: dhikrContent,
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: fireAt,
@@ -158,7 +175,10 @@ export async function cancelAllPrayerNotifications(): Promise<void> {
  */
 export async function scheduleTestNotification(settings: PrayerSettings): Promise<void> {
   await ensureAndroidNotificationChannels();
-  const useCustomSound = settings.playAzanSound && isAzanSoundKey(settings.selectedSound);
+  const useCustomSound =
+    settings.playAzanSound &&
+    isAzanSoundKey(settings.selectedSound) &&
+    areBundledNotificationAzanSoundsAvailable();
   if (useCustomSound) await ensurePrayerChannelForSound(settings.selectedSound);
   const channelId =
     Platform.OS === 'android'
@@ -166,20 +186,30 @@ export async function scheduleTestNotification(settings: PrayerSettings): Promis
         ? getPrayerChannelIdForSound(settings.selectedSound)
         : PRAYER_CHANNEL_ID
       : undefined;
-  const sound = Platform.OS === 'ios' ? (useCustomSound ? getNotificationSoundName(settings.selectedSound) : true) : true;
+  const iosSound = useCustomSound
+    ? getNotificationSoundName(settings.selectedSound)
+    : 'default';
   const trigger: Notifications.TimeIntervalTriggerInput = {
     type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
     seconds: 10,
     channelId,
   };
+  const testContent =
+    Platform.OS === 'ios'
+      ? {
+          title: 'Test – Böneutrop',
+          body: 'Om du hör detta har notisen fungerat.',
+          sound: iosSound,
+          vibrate: [0, 250, 250, 250] as number[],
+          data: { screen: '/', playAzan: String(settings.playAzanSound) },
+        }
+      : {
+          title: 'Test – Böneutrop',
+          body: 'Om du hör detta har notisen fungerat.',
+          vibrate: [0, 250, 250, 250] as number[],
+        };
   await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Test – Böneutrop',
-      body: 'Om du hör detta har notisen fungerat.',
-      sound,
-      vibrate: [0, 250, 250, 250],
-      ...(Platform.OS === 'ios' && { data: { screen: '/', playAzan: settings.playAzanSound } }),
-    },
+    content: testContent,
     trigger,
   });
 }

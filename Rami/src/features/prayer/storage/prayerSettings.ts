@@ -3,9 +3,21 @@
  * Extended: calculation method, asr, high-latitude, per-prayer offsets, per-prayer notify.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { PrayerSettings, Language, PrayerOffsetMinutes, PrayerNotifyFlags, PrayerName } from '../types';
+import type {
+  PrayerSettings,
+  Language,
+  PrayerOffsetMinutes,
+  PrayerNotifyFlags,
+  PrayerName,
+  CalculationMethodKey,
+  AsrMethodKey,
+  HighLatitudeRuleKey,
+  PrayerPresetSource,
+} from '../types';
 import { PRAYER_NAMES_ORDER } from '../constants/methods';
 import { isAzanSoundKey } from '../constants/azan';
+import { CUSTOM_AZAN_KEY } from '../constants/customAzanKey';
+import { CALCULATION_METHOD_KEYS, ASR_METHOD_KEYS, HIGH_LATITUDE_RULE_KEYS, normalizeCountryCode } from '../constants/presets';
 
 const KEY_SETTINGS = '@rami/prayer_settings';
 const KEY_LANGUAGE = '@rami/language';
@@ -17,9 +29,17 @@ const KEY_CLOCK_FORMAT = '@rami/clock_format';
 
 export type ClockFormat = '12h' | '24h';
 
-const CURRENT_SETTINGS_VERSION = 4;
+const CURRENT_SETTINGS_VERSION = 6;
 
 export const DEFAULT_OFFSETS: PrayerOffsetMinutes = {
+  Fajr: 0,
+  Dhuhr: 0,
+  Asr: 0,
+  Maghrib: 0,
+  Isha: 0,
+};
+
+const LEGACY_DEFAULT_OFFSETS: PrayerOffsetMinutes = {
   Fajr: 0,
   Dhuhr: 0,
   Asr: 4,
@@ -50,12 +70,14 @@ export const DEFAULT_SETTINGS: PrayerSettings = {
   playAzanSound: true,
   selectedSound: 'azan1',
   respectSilentMode: true,
-  calculationMethod: 'Diyanet',
+  calculationMethod: 'MWL',
   asrMethod: 'Shafi',
   highLatitudeRule: 'MiddleOfNight',
+  presetSource: 'auto',
+  presetCountryCode: null,
   prayerOffsets: { ...DEFAULT_OFFSETS },
   prayerNotify: { ...DEFAULT_NOTIFY },
-  alhamdulillahReminderEnabled: false,
+  alhamdulillahReminderEnabled: true,
 };
 
 function migrateFromV1(parsed: Record<string, unknown>): PrayerSettings {
@@ -77,6 +99,42 @@ function allOffsetsZero(offsets: Partial<Record<PrayerName, number>> | undefined
   return PRAYER_NAMES_ORDER.every((n) => (offsets[n] ?? 0) === 0);
 }
 
+function matchesOffsets(
+  offsets: Partial<Record<PrayerName, number>> | undefined,
+  expected: PrayerOffsetMinutes
+): boolean {
+  if (!offsets) return false;
+  return PRAYER_NAMES_ORDER.every((n) => offsets[n] === expected[n]);
+}
+
+function isCalculationMethodKey(value: unknown): value is CalculationMethodKey {
+  return typeof value === 'string' && CALCULATION_METHOD_KEYS.includes(value as CalculationMethodKey);
+}
+
+function isAsrMethodKey(value: unknown): value is AsrMethodKey {
+  return typeof value === 'string' && ASR_METHOD_KEYS.includes(value as AsrMethodKey);
+}
+
+function isHighLatitudeRuleKey(value: unknown): value is HighLatitudeRuleKey {
+  return typeof value === 'string' && HIGH_LATITUDE_RULE_KEYS.includes(value as HighLatitudeRuleKey);
+}
+
+function isPresetSource(value: unknown): value is PrayerPresetSource {
+  return value === 'auto' || value === 'manual';
+}
+
+function hadManualCalculationSettings(parsed: Record<string, unknown>): boolean {
+  if (parsed.presetSource === 'manual') return true;
+  const method = parsed.calculationMethod;
+  const asr = parsed.asrMethod;
+  const highLat = parsed.highLatitudeRule;
+  return (
+    (isCalculationMethodKey(method) && method !== 'Diyanet') ||
+    (isAsrMethodKey(asr) && asr !== 'Shafi') ||
+    (isHighLatitudeRuleKey(highLat) && highLat !== 'MiddleOfNight')
+  );
+}
+
 function migrate(parsed: Record<string, unknown>): PrayerSettings {
   const version = (parsed.settingsVersion as number) ?? 1;
   if (version < 2) return migrateFromV1(parsed);
@@ -84,6 +142,21 @@ function migrate(parsed: Record<string, unknown>): PrayerSettings {
   const merged = { ...DEFAULT_SETTINGS, ...parsed } as PrayerSettings;
   merged.prayerOffsets = { ...DEFAULT_OFFSETS, ...(parsed.prayerOffsets as Partial<PrayerOffsetMinutes> | undefined) };
   merged.prayerNotify = { ...DEFAULT_NOTIFY, ...(parsed.prayerNotify as Partial<PrayerNotifyFlags> | undefined) };
+  merged.calculationMethod = isCalculationMethodKey(parsed.calculationMethod)
+    ? parsed.calculationMethod
+    : DEFAULT_SETTINGS.calculationMethod;
+  merged.asrMethod = isAsrMethodKey(parsed.asrMethod)
+    ? parsed.asrMethod
+    : DEFAULT_SETTINGS.asrMethod;
+  merged.highLatitudeRule = isHighLatitudeRuleKey(parsed.highLatitudeRule)
+    ? parsed.highLatitudeRule
+    : DEFAULT_SETTINGS.highLatitudeRule;
+  merged.presetSource = isPresetSource(parsed.presetSource)
+    ? parsed.presetSource
+    : hadManualCalculationSettings(parsed)
+      ? 'manual'
+      : 'auto';
+  merged.presetCountryCode = normalizeCountryCode(parsed.presetCountryCode as string | null | undefined);
 
   for (const name of PRAYER_NAMES_ORDER) {
     if (typeof merged.prayerOffsets[name] !== 'number') merged.prayerOffsets[name] = DEFAULT_OFFSETS[name];
@@ -95,8 +168,15 @@ function migrate(parsed: Record<string, unknown>): PrayerSettings {
     merged.prayerOffsets = { ...DEFAULT_OFFSETS };
   }
 
-  if (!isAzanSoundKey(merged.selectedSound)) merged.selectedSound = DEFAULT_SETTINGS.selectedSound;
-  merged.calculationMethod = 'Diyanet';
+  // v5 -> v6: customer requested neutral defaults. Preserve custom edits, but
+  // migrate users who still have the old shipped default offsets.
+  if (version < 6 && matchesOffsets(merged.prayerOffsets, LEGACY_DEFAULT_OFFSETS)) {
+    merged.prayerOffsets = { ...DEFAULT_OFFSETS };
+  }
+
+  if (!isAzanSoundKey(merged.selectedSound) && merged.selectedSound !== CUSTOM_AZAN_KEY) {
+    merged.selectedSound = DEFAULT_SETTINGS.selectedSound;
+  }
   if (typeof merged.alhamdulillahReminderEnabled !== 'boolean') {
     merged.alhamdulillahReminderEnabled = DEFAULT_SETTINGS.alhamdulillahReminderEnabled;
   }
@@ -146,6 +226,8 @@ export interface CachedLocation {
   lat: number;
   lon: number;
   label?: string;
+  countryCode?: string;
+  country?: string;
   /** When true, use this location instead of GPS (user set manually). */
   manual?: boolean;
 }
@@ -156,6 +238,7 @@ export async function loadLocation(): Promise<CachedLocation | null> {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CachedLocation;
     if (typeof parsed?.lat === 'number' && typeof parsed?.lon === 'number') {
+      parsed.countryCode = normalizeCountryCode(parsed.countryCode) ?? undefined;
       // If location has no label, try to attach the last known municipality label
       if (!parsed.label) {
         const municipalityLabel = await AsyncStorage.getItem(KEY_MUNICIPALITY_LABEL);
