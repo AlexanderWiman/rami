@@ -39,7 +39,7 @@ const SEARCH_LIMIT = 30;
 type ScreenState =
   | { kind: 'idle' }
   | { kind: 'loading' }
-  | { kind: 'results'; hits: HadithHit[] }
+  | { kind: 'results'; hits: HadithHit[]; relaxed: boolean }
   | { kind: 'empty' }
   | { kind: 'unavailable' }
   | { kind: 'error' };
@@ -76,7 +76,8 @@ export function HadithGradingScreen() {
     await hapticLight();
     setState({ kind: 'loading' });
     const outcome = await searchHadith(trimmed, SEARCH_LIMIT);
-    if (outcome.status === 'ok') setState({ kind: 'results', hits: outcome.data });
+    if (outcome.status === 'ok')
+      setState({ kind: 'results', hits: outcome.data.hits, relaxed: outcome.data.relaxed });
     else if (outcome.status === 'empty') setState({ kind: 'empty' });
     else if (outcome.status === 'unavailable') setState({ kind: 'unavailable' });
     else setState({ kind: 'error' });
@@ -186,6 +187,8 @@ export function HadithGradingScreen() {
             returnKeyType="search"
             onSubmitEditing={() => void runSearch()}
             autoCorrect={false}
+            multiline
+            blurOnSubmit
           />
           <TouchableOpacity
             onPress={() => void runSearch()}
@@ -220,7 +223,14 @@ export function HadithGradingScreen() {
             </TouchableOpacity>
           </View>
         ) : state.kind === 'results' ? (
-          <>{state.hits.map(renderHit)}</>
+          <>
+            {state.relaxed ? (
+              <Text style={[styles.approxNote, { color: textMuted }]}>
+                {t('hadithApproximateMatch')}
+              </Text>
+            ) : null}
+            {state.hits.map(renderHit)}
+          </>
         ) : null}
       </ScrollView>
     </ScreenWrapper>
@@ -243,16 +253,24 @@ const styles = StyleSheet.create({
   },
   searchRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radius.lg,
     paddingHorizontal: spacing.sm,
     marginBottom: spacing.md,
   },
-  searchInput: { flex: 1, minHeight: 48, fontSize: fontSize.md },
+  searchInput: {
+    flex: 1,
+    minHeight: 48,
+    // A pasted hadith is long; grow to a few lines rather than scroll one.
+    maxHeight: 132,
+    paddingVertical: spacing.xs,
+    fontSize: fontSize.md,
+  },
   searchButton: { padding: spacing.xs, minWidth: 44, alignItems: 'center' },
   centered: { alignItems: 'center', paddingTop: spacing.xl },
   messageText: { fontSize: fontSize.md, textAlign: 'center', lineHeight: 22 },
+  approxNote: { fontSize: fontSize.xs, lineHeight: 18, marginBottom: spacing.sm },
   resultWrap: { marginBottom: spacing.sm },
   hadithText: {
     fontSize: 21,
