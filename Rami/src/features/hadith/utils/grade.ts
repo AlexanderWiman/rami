@@ -1,5 +1,5 @@
 /**
- * Colour tone for a Dorar grading string. The grading text itself is always
+ * Colour tone for an Arabic grading string. The grading text itself is always
  * shown verbatim — the tone only drives the badge colour, so an unrecognised
  * wording degrades to neutral instead of guessing.
  */

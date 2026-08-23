@@ -1,8 +1,12 @@
 /**
- * Hadith Grading & Authentication — search the Dorar al-Saniyya encyclopaedia
- * and show text, grading, the scholar who graded it, source and reference.
+ * Hadith Grading & Authentication — search the corpus, then open a hadith to see
+ * its isnad, the ruling recorded for it and the evidence behind that ruling.
+ *
+ * The list itself stays deliberately thin: the opening words, the source's own
+ * ruling if it has one, and how many chains exist. Everything that requires
+ * interpretation lives one tap away, on the detail screen.
  */
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +19,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
 import { useFonts, Amiri_400Regular } from '@expo-google-fonts/amiri';
 import { useTheme } from '../../../theme/ThemeContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -22,30 +27,31 @@ import { ScreenWrapper } from '../../../components/ScreenWrapper';
 import { BackToHomeBar } from '../../../components/BackToHomeBar';
 import { GlassCard } from '../../../components/GlassCard';
 import { getString } from '../../../constants/i18n';
-import { searchHadith, type HadithResult } from '../api/dorar';
+import { searchHadith, type HadithHit } from '../api/hadithKg';
 import { classifyGrade, type GradeTone } from '../utils/grade';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize, fontWeight, fontFamily } from '../../../theme/typography';
 import { hapticLight } from '../../../utils/haptics';
 
 const ARABIC_FONT = 'Amiri_400Regular';
+const SEARCH_LIMIT = 30;
 
 type ScreenState =
   | { kind: 'idle' }
   | { kind: 'loading' }
-  | { kind: 'results'; results: HadithResult[]; page: number; loadingMore: boolean; exhausted: boolean }
+  | { kind: 'results'; hits: HadithHit[] }
   | { kind: 'empty' }
+  | { kind: 'unavailable' }
   | { kind: 'error' };
 
 export function HadithGradingScreen() {
   const { colors, style: themeStyle } = useTheme();
   const isRoyal = themeStyle === 'royal';
   const { language } = useLanguage();
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [state, setState] = useState<ScreenState>({ kind: 'idle' });
   const [fontsLoaded] = useFonts({ Amiri_400Regular });
-  /** Query the current results belong to, so "load more" pages the same search. */
-  const activeQuery = useRef('');
 
   const t = (key: Parameters<typeof getString>[1]) => getString(language, key);
   const gold = isRoyal ? '#E6C27A' : colors.highlight;
@@ -68,101 +74,82 @@ export function HadithGradingScreen() {
     if (trimmed.length === 0) return;
     Keyboard.dismiss();
     await hapticLight();
-    activeQuery.current = trimmed;
     setState({ kind: 'loading' });
-    const outcome = await searchHadith(trimmed, 1);
-    if (activeQuery.current !== trimmed) return;
-    if (outcome.status === 'ok') {
-      setState({
-        kind: 'results',
-        results: outcome.results,
-        page: 1,
-        loadingMore: false,
-        exhausted: false,
-      });
-    } else if (outcome.status === 'empty') {
-      setState({ kind: 'empty' });
-    } else {
-      setState({ kind: 'error' });
-    }
+    const outcome = await searchHadith(trimmed, SEARCH_LIMIT);
+    if (outcome.status === 'ok') setState({ kind: 'results', hits: outcome.data });
+    else if (outcome.status === 'empty') setState({ kind: 'empty' });
+    else if (outcome.status === 'unavailable') setState({ kind: 'unavailable' });
+    else setState({ kind: 'error' });
   }, [query]);
 
-  const loadMore = useCallback(async () => {
-    if (state.kind !== 'results' || state.loadingMore || state.exhausted) return;
-    const nextPage = state.page + 1;
-    const searchedFor = activeQuery.current;
-    setState({ ...state, loadingMore: true });
-    const outcome = await searchHadith(searchedFor, nextPage);
-    if (activeQuery.current !== searchedFor) return;
-    setState((prev) => {
-      if (prev.kind !== 'results') return prev;
-      if (outcome.status !== 'ok') {
-        return { ...prev, loadingMore: false, exhausted: true };
-      }
-      // Dorar repeats the last page when asked past the end — drop duplicates.
-      const known = new Set(prev.results.map((r) => `${r.hadith}|${r.numberOrPage}`));
-      const fresh = outcome.results.filter((r) => !known.has(`${r.hadith}|${r.numberOrPage}`));
-      return {
-        kind: 'results',
-        results: [...prev.results, ...fresh],
-        page: nextPage,
-        loadingMore: false,
-        exhausted: fresh.length === 0,
-      };
-    });
-  }, [state]);
+  const openHadith = useCallback(
+    async (hadithId: number) => {
+      await hapticLight();
+      router.push(`/hadith/${hadithId}`);
+    },
+    [router]
+  );
 
-  const renderField = (label: string, value: string) =>
-    value.length > 0 ? (
-      <View style={styles.fieldRow}>
-        <Text style={[styles.fieldLabel, { color: textMuted }]}>{label}</Text>
-        <Text style={[styles.fieldValue, { color: textSecondary }]}>{value}</Text>
-      </View>
-    ) : null;
-
-  const renderResult = (result: HadithResult, index: number) => {
-    const tone = classifyGrade(result.grade);
+  const renderHit = (hit: HadithHit, index: number) => {
+    const ruling = hit.hukm?.value ?? '';
+    const tone = classifyGrade(ruling);
     const gradeColor = toneColors[tone];
     return (
       <Animated.View
-        key={`${index}-${result.numberOrPage}`}
+        key={hit.hadithId}
         entering={FadeIn.delay(Math.min(index, 8) * 40).duration(300)}
         style={styles.resultWrap}
       >
-        <GlassCard padding="lg" rounded="lg">
-          <Text
-            style={[
-              styles.hadithText,
-              { color: textPrimary },
-              fontsLoaded && { fontFamily: ARABIC_FONT },
-            ]}
-          >
-            {result.hadith}
-          </Text>
-
-          {result.grade.length > 0 ? (
-            <View
+        <TouchableOpacity
+          onPress={() => void openHadith(hit.hadithId)}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+        >
+          <GlassCard padding="lg" rounded="lg">
+            <Text
               style={[
-                styles.gradeBadge,
-                { borderColor: gradeColor, backgroundColor: isRoyal ? 'rgba(255,255,255,0.05)' : colors.surfaceGlass },
+                styles.hadithText,
+                { color: textPrimary },
+                fontsLoaded && { fontFamily: ARABIC_FONT },
               ]}
             >
-              <Ionicons
-                name={tone === 'daif' ? 'alert-circle-outline' : 'checkmark-circle-outline'}
-                size={16}
-                color={gradeColor}
-              />
-              <Text style={[styles.gradeText, { color: gradeColor }]}>{result.grade}</Text>
-            </View>
-          ) : null}
+              {hit.text ?? ''}
+            </Text>
 
-          <View style={[styles.fields, { borderTopColor: colors.border }]}>
-            {renderField(t('hadithNarrator'), result.rawi)}
-            {renderField(t('hadithScholar'), result.mohdith)}
-            {renderField(t('hadithSource'), result.book)}
-            {renderField(t('hadithReference'), result.numberOrPage)}
-          </View>
-        </GlassCard>
+            {ruling.length > 0 ? (
+              <View
+                style={[
+                  styles.gradeBadge,
+                  {
+                    borderColor: gradeColor,
+                    backgroundColor: isRoyal ? 'rgba(255,255,255,0.05)' : colors.surfaceGlass,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={tone === 'daif' ? 'alert-circle-outline' : 'checkmark-circle-outline'}
+                  size={16}
+                  color={gradeColor}
+                />
+                <Text style={[styles.gradeText, { color: gradeColor }]}>{ruling}</Text>
+              </View>
+            ) : null}
+
+            <View style={[styles.fields, { borderTopColor: colors.border }]}>
+              <View style={styles.hitFooter}>
+                <Text style={[styles.fieldValue, { color: textSecondary }]}>
+                  {[hit.book.name, hit.noInBook].filter(Boolean).join(' · ')}
+                </Text>
+                <View style={styles.chainCount}>
+                  <Text style={[styles.fieldLabel, { color: textMuted }]}>
+                    {t('hadithChainOf')} {hit.chainCount}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={textMuted} />
+                </View>
+              </View>
+            </View>
+          </GlassCard>
+        </TouchableOpacity>
       </Animated.View>
     );
   };
@@ -177,13 +164,16 @@ export function HadithGradingScreen() {
         <View style={styles.header}>
           <BackToHomeBar />
           <Text style={[styles.title, { color: colors.text }]}>{t('hadithGrading')}</Text>
-          <Text style={[styles.intro, { color: textMuted }]}>{t('hadithGradingIntro')}</Text>
+          <Text style={[styles.intro, { color: colors.text }]}>{t('hadithGradingIntro')}</Text>
         </View>
 
         <View
           style={[
             styles.searchRow,
-            { borderColor: colors.border, backgroundColor: isRoyal ? 'rgba(10,25,18,0.5)' : colors.surfaceGlass },
+            {
+              borderColor: colors.border,
+              backgroundColor: isRoyal ? 'rgba(10,25,18,0.5)' : colors.surfaceGlass,
+            },
           ]}
         >
           <TextInput
@@ -198,17 +188,12 @@ export function HadithGradingScreen() {
             autoCorrect={false}
           />
           <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={t('hadithGrading')}
             onPress={() => void runSearch()}
             style={styles.searchButton}
-            disabled={query.trim().length === 0}
+            accessibilityRole="button"
+            accessibilityLabel={t('hadithGrading')}
           >
-            <Ionicons
-              name="search"
-              size={22}
-              color={query.trim().length === 0 ? textMuted : gold}
-            />
+            <Ionicons name="search" size={22} color={gold} />
           </TouchableOpacity>
         </View>
 
@@ -216,48 +201,26 @@ export function HadithGradingScreen() {
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={gold} />
           </View>
-        ) : null}
-
-        {state.kind === 'empty' ? (
+        ) : state.kind === 'empty' ? (
           <View style={styles.centered}>
-            <Text style={[styles.messageText, { color: textMuted }]}>
+            <Text style={[styles.messageText, { color: textSecondary }]}>
               {t('hadithGradingNoResults')}
             </Text>
           </View>
-        ) : null}
-
-        {state.kind === 'error' ? (
+        ) : state.kind === 'unavailable' || state.kind === 'error' ? (
           <View style={styles.centered}>
-            <Text style={[styles.messageText, { color: colors.error }]}>
-              {t('hadithGradingError')}
+            <Text style={[styles.messageText, { color: textSecondary }]}>
+              {state.kind === 'unavailable' ? t('hadithUnavailable') : t('hadithGradingError')}
             </Text>
             <TouchableOpacity
               onPress={() => void runSearch()}
               style={[styles.retryButton, { borderColor: colors.border }]}
             >
-              <Text style={[styles.retryText, { color: textPrimary }]}>{t('retry')}</Text>
+              <Text style={[styles.retryText, { color: gold }]}>{t('retry')}</Text>
             </TouchableOpacity>
           </View>
-        ) : null}
-
-        {state.kind === 'results' ? (
-          <>
-            {state.results.map(renderResult)}
-            {!state.exhausted ? (
-              <TouchableOpacity
-                onPress={() => void loadMore()}
-                disabled={state.loadingMore}
-                style={[styles.moreButton, { borderColor: colors.border }]}
-              >
-                {state.loadingMore ? (
-                  <ActivityIndicator size="small" color={gold} />
-                ) : (
-                  <Text style={[styles.moreText, { color: gold }]}>{t('loadMore')}</Text>
-                )}
-              </TouchableOpacity>
-            ) : null}
-            <Text style={[styles.credit, { color: textMuted }]}>{t('hadithSourceCredit')}</Text>
-          </>
+        ) : state.kind === 'results' ? (
+          <>{state.hits.map(renderHit)}</>
         ) : null}
       </ScrollView>
     </ScreenWrapper>
@@ -272,7 +235,12 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.regular,
     fontFamily: fontFamily.heading,
   },
-  intro: { fontSize: fontSize.xs, lineHeight: 18, marginTop: spacing.xs },
+  intro: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    lineHeight: 24,
+    marginTop: spacing.sm,
+  },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -310,8 +278,9 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     gap: 2,
   },
-  fieldRow: { flexDirection: 'row', gap: spacing.xs },
-  fieldLabel: { fontSize: fontSize.xs, minWidth: 92 },
+  hitFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  chainCount: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs },
+  fieldLabel: { fontSize: fontSize.xs },
   fieldValue: { flex: 1, fontSize: fontSize.xs, lineHeight: 18 },
   retryButton: {
     marginTop: spacing.md,
@@ -321,19 +290,4 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   retryText: { fontSize: fontSize.sm },
-  moreButton: {
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginTop: spacing.xs,
-  },
-  moreText: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold },
-  credit: {
-    fontSize: fontSize.xs,
-    textAlign: 'center',
-    marginTop: spacing.lg,
-    lineHeight: 18,
-  },
 });
