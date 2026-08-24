@@ -3,7 +3,7 @@ module.exports = {
     name: "Burhank برهانك",
     slug: "burhank",
     scheme: "burhank",
-    version: "1.2.9",
+    version: "1.3.0",
     runtimeVersion: {
       policy: "appVersion",
     },
@@ -31,7 +31,7 @@ module.exports = {
       },
     },
     android: {
-      versionCode: 36,
+      versionCode: 37,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
