@@ -13,7 +13,15 @@
  * and jump-free.
  */
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, type TextLayoutEventData, type NativeSyntheticEvent } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ImageBackground,
+  type TextLayoutEventData,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { SURAH_LIST } from '../data/surahs';
 import { getString } from '../../../constants/i18n';
 import type { Language } from '../../prayer/types';
@@ -22,6 +30,13 @@ import type { MushafLine, MushafPageData, MushafWord } from '../api/mushafPage';
 import type { QuranPageStyle } from '../storage/quranStorage';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize as fontSizeTokens } from '../../../theme/typography';
+
+/**
+ * Parchment with a printed border and corner flourishes, stretched to the page
+ * card so the frame hugs its edges. The dark styles keep it underneath a tint
+ * rather than dropping it, so the border still reads as a printed page.
+ */
+const PAGE_TEXTURE = require('../../../../assets/quran_page_bg.jpg');
 
 const BASMALA = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
 const AMIRI = 'Amiri_400Regular';
@@ -38,6 +53,8 @@ export interface MushafPageTheme {
   banner: string;
   bannerBg: string;
   lineRule: string;
+  /** Wash laid over the parchment; transparent leaves the texture as printed. */
+  pageOverlay: string;
 }
 
 export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
@@ -51,6 +68,7 @@ export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
         banner: 'rgba(240,240,235,0.35)',
         bannerBg: 'rgba(255,255,255,0.04)',
         lineRule: 'rgba(255,255,255,0.06)',
+        pageOverlay: 'rgba(12,14,10,0.90)',
       };
     case 'royal':
       return {
@@ -61,6 +79,7 @@ export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
         banner: 'rgba(230,194,122,0.55)',
         bannerBg: 'rgba(230,194,122,0.10)',
         lineRule: 'rgba(200,170,95,0.10)',
+        pageOverlay: 'rgba(8,22,15,0.88)',
       };
     case 'paper':
     default:
@@ -72,6 +91,7 @@ export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
         banner: 'rgba(125,94,10,0.45)',
         bannerBg: 'rgba(125,94,10,0.07)',
         lineRule: 'rgba(60,45,25,0.10)',
+        pageOverlay: 'transparent',
       };
   }
 }
@@ -217,7 +237,7 @@ export function MushafPage({
   /** Without the page font the glyph codes are meaningless — show Uthmani text. */
   if (!fontReady) {
     return (
-      <View style={[styles.page, { backgroundColor: theme.pageBg }]}>
+      <PageSurface theme={theme}>
         {data.verseKeys.map((verseKey) => {
           const isActive = verseKey === activeVerseKey;
           return (
@@ -235,12 +255,12 @@ export function MushafPage({
             </Text>
           );
         })}
-      </View>
+      </PageSurface>
     );
   }
 
   return (
-    <View style={[styles.page, { backgroundColor: theme.pageBg }]}>
+    <PageSurface theme={theme}>
       {renderedLines.map(({ line, runs }) => {
         if (line.kind === 'surahName') {
           return (
@@ -293,7 +313,30 @@ export function MushafPage({
           />
         );
       })}
-    </View>
+    </PageSurface>
+  );
+}
+
+/** The page itself: parchment, an optional wash, then the script on top. */
+function PageSurface({
+  theme,
+  children,
+}: {
+  theme: MushafPageTheme;
+  children: React.ReactNode;
+}) {
+  return (
+    <ImageBackground
+      source={PAGE_TEXTURE}
+      resizeMode="stretch"
+      style={[styles.page, { backgroundColor: theme.pageBg }]}
+      imageStyle={styles.pageImage}
+    >
+      {theme.pageOverlay !== 'transparent' ? (
+        <View style={[styles.pageWash, { backgroundColor: theme.pageOverlay }]} />
+      ) : null}
+      {children}
+    </ImageBackground>
   );
 }
 
@@ -331,7 +374,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.md,
+    overflow: 'hidden',
   },
+  pageImage: { borderRadius: radius.md },
+  pageWash: { ...StyleSheet.absoluteFill },
   line: {
     textAlign: 'center',
     writingDirection: 'rtl',
