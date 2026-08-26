@@ -130,7 +130,8 @@ export function QuranReaderScreen() {
   const surahNum = parseInt(params.surah ?? '1', 10);
   const startAyah = params.ayah ? parseInt(params.ayah, 10) : 1;
   const surah = SURAH_LIST.find((s) => s.number === surahNum) ?? SURAH_LIST[0];
-  const { playAyah, playFromAyah, pause, resume, stop, clearError, state: audioState } = useQuranAudioContext();
+  const { playAyah, playVerseByVerse, pause, resume, stop, clearError, state: audioState } =
+    useQuranAudioContext();
   const [selectedReciter, setSelectedReciter] = useState<ReciterId | null>(null);
   const [showReciterModal, setShowReciterModal] = useState(false);
   const [bookmarks, setBookmarks] = useState<{ surah: number; ayah: number }[]>([]);
@@ -446,7 +447,7 @@ export function QuranReaderScreen() {
                 if (audioState.isPaused && audioState.currentSurah === surahNum) {
                   resume();
                 } else {
-                  playFromAyah(surahNum, 1);
+                  playVerseByVerse(surahNum, 1);
                 }
               }}
               activeOpacity={0.85}
@@ -847,7 +848,7 @@ export function QuranReaderScreen() {
                     stop();
                     if (currentSurah === surahNum && currentAyah) {
                       if (wasFullSurah) {
-                        playFromAyah(surahNum, 1);
+                        playVerseByVerse(surahNum, 1);
                       } else {
                         playAyah(surahNum, currentAyah);
                       }

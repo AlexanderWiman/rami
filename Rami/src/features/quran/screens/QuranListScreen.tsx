@@ -49,6 +49,7 @@ import {
 } from '../utils/quranAudioCache';
 import { getString, getReciterLabel } from '../../../constants/i18n';
 import { QuranSelectModal, type SelectItem } from '../components/QuranSelectModal';
+import { getSurahPageRanges, type SurahPageRanges } from '../api/surahPages';
 import { QURAN_RECITERS } from '../constants/reciters';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize, fontWeight, fontFamily, lineHeight } from '../../../theme/typography';
@@ -75,6 +76,7 @@ export function QuranListScreen() {
   const [audioProgress, setAudioProgress] = useState<{ done: number; total: number } | null>(null);
   const [selectedReciter, setSelectedReciter] = useState<string | null>(null);
   const [showReciters, setShowReciters] = useState(false);
+  const [surahPages, setSurahPages] = useState<SurahPageRanges | null>(null);
   /** The offline card is long; it stays folded away until asked for. */
   const [offlineOpen, setOfflineOpen] = useState(false);
 
@@ -91,6 +93,28 @@ export function QuranListScreen() {
   const [downloadingSurah, setDownloadingSurah] = useState<number | null>(null);
   const [surahProgress, setSurahProgress] = useState<{ done: number; total: number } | null>(null);
   const [displayMode, setDisplayMode] = useState<QuranDisplayMode>('verse');
+
+  useEffect(() => {
+    void getSurahPageRanges().then(setSurahPages);
+  }, []);
+
+  /**
+   * Opens a surah the way the chosen mode says: as pages in the mushaf, or in
+   * the verse reader. Both entry points go through here, so tapping a surah and
+   * the mode chips can no longer disagree about which screen you land on.
+   */
+  const openSurah = useCallback(
+    (surahNumber: number) => {
+      const startPage = surahPages?.[surahNumber]?.[0];
+      if (displayMode === 'page' && startPage) {
+        router.push(`/(tabs)/quran/page/${startPage}` as const);
+        return;
+      }
+      router.push(`/quran/${surahNumber}` as const);
+    },
+    [displayMode, surahPages]
+  );
+
   const [surahLayout, setSurahLayout] = useState<QuranSurahLayout>('grid');
 
   useEffect(() => {
@@ -251,7 +275,7 @@ export function QuranListScreen() {
               if (pendingSurah !== null) return;
               setPendingSurah(item.number);
               setTimeout(() => {
-                router.push(`/quran/${item.number}` as const);
+                openSurah(item.number);
               }, 0);
             }}
             disabled={isPending}
@@ -305,7 +329,7 @@ export function QuranListScreen() {
               if (pendingSurah !== null || isDownloading) return;
               setPendingSurah(item.number);
               setTimeout(() => {
-                router.push(`/quran/${item.number}` as const);
+                openSurah(item.number);
               }, 0);
             }}
             style={styles.surahTouch}
@@ -462,7 +486,6 @@ export function QuranListScreen() {
             onPress={async () => {
               setDisplayMode('page');
               await saveQuranDisplayMode('page');
-              router.push('/(tabs)/quran/page/1' as const);
             }}
           >
             <Text style={[styles.viewModeChipText, { color: displayMode === 'page' ? (isRoyal ? '#E6C27A' : colors.highlight) : colors.text }]}>
@@ -470,7 +493,9 @@ export function QuranListScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-        <GlassCard padding="lg" rounded="lg" style={styles.downloadCard}>
+        {/* fillContent={false}: inside a ScrollView the default flex:1 stops the
+            card growing, so expanded content spills outside its box. */}
+        <GlassCard padding="lg" rounded="lg" style={styles.downloadCard} fillContent={false}>
           <TouchableOpacity
             style={styles.downloadCardHeader}
             onPress={() => setOfflineOpen((v) => !v)}
@@ -653,7 +678,7 @@ export function QuranListScreen() {
                   onPress={() => {
                     setShowSearchModal(false);
                     setPendingSurah(item.number);
-                    setTimeout(() => router.push(`/quran/${item.number}` as const), 0);
+                    setTimeout(() => openSurah(item.number), 0);
                   }}
                   activeOpacity={0.7}
                 >
