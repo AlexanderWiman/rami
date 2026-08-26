@@ -139,6 +139,7 @@ export const translations: Record<
     customAzanNotificationNote: string;
     customAzanError: string;
     selectReciter: string;
+    selectSurah: string;
     respectSilentMode: string;
     testSound: string;
     stopSound: string;
@@ -457,6 +458,7 @@ export const translations: Record<
     customAzanNotificationNote: 'Your own file plays in the app. The prayer notification uses the default notification sound.',
     customAzanError: 'Could not use that file. Try another audio file.',
     selectReciter: 'Select reciter',
+    selectSurah: 'Select surah',
     respectSilentMode: 'Respect silent mode',
     testSound: 'Test sound',
     stopSound: 'Stop sound',
@@ -816,6 +818,7 @@ export const translations: Record<
     customAzanNotificationNote: 'يُشغَّل ملفك داخل التطبيق. أما إشعار الصلاة فيستخدم صوت الإشعار الافتراضي.',
     customAzanError: 'لا يمكن استخدام هذا الملف. جرّب ملفًا صوتيًا آخر.',
     selectReciter: 'اختر القارئ',
+    selectSurah: 'اختر السورة',
     respectSilentMode: 'احترام الوضع الصامت',
     testSound: 'اختبار الصوت',
     stopSound: 'إيقاف الصوت',
@@ -1175,6 +1178,7 @@ export const translations: Record<
     customAzanNotificationNote: 'Kendi dosyan uygulama içinde çalar. Namaz bildirimi varsayılan bildirim sesini kullanır.',
     customAzanError: 'Bu dosya kullanılamadı. Başka bir ses dosyası dene.',
     selectReciter: 'Okuyucu seç',
+    selectSurah: 'Sure seç',
     respectSilentMode: 'Sessiz modu dikkate al',
     testSound: 'Sesi test et',
     stopSound: 'Sesi durdur',
@@ -1535,6 +1539,7 @@ export const translations: Record<
     customAzanNotificationNote: 'Votre fichier est joué dans l’application. La notification de prière utilise le son par défaut.',
     customAzanError: 'Ce fichier n’a pas pu être utilisé. Essayez un autre fichier audio.',
     selectReciter: 'Choisir le récitateur',
+    selectSurah: 'Choisir la sourate',
     respectSilentMode: 'Respecter le mode silencieux',
     testSound: 'Tester le son',
     stopSound: 'Arrêter le son',
@@ -1894,6 +1899,7 @@ export const translations: Record<
     customAzanNotificationNote: 'Tu archivo suena en la aplicación. La notificación de oración usa el sonido predeterminado.',
     customAzanError: 'No se pudo usar ese archivo. Prueba otro archivo de audio.',
     selectReciter: 'Seleccionar recitador',
+    selectSurah: 'Elegir la sura',
     respectSilentMode: 'Respetar modo silencio',
     testSound: 'Probar sonido',
     stopSound: 'Detener sonido',
@@ -2253,6 +2259,7 @@ export const translations: Record<
     customAzanNotificationNote: 'Din egen fil spelas i appen. Bönenotisen använder standardljudet för notiser.',
     customAzanError: 'Filen kunde inte användas. Prova en annan ljudfil.',
     selectReciter: 'Välj recitator',
+    selectSurah: 'Välj surah',
     respectSilentMode: 'Respektera tyst läge',
     testSound: 'Testa ljud',
     stopSound: 'Stoppa ljud',
@@ -2612,6 +2619,7 @@ export const translations: Record<
     customAzanNotificationNote: 'Deine Datei wird in der App abgespielt. Die Gebetsbenachrichtigung nutzt den Standardton.',
     customAzanError: 'Diese Datei konnte nicht verwendet werden. Probiere eine andere Audiodatei.',
     selectReciter: 'Rezitator wählen',
+    selectSurah: 'Sure wählen',
     respectSilentMode: 'Stummmodus respektieren',
     testSound: 'Sound testen',
     stopSound: 'Sound stoppen',
