@@ -1,7 +1,7 @@
 /**
  * Reading Sanctuary — Quran list with soft glass cards and serene typography.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -30,6 +30,7 @@ import { BackToHomeBar } from '../../../components/BackToHomeBar';
 import { GlassCard } from '../../../components/GlassCard';
 import {
   loadSelectedReciter,
+  saveSelectedReciter,
   loadQuranDisplayMode,
   saveQuranDisplayMode,
   loadQuranSurahLayout,
@@ -47,6 +48,8 @@ import {
   getDownloadedSurahs,
 } from '../utils/quranAudioCache';
 import { getString, getReciterLabel } from '../../../constants/i18n';
+import { QuranSelectModal, type SelectItem } from '../components/QuranSelectModal';
+import { QURAN_RECITERS } from '../constants/reciters';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize, fontWeight, fontFamily, lineHeight } from '../../../theme/typography';
 
@@ -71,6 +74,19 @@ export function QuranListScreen() {
   const [audioDownloading, setAudioDownloading] = useState(false);
   const [audioProgress, setAudioProgress] = useState<{ done: number; total: number } | null>(null);
   const [selectedReciter, setSelectedReciter] = useState<string | null>(null);
+  const [showReciters, setShowReciters] = useState(false);
+  /** The offline card is long; it stays folded away until asked for. */
+  const [offlineOpen, setOfflineOpen] = useState(false);
+
+  const reciterItems = useMemo<SelectItem[]>(
+    () =>
+      QURAN_RECITERS.map((r) => ({
+        key: r.id,
+        label: language === 'ar' ? r.nameAr : r.nameEn,
+        sublabel: language === 'ar' ? r.nameEn : r.nameAr,
+      })),
+    [language]
+  );
   const [downloadedSurahs, setDownloadedSurahs] = useState<Set<number>>(new Set());
   const [downloadingSurah, setDownloadingSurah] = useState<number | null>(null);
   const [surahProgress, setSurahProgress] = useState<{ done: number; total: number } | null>(null);
@@ -375,9 +391,7 @@ export function QuranListScreen() {
         <View style={styles.header}>
           <View style={styles.headerHomeRow}>
             <BackToHomeBar />
-          </View>
-          <View style={styles.headerTitleRow}>
-            <Text style={[styles.title, { color: colors.text }]}>{getString(language, 'readingSanctuary')}</Text>
+            <View style={styles.headerActions}>
             <TouchableOpacity
               style={[
                 styles.searchIconBtn,
@@ -415,6 +429,12 @@ export function QuranListScreen() {
                 color={isRoyal ? 'rgba(230,194,122,0.95)' : colors.highlight}
               />
             </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.headerTitleRow}>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {getString(language, 'readingSanctuary')}
+            </Text>
           </View>
         </View>
         <View style={styles.viewModeRow}>
@@ -451,10 +471,25 @@ export function QuranListScreen() {
           </TouchableOpacity>
         </View>
         <GlassCard padding="lg" rounded="lg" style={styles.downloadCard}>
-          <Text style={[styles.downloadCardTitle, { color: isRoyal ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>
-            {getString(language, 'downloadForOffline')}
-          </Text>
+          <TouchableOpacity
+            style={styles.downloadCardHeader}
+            onPress={() => setOfflineOpen((v) => !v)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: offlineOpen }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.downloadCardTitle, { color: isRoyal ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>
+              {getString(language, 'downloadForOffline')}
+            </Text>
+            <Ionicons
+              name={offlineOpen ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={isRoyal ? 'rgba(255,255,255,0.7)' : colors.textMuted}
+            />
+          </TouchableOpacity>
 
+          {offlineOpen && (
+          <>
           {/* Text row */}
           <TouchableOpacity
             style={styles.downloadRow}
@@ -501,7 +536,13 @@ export function QuranListScreen() {
           )}
 
           {/* Audio – per-surah download */}
-          <View style={[styles.downloadRow, styles.downloadRowBorder, { borderTopColor: isRoyal ? 'rgba(255,255,255,0.12)' : colors.border }]}>
+          <TouchableOpacity
+            style={[styles.downloadRow, styles.downloadRowBorder, { borderTopColor: isRoyal ? 'rgba(255,255,255,0.12)' : colors.border }]}
+            onPress={() => setShowReciters(true)}
+            accessibilityRole="button"
+            accessibilityLabel={getString(language, 'selectReciter')}
+            activeOpacity={0.7}
+          >
             <Ionicons
               name="musical-notes"
               size={24}
@@ -516,8 +557,12 @@ export function QuranListScreen() {
                 {selectedReciter ? `${getReciterLabel(language, selectedReciter)} • ` : ''}{getString(language, 'downloadSurahHint')}
               </Text>
             </View>
-            {audioDownloaded && <Ionicons name="checkmark-circle" size={24} color={colors.highlight} />}
-          </View>
+            {audioDownloaded ? (
+              <Ionicons name="checkmark-circle" size={24} color={colors.highlight} />
+            ) : (
+              <Ionicons name="swap-horizontal" size={20} color={isRoyal ? 'rgba(255,255,255,0.6)' : colors.textMuted} />
+            )}
+          </TouchableOpacity>
           {!audioDownloaded && (
             <TouchableOpacity
               style={styles.downloadAllLink}
@@ -546,6 +591,8 @@ export function QuranListScreen() {
                 {getString(language, 'downloadKeepAppOpen')}
               </Text>
             </>
+          )}
+          </>
           )}
         </GlassCard>
         <FlatList
@@ -629,6 +676,19 @@ export function QuranListScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <QuranSelectModal
+        visible={showReciters}
+        title={getString(language, 'selectReciter')}
+        items={reciterItems}
+        selectedKey={selectedReciter ?? undefined}
+        onSelect={(id) => {
+          setShowReciters(false);
+          setSelectedReciter(id);
+          void saveSelectedReciter(id);
+        }}
+        onClose={() => setShowReciters(false)}
+      />
     </ScreenWrapper>
   );
 }
@@ -637,9 +697,16 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { paddingTop: spacing.lg, paddingBottom: spacing.sm },
+  // The icon buttons sit on the "home" row, which is otherwise empty on the
+  // right. That leaves the title the full width — it is a single long word in
+  // several languages and would otherwise break mid-word.
   headerHomeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: spacing.xs,
   },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -743,6 +810,12 @@ const styles = StyleSheet.create({
   viewModeChipText: { fontSize: fontSize.sm },
   downloadCard: {
     marginBottom: spacing.lg,
+  },
+  downloadCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 32,
   },
   downloadCardTitle: {
     fontSize: fontSize.sm,
