@@ -83,7 +83,7 @@ const PagePanel = memo(function PagePanel({
   language,
   onPressVerse,
 }: PanelProps) {
-  const contentWidth = windowWidth - PAGE_MARGIN * 2 - spacing.sm * 2;
+  const contentWidth = windowWidth - spacing.sm * 2;
   return (
     <ScrollView
       key={panelKey}
@@ -582,7 +582,8 @@ const styles = StyleSheet.create({
   panel: { flex: 1 },
   panelAbsolute: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   panelScroll: { flex: 1 },
-  scrollContent: { padding: PAGE_MARGIN, paddingBottom: spacing.xxl },
+  // Full-bleed: the printed page reaches both edges, as it does in a mushaf.
+  scrollContent: { paddingTop: PAGE_MARGIN, paddingBottom: spacing.xxl },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { fontSize: fontSize.sm, textAlign: 'center', paddingHorizontal: spacing.lg },
   retryBtn: {

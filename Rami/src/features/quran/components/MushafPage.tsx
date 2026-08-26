@@ -371,12 +371,11 @@ export function PageStyleSwatch({
 
 const styles = StyleSheet.create({
   page: {
-    borderRadius: radius.md,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.md,
     overflow: 'hidden',
   },
-  pageImage: { borderRadius: radius.md },
+  pageImage: {},
   pageWash: { ...StyleSheet.absoluteFill },
   line: {
     textAlign: 'center',
