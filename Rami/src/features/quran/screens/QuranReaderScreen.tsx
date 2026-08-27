@@ -64,6 +64,9 @@ const GOLD_DIVIDER = 'rgba(230,194,122,0.35)';
 const GOLD_BORDER = 'rgba(230,194,122,0.22)';
 const GOLD_BORDER_STRONG = 'rgba(230,194,122,0.8)';
 const ARABIC_COLOR = '#1a1a1a';
+/** Colour the recited verse takes, matching the mushaf. No panel behind it. */
+const VERSE_PLAYING_COLOR = '#0F6B4F';
+const VERSE_PLAYING_COLOR_ROYAL = '#F0CE86';
 const PAGE_BG_ROYAL = 'rgba(10, 25, 18, 0.82)';
 const PAGE_BG_IMAGE = require('../../../../assets/quran_page_bg.jpg');
 const PAGE_LINE_SPACING = 60;
@@ -656,10 +659,7 @@ export function QuranReaderScreen() {
                       const { y } = e.nativeEvent.layout;
                       verseYRef.current[ayah] = y;
                     }}
-                    style={[
-                      styles.verseRow,
-                      isThisAyahPlaying && (isRoyal ? styles.verseRowPlayingRoyal : styles.verseRowPlaying),
-                    ]}
+                    style={styles.verseRow}
                   >
                     <TouchableOpacity
                       activeOpacity={0.85}
@@ -669,7 +669,13 @@ export function QuranReaderScreen() {
                         style={[
                           styles.verseArabic,
                           {
-                            color: isThisAyahPlaying ? '#1D4ED8' : (isRoyal ? ARABIC_COLOR : colors.text),
+                            color: isThisAyahPlaying
+                              ? isRoyal
+                                ? VERSE_PLAYING_COLOR_ROYAL
+                                : VERSE_PLAYING_COLOR
+                              : isRoyal
+                                ? ARABIC_COLOR
+                                : colors.text,
                             fontFamily: arabicFontFamily,
                           },
                         ]}
@@ -1074,20 +1080,6 @@ const styles = StyleSheet.create({
   verseRow: {
     marginBottom: 0,
   },
-  verseRowPlaying: {
-    backgroundColor: 'rgba(59,130,246,0.18)',
-    borderRadius: 8,
-    marginHorizontal: -4,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-  },
-  verseRowPlayingRoyal: {
-    backgroundColor: 'rgba(59,130,246,0.2)',
-    borderRadius: 8,
-    marginHorizontal: -4,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-  },
   inlineOrnament: {
     color: ORNAMENT_COLOR,
     fontWeight: '700',
@@ -1097,8 +1089,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 1,
   },
   inlineOrnamentPlaying: {
-    color: '#2563EB',
-    textShadowColor: 'rgba(37,99,235,0.45)',
+    color: VERSE_PLAYING_COLOR,
+    textShadowColor: 'rgba(15,107,79,0.35)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 8,
   },
