@@ -68,8 +68,8 @@ const GOLD_BORDER = 'rgba(230,194,122,0.22)';
 const GOLD_BORDER_STRONG = 'rgba(230,194,122,0.8)';
 const ARABIC_COLOR = '#1a1a1a';
 /** Colour the recited verse takes, matching the mushaf. No panel behind it. */
-const VERSE_PLAYING_COLOR = '#0F6B4F';
-const VERSE_PLAYING_COLOR_ROYAL = '#F0CE86';
+const VERSE_PLAYING_COLOR = '#1B8A5A';
+const VERSE_PLAYING_COLOR_ROYAL = '#FFD98A';
 const PAGE_BG_ROYAL = 'rgba(10, 25, 18, 0.82)';
 const PAGE_BG_IMAGE = require('../../../../assets/quran_page_bg.jpg');
 const PAGE_LINE_SPACING = 60;
@@ -457,7 +457,7 @@ export function QuranReaderScreen() {
         style={[
           styles.headerWrap,
           {
-            paddingTop: insets.top + 10,
+            paddingTop: insets.top + 4,
           },
           DEBUG_BORDERS && styles.debugHeaderWrap,
         ]}
@@ -946,29 +946,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 40,
+    minHeight: 32,
   },
-  backLink: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, flexShrink: 0 },
+  backLink: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, flexShrink: 0 },
   backLinkText: { color: HEADER_GOLD, fontSize: 15, marginHorizontal: 2 },
   surahPicker: {
     flexDirection: 'row',
     alignItems: 'center',
     flexShrink: 0,
     maxWidth: '55%',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 9,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: GOLD_BORDER,
   },
   surahPickerText: { color: HEADER_TITLE, fontSize: 14, flexShrink: 1, marginHorizontal: 5 },
-  titleBlock: { width: '100%', alignItems: 'center', paddingTop: 2, paddingBottom: 6 },
-  titleArabic: { color: HEADER_TITLE, fontSize: 26, writingDirection: 'rtl' },
-  titleLatin: { color: HEADER_SUBTITLE, fontSize: 13, marginTop: 1 },
-  titleMeta: { color: HEADER_SUBTITLE, fontSize: 11, marginTop: 2, opacity: 0.85 },
+  titleBlock: { width: '100%', alignItems: 'center', paddingTop: 0, paddingBottom: 2 },
+  titleArabic: { color: HEADER_TITLE, fontSize: 21, writingDirection: 'rtl' },
+  titleLatin: { color: HEADER_SUBTITLE, fontSize: 12, marginTop: 0 },
+  titleMeta: { color: HEADER_SUBTITLE, fontSize: 10, marginTop: 1, opacity: 0.85 },
   headerWrap: {
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 4,
     overflow: 'hidden',
   },
   reciterChip: {

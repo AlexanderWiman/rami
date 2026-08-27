@@ -606,9 +606,9 @@ export function QuranPageViewScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   headerBand: { backgroundColor: 'rgba(18,35,28,0.85)' },
-  headerTitleBlock: { alignItems: 'center', paddingBottom: spacing.xxs },
+  headerTitleBlock: { alignItems: 'center', paddingBottom: 0 },
   headerSurah: {
-    fontSize: fontSize.xl,
+    fontSize: fontSize.lg,
     fontFamily: fontFamily.heading,
     writingDirection: 'rtl',
   },
@@ -618,11 +618,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
-  navBtn: { padding: spacing.xs, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  navBtn: { padding: spacing.xxs, minWidth: 44, minHeight: 38, alignItems: 'center', justifyContent: 'center' },
   pageTitle: { fontSize: fontSize.sm, fontWeight: '600' },
   styleRow: {
     flexDirection: 'row',
