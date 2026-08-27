@@ -59,8 +59,23 @@ export type QuranAudioState = {
   isFullSurahPlaying: boolean;
   currentSurah: number | null;
   currentAyah: number | null;
+  /** Seconds into the current verse, for the player's scrubber. */
+  position: number;
+  /** Length of the current verse in seconds; 0 until the player reports it. */
+  duration: number;
+  /** Playback speed, 1 = as recited. */
+  rate: number;
+  /** When on, a verse repeats instead of advancing to the next. */
+  repeatVerse: boolean;
   error: string | null;
 };
+
+/** Speeds the player cycles through. */
+export const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5] as const;
+
+/** Position updates are throttled: the status callback fires far too often to
+ *  re-render a screen full of Arabic script on every tick. */
+const POSITION_UPDATE_MS = 450;
 
 export type QuranAudioDebugInfo = {
   lastVerseStarted: { surah: number; ayah: number } | null;
@@ -85,6 +100,10 @@ export function useQuranAudio() {
     isFullSurahPlaying: false,
     currentSurah: null,
     currentAyah: null,
+    position: 0,
+    duration: 0,
+    rate: 1,
+    repeatVerse: false,
     error: null,
   });
 
@@ -136,6 +155,17 @@ export function useQuranAudio() {
   const replacePendingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastVerseStartedAtRef = useRef<number>(0);
   const lastSkipDebugAtRef = useRef(0);
+  const lastPositionPushAtRef = useRef(0);
+  const rateRef = useRef(1);
+  const repeatRef = useRef(false);
+
+  /** Feeds the scrubber without re-rendering on every status callback. */
+  const pushPosition = useCallback((position: number, duration: number) => {
+    const now = Date.now();
+    if (now - lastPositionPushAtRef.current < POSITION_UPDATE_MS) return;
+    lastPositionPushAtRef.current = now;
+    setState((s) => ({ ...s, position, duration }));
+  }, []);
   const stateRef = useRef(state);
   stateRef.current = state;
   const cleanupPreload = useCallback(() => {
@@ -254,7 +284,7 @@ export function useQuranAudio() {
       playerRef.current = preload;
       preloadPlayerRef.current = null;
       preloadForRef.current = null;
-      const rate = getPlaybackRate(q.reciter);
+      const rate = getPlaybackRate(q.reciter) * rateRef.current;
       if (rate !== 1.0) playerRef.current!.setPlaybackRate(rate);
 
       queueRef.current = { ...q, fromAyah: nextAyah };
@@ -272,6 +302,7 @@ export function useQuranAudio() {
       subscriptionRef.current = playerRef.current!.addListener('playbackStatusUpdate', (status) => {
         if (!status.isLoaded) return;
         const duration = status.duration ?? 0;
+        pushPosition(status.currentTime ?? 0, duration);
         const earlySec = getEffectiveEarlyAdvance(q.reciter, duration);
         const nearEnd =
           duration > 0.5 &&
@@ -329,7 +360,7 @@ export function useQuranAudio() {
       currentVerseRef.current = { surah: q.surah, ayah: nextAyah };
       try {
         playerRef.current.replace({ uri });
-        const rate = getPlaybackRate(q.reciter);
+        const rate = getPlaybackRate(q.reciter) * rateRef.current;
         if (rate !== 1.0) playerRef.current.setPlaybackRate(rate);
         playerRef.current.play();
         startPreloadForNext(q.surah, nextAyah, q.ayahCount, q.reciter);
@@ -403,7 +434,7 @@ export function useQuranAudio() {
           const player = createAudioPlayer({ uri }, { updateInterval: 200 });
           playerRef.current = player;
           player.volume = 1.0;
-          const rate = reciter ? getPlaybackRate(reciter) : 1.0;
+          const rate = (reciter ? getPlaybackRate(reciter) : 1.0) * rateRef.current;
           if (rate !== 1.0) {
             player.setPlaybackRate(rate);
             _dbg('playbackRate set', { reciter, rate });
@@ -459,6 +490,7 @@ export function useQuranAudio() {
             }
             const duration = status.duration ?? 0;
             const currentTime = status.currentTime ?? 0;
+            pushPosition(currentTime, duration);
             const remaining = duration - currentTime;
             const effectiveEarly =
               earlyAdvanceSec !== false && reciter
@@ -595,6 +627,21 @@ export function useQuranAudio() {
     const now = Date.now();
     if (now - lastAdvanceRef.current < 150) return;
     lastAdvanceRef.current = now;
+    if (repeatRef.current) {
+      // Repeat holds on this verse: rewind and let it play again rather than
+      // handing over to the queue.
+      const player = playerRef.current;
+      if (player) {
+        verseFinishFiredRef.current = null;
+        try {
+          void player.seekTo(0);
+          player.play();
+          return;
+        } catch {
+          /* fall through to advancing */
+        }
+      }
+    }
     playNextInQueue();
   }, [playNextInQueue]);
   onVerseFinishedRef.current = onVerseFinished;
@@ -726,9 +773,53 @@ export function useQuranAudio() {
     cleanup();
   }, [cleanup]);
 
+  /** Jumps within the current verse. */
+  const seekTo = useCallback((seconds: number) => {
+    const player = playerRef.current;
+    if (!player) return;
+    try {
+      void player.seekTo(Math.max(0, seconds));
+      lastPositionPushAtRef.current = 0;
+      setState((s) => ({ ...s, position: Math.max(0, seconds) }));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  /** Steps to the next speed in PLAYBACK_RATES, wrapping around. */
+  const cycleRate = useCallback(() => {
+    const next =
+      PLAYBACK_RATES[(PLAYBACK_RATES.indexOf(rateRef.current as never) + 1) % PLAYBACK_RATES.length];
+    rateRef.current = next;
+    try {
+      playerRef.current?.setPlaybackRate(next);
+    } catch {
+      /* ignore */
+    }
+    setState((s) => ({ ...s, rate: next }));
+  }, []);
+
+  const toggleRepeat = useCallback(() => {
+    repeatRef.current = !repeatRef.current;
+    setState((s) => ({ ...s, repeatVerse: repeatRef.current }));
+  }, []);
+
   const clearError = useCallback(() => {
     setState((s) => ({ ...s, error: null }));
   }, []);
 
-  return { playAyah, playFromAyah, playVerseByVerse, pause, resume, stop, clearError, state, debugInfo };
+  return {
+    playAyah,
+    playFromAyah,
+    playVerseByVerse,
+    pause,
+    resume,
+    stop,
+    seekTo,
+    cycleRate,
+    toggleRepeat,
+    clearError,
+    state,
+    debugInfo,
+  };
 }

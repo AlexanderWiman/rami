@@ -38,6 +38,7 @@ import { SURAH_LIST } from '../data/surahs';
 import { getMushafPage, type MushafPageData } from '../api/mushafPage';
 import { getSurahPageRanges, type SurahPageRanges } from '../api/surahPages';
 import { QuranSelectModal, type SelectItem } from '../components/QuranSelectModal';
+import { QuranPlayerBar } from '../components/QuranPlayerBar';
 import { QURAN_RECITERS } from '../constants/reciters';
 import { ensurePageFont, prefetchPageFont } from '../utils/qcfFont';
 import { MushafPage, PageStyleSwatch, getMushafTheme } from '../components/MushafPage';
@@ -129,7 +130,16 @@ export function QuranPageViewScreen() {
   const initialPage = Math.max(1, Math.min(TOTAL_PAGES, parseInt(params.page ?? '1', 10) || 1));
   const [fontsLoaded] = useFonts({ Amiri_400Regular });
 
-  const { state: audioState, playVerseByVerse, pause, resume, stop } = useQuranAudioContext();
+  const {
+    state: audioState,
+    playVerseByVerse,
+    pause,
+    resume,
+    stop,
+    seekTo,
+    cycleRate,
+    toggleRepeat,
+  } = useQuranAudioContext();
 
   type PageState = {
     displayPage: number;
@@ -367,6 +377,7 @@ export function QuranPageViewScreen() {
     <ScreenWrapper>
       <View style={styles.container}>
         <BackBar />
+
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity
             onPress={() => void turnTo(displayPage - 1, -1)}
@@ -496,49 +507,22 @@ export function QuranPageViewScreen() {
         ) : null}
 
         {isAudioActive && (
-          <View style={[styles.playerBar, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
-            <TouchableOpacity
-              onPress={() => setShowReciters(true)}
-              style={styles.playerLabelWrap}
-              accessibilityRole="button"
-              accessibilityLabel={getString(language, 'selectReciter')}
-            >
-              <Text style={[styles.playerLabel, { color: colors.text }]} numberOfLines={1}>
-                {playingLabel}
-              </Text>
-              {reciterName ? (
-                <View style={styles.reciterRow}>
-                  <Ionicons name="mic-outline" size={12} color={colors.textMuted} />
-                  <Text style={[styles.reciterName, { color: colors.textMuted }]} numberOfLines={1}>
-                    {reciterName}
-                  </Text>
-                </View>
-              ) : null}
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => (audioState.isPlaying ? pause() : resume())}
-              style={styles.navBtn}
-              accessibilityRole="button"
-              accessibilityLabel={getString(
-                language,
-                audioState.isPlaying ? 'pauseRecitation' : 'resumeRecitation'
-              )}
-            >
-              <Ionicons
-                name={audioState.isPlaying ? 'pause' : 'play'}
-                size={22}
-                color={colors.text}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => stop()}
-              style={styles.navBtn}
-              accessibilityRole="button"
-              accessibilityLabel={getString(language, 'stopRecitation')}
-            >
-              <Ionicons name="stop" size={22} color={colors.text} />
-            </TouchableOpacity>
-          </View>
+          <QuranPlayerBar
+            title={playingLabel}
+            reciterName={reciterName}
+            isPlaying={audioState.isPlaying}
+            isPreparing={audioState.isPreparing}
+            position={audioState.position}
+            duration={audioState.duration}
+            rate={audioState.rate}
+            repeatVerse={audioState.repeatVerse}
+            onTogglePlay={() => (audioState.isPlaying ? pause() : resume())}
+            onStop={() => stop()}
+            onSeek={seekTo}
+            onPressReciter={() => setShowReciters(true)}
+            onCycleRate={cycleRate}
+            onToggleRepeat={toggleRepeat}
+          />
         )}
 
         <QuranSelectModal
@@ -583,18 +567,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   styleLabel: { flex: 1, fontSize: fontSize.xs },
-  playerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  playerLabelWrap: { flex: 1, justifyContent: 'center', minHeight: 44 },
-  playerLabel: { fontSize: fontSize.sm, fontWeight: '600' },
-  reciterRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 },
-  reciterName: { fontSize: fontSize.xs },
   slider: { flex: 1, overflow: 'hidden' },
   panel: { flex: 1 },
   panelAbsolute: { position: 'absolute', left: 0, top: 0, bottom: 0 },
