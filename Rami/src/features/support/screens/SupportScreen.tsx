@@ -26,6 +26,7 @@ import { getString, translations } from '../../../constants/i18n';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize, fontWeight, fontFamily } from '../../../theme/typography';
 import { hapticLight } from '../../../utils/haptics';
+import { countGiftButtonTap } from '../../../services/metrics';
 
 /** PayPal donation link (customer's paypal.me). Empty string hides the button. */
 export const SUPPORT_PAYPAL_URL = 'https://paypal.me/rburhank';
@@ -48,6 +49,8 @@ export function SupportScreen() {
       return;
     }
     await hapticLight();
+    // Counted before the hand-off, since opening the URL leaves the app.
+    countGiftButtonTap();
     try {
       await Linking.openURL(SUPPORT_PAYPAL_URL);
     } catch {

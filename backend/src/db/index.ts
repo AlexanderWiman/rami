@@ -131,6 +131,14 @@ export async function initializeDatabase() {
   `);
 
   await query(`
+    CREATE TABLE IF NOT EXISTS metric_counters (
+      name TEXT PRIMARY KEY,
+      count BIGINT NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await query(`
     CREATE TABLE IF NOT EXISTS push_devices (
       id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
       device_id TEXT UNIQUE NOT NULL,
