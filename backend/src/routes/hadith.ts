@@ -117,6 +117,119 @@ function narratorFlags(r: {
   return flags;
 }
 
+/**
+ * Arabic normalisation for our own query handling. UTS normalises server-side
+ * too, but the relaxation ladder below needs to tokenise and measure terms, so
+ * it has to see the same normalised form.
+ */
+function normalizeArabic(input: string): string {
+  return input
+    .replace(/[\u064B-\u0652\u0670\u0653-\u0655]/g, '') // harakat
+    .replace(/\u0640/g, '') // tatweel
+    .replace(/[\u0622\u0623\u0625]/g, '\u0627') // آ أ إ → ا
+    .replace(/\u0649/g, '\u064A') // ى → ي
+    .replace(/\u0629/g, '\u0647') // ة → ه
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Function words and formulaic openings that carry almost no selectivity in a
+ * matn search — "قال رسول الله" matches a large share of the corpus.
+ */
+const LOW_VALUE_TERMS = new Set([
+  'من', 'في', 'عن', 'علي', 'الي', 'ان', 'ما', 'لا', 'او', 'ثم', 'قد', 'كان',
+  'كانت', 'هذا', 'هذه', 'ذلك', 'التي', 'الذي', 'له', 'لها', 'به', 'بها',
+  'عليه', 'عليها', 'قال', 'قالت', 'يا', 'وقال', 'رسول', 'الله', 'النبي',
+  'صلي', 'وسلم', 'حدثنا', 'اخبرنا', 'بن', 'ابن', 'ابي', 'وهو', 'كل',
+]);
+
+/** Terms worth searching on, most distinctive first (longest ≈ most specific). */
+function distinctiveTerms(tokens: string[]): string[] {
+  const seen = new Set<string>();
+  const terms: string[] = [];
+  for (const term of tokens) {
+    if (term.length < 3 || LOW_VALUE_TERMS.has(term) || seen.has(term)) continue;
+    seen.add(term);
+    terms.push(term);
+  }
+  return terms.sort((a, b) => b.length - a.length);
+}
+
+/** How much search signal a run of words carries: content words, weighted by length. */
+function windowScore(words: string[]): number {
+  let score = 0;
+  for (const w of words) {
+    if (w.length < 3 || LOW_VALUE_TERMS.has(w)) continue;
+    score += w.length + 2;
+  }
+  return score;
+}
+
+/**
+ * Runs of `size` consecutive words, richest in content words first.
+ *
+ * A pasted hadith carries its matn contiguously, so some window of it matches
+ * the printed text even though the whole paste never will. Ordering by content
+ * matters: the isnad also forms windows, and those would otherwise be tried
+ * first and answer with whatever book happens to share a narrator's name.
+ */
+function contentWindows(tokens: string[], size: number, max: number): string[] {
+  if (tokens.length <= size) return [];
+  const windows: Array<{ q: string; score: number }> = [];
+  for (let i = 0; i + size <= tokens.length; i += 1) {
+    const words = tokens.slice(i, i + size);
+    const score = windowScore(words);
+    if (score === 0) continue;
+    windows.push({ q: words.join(' '), score });
+  }
+  return windows
+    .sort((a, b) => b.score - a.score)
+    .slice(0, max)
+    .map((w) => w.q);
+}
+
+/** Attempts are capped so a hopeless query cannot fan out into many requests. */
+const MAX_QUERY_ATTEMPTS = 10;
+
+/**
+ * Query variants to try, in order, until one returns hits.
+ *
+ * The first is always what the user typed — an exact phrase should win on its
+ * own terms. After that the net widens in the order that keeps precision
+ * longest: contiguous runs of the input (a pasted hadith), then its most
+ * distinctive words, then prefix forms (a term whose ending differs, which is
+ * what a missing letter usually amounts to), and only last an OR across terms,
+ * which always matches something and so must never pre-empt a sharper attempt.
+ */
+function buildQueryLadder(query: string): string[] {
+  const ladder = [query.trim()];
+  const tokens = normalizeArabic(query).split(' ').filter(Boolean);
+  const terms = distinctiveTerms(tokens);
+  if (terms.length === 0) return ladder;
+
+  const add = (candidate: string) => {
+    if (candidate && !ladder.includes(candidate) && ladder.length < MAX_QUERY_ATTEMPTS) {
+      ladder.push(candidate);
+    }
+  };
+  const top = (n: number) => terms.slice(0, n);
+
+  for (const w of contentWindows(tokens, 4, 2)) add(w);
+  for (const w of contentWindows(tokens, 3, 2)) add(w);
+  if (terms.length > 1) add(top(4).join(' '));
+  add(top(4).map((t) => `${t}*`).join(' '));
+  // OR before the weak two-term AND: when the user's wording substitutes a word,
+  // ranking across many terms finds the intended hadith, whereas two common
+  // words in isolation tend to land on an unrelated narration that shares them.
+  if (terms.length > 1) add(top(6).join(' OR '));
+  add(top(2).join(' '));
+  add(terms[0]);
+  add(`${terms[0]}*`);
+  return ladder;
+}
+
 function sendUnavailable(res: Parameters<Parameters<typeof router.get>[1]>[1], err: unknown): void {
   const message = err instanceof Error ? err.message : 'Hadith service unavailable';
   console.error('UTS error:', message);
@@ -135,11 +248,23 @@ router.get('/search', async (req, res) => {
     return;
   }
 
+  const limit = parseLimit(req.query.limit);
+
   try {
-    const data = await utsGet<{ hits?: UtsHit[] }>('/api/search/hadiths', {
-      q,
-      limit: parseLimit(req.query.limit),
-    });
+    // Walk the ladder until something matches. `relaxed` tells the app that the
+    // hits answer a widened query, so it can say so rather than implying the
+    // user's exact wording was found.
+    const ladder = buildQueryLadder(q);
+    let data: { hits?: UtsHit[] } | null = null;
+    let matchedQuery = q;
+    for (const candidate of ladder) {
+      data = await utsGet<{ hits?: UtsHit[] }>('/api/search/hadiths', { q: candidate, limit });
+      if ((data?.hits ?? []).length > 0) {
+        matchedQuery = candidate;
+        break;
+      }
+    }
+
     const hits = (data?.hits ?? []).map((h) => ({
       hadithId: h.hadithId,
       book: { id: h.bookId ?? null, name: h.bookName ?? null },
@@ -150,7 +275,12 @@ router.get('/search', async (req, res) => {
       /** The source's ruling as printed. Absent when the source has none. */
       hukm: h.hukm ? claim(h.hukm, `hadiths.hukm#${h.hadithId}`) : null,
     }));
-    res.json({ hits, attribution: UTS_ATTRIBUTION });
+    res.json({
+      hits,
+      relaxed: matchedQuery !== q,
+      matchedQuery,
+      attribution: UTS_ATTRIBUTION,
+    });
   } catch (err) {
     sendUnavailable(res, err);
   }

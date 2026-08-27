@@ -15,6 +15,7 @@ import { ThemeProvider } from '../src/theme/ThemeContext';
 import { LanguageProvider } from '../src/contexts/LanguageContext';
 import { AdminProvider } from '../src/features/admin/AdminContext';
 import { QuranAudioProvider } from '../src/features/quran/context/QuranAudioContext';
+import { applyPendingUpdateOnLaunch } from '../src/services/autoUpdate';
 
 const TransparentLightTheme = {
   ...DefaultTheme,
@@ -46,6 +47,12 @@ Notifications.setNotificationHandler({
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const navTheme = colorScheme === 'dark' ? TransparentDarkTheme : TransparentLightTheme;
+
+  // Before anything else on a cold start: take a pending OTA update if one is
+  // ready quickly, so it does not wait for a second launch to appear.
+  useEffect(() => {
+    void applyPendingUpdateOnLaunch();
+  }, []);
 
   useEffect(() => {
     ensureAndroidNotificationChannels().catch(() => {});

@@ -106,6 +106,12 @@ export interface RawiDossier {
   attribution: Attribution;
 }
 
+/** Search hits plus whether they answer a widened query rather than the exact one. */
+export interface HadithSearchResult {
+  hits: HadithHit[];
+  relaxed: boolean;
+}
+
 export type Outcome<T> =
   | { status: 'ok'; data: T }
   | { status: 'empty' }
@@ -132,16 +138,20 @@ async function getJson<T>(path: string): Promise<T | 'unavailable' | 'error'> {
   }
 }
 
-export async function searchHadith(query: string, limit = 20): Promise<Outcome<HadithHit[]>> {
+export async function searchHadith(
+  query: string,
+  limit = 20
+): Promise<Outcome<HadithSearchResult>> {
   const trimmed = query.trim();
   if (!trimmed) return { status: 'empty' };
-  const result = await getJson<{ hits?: HadithHit[] }>(
+  const result = await getJson<{ hits?: HadithHit[]; relaxed?: boolean }>(
     `/hadith/search?q=${encodeURIComponent(trimmed)}&limit=${limit}`
   );
   if (result === 'unavailable') return { status: 'unavailable' };
   if (result === 'error') return { status: 'error' };
   const hits = result.hits ?? [];
-  return hits.length === 0 ? { status: 'empty' } : { status: 'ok', data: hits };
+  if (hits.length === 0) return { status: 'empty' };
+  return { status: 'ok', data: { hits, relaxed: Boolean(result.relaxed) } };
 }
 
 export async function getHadith(hadithId: number): Promise<Outcome<HadithDetail>> {

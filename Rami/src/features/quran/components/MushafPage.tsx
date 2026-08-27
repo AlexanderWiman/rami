@@ -13,7 +13,14 @@
  * and jump-free.
  */
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, type TextLayoutEventData, type NativeSyntheticEvent } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  type TextLayoutEventData,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { SURAH_LIST } from '../data/surahs';
 import { getString } from '../../../constants/i18n';
 import type { Language } from '../../prayer/types';
@@ -32,12 +39,17 @@ export interface MushafPageTheme {
   pageBg: string;
   text: string;
   ornament: string;
-  /** Background behind the verse being recited */
+  /** Background behind the verse being recited, kept for the style swatches */
   highlight: string;
+  /** Colour the verse being recited takes; the script changes colour rather
+   *  than sitting in a box, which is what was asked for. */
+  activeText: string;
   /** Border of the surah-name banner */
   banner: string;
   bannerBg: string;
   lineRule: string;
+  /** Wash laid over the parchment; transparent leaves the texture as printed. */
+  pageOverlay: string;
 }
 
 export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
@@ -48,9 +60,11 @@ export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
         text: 'rgba(240,240,235,0.94)',
         ornament: '#C8B078',
         highlight: 'rgba(31,111,84,0.75)',
+        activeText: '#8FE0B4',
         banner: 'rgba(240,240,235,0.35)',
         bannerBg: 'rgba(255,255,255,0.04)',
         lineRule: 'rgba(255,255,255,0.06)',
+        pageOverlay: 'rgba(12,14,10,0.90)',
       };
     case 'royal':
       return {
@@ -58,9 +72,11 @@ export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
         text: 'rgba(245,236,210,0.96)',
         ornament: '#E6C27A',
         highlight: 'rgba(214,179,106,0.30)',
+        activeText: '#F0CE86',
         banner: 'rgba(230,194,122,0.55)',
         bannerBg: 'rgba(230,194,122,0.10)',
         lineRule: 'rgba(200,170,95,0.10)',
+        pageOverlay: 'rgba(8,22,15,0.88)',
       };
     case 'paper':
     default:
@@ -69,9 +85,11 @@ export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
         text: '#1A1A1A',
         ornament: '#7D5E0A',
         highlight: 'rgba(31,111,84,0.22)',
+        activeText: '#0F6B4F',
         banner: 'rgba(125,94,10,0.45)',
         bannerBg: 'rgba(125,94,10,0.07)',
         lineRule: 'rgba(60,45,25,0.10)',
+        pageOverlay: 'transparent',
       };
   }
 }
@@ -114,7 +132,7 @@ function MushafLineText({
   glyphSize,
   fontFamily,
   color,
-  highlight,
+  activeColor,
   activeVerseKey,
   onPressVerse,
 }: {
@@ -123,7 +141,7 @@ function MushafLineText({
   glyphSize: number;
   fontFamily: string;
   color: string;
-  highlight: string;
+  activeColor: string;
   activeVerseKey: string | null;
   onPressVerse?: (verseKey: string) => void;
 }) {
@@ -156,12 +174,21 @@ function MushafLineText({
 
   const fontSize = Math.max(12, Math.round(glyphSize * scale));
 
+  // The line stays tight around the glyphs with the mushaf's spacing carried by
+  // a margin: 1.15 plus 0.55 is the 1.7 it replaces, and keeping the line box
+  // close to the script leaves no room for it to drift within the row.
   return (
     <Text
       onTextLayout={handleTextLayout}
       style={[
         styles.line,
-        { color, fontFamily, fontSize, lineHeight: Math.round(fontSize * 1.7) },
+        {
+          color,
+          fontFamily,
+          fontSize,
+          lineHeight: Math.round(fontSize * 1.15),
+          marginBottom: Math.round(fontSize * 0.55),
+        },
       ]}
       allowFontScaling={false}
     >
@@ -172,7 +199,7 @@ function MushafLineText({
             key={`${run.verseKey}-${index}`}
             onPress={onPressVerse ? () => onPressVerse(run.verseKey) : undefined}
             suppressHighlighting
-            style={isActive ? { backgroundColor: highlight } : undefined}
+            style={isActive ? { color: activeColor } : undefined}
           >
             {run.glyphs}
           </Text>
@@ -217,7 +244,7 @@ export function MushafPage({
   /** Without the page font the glyph codes are meaningless — show Uthmani text. */
   if (!fontReady) {
     return (
-      <View style={[styles.page, { backgroundColor: theme.pageBg }]}>
+      <PageSurface>
         {data.verseKeys.map((verseKey) => {
           const isActive = verseKey === activeVerseKey;
           return (
@@ -227,7 +254,7 @@ export function MushafPage({
               style={[
                 styles.fallbackVerse,
                 { color: theme.text, fontFamily: AMIRI },
-                isActive && { backgroundColor: theme.highlight },
+                isActive && { color: theme.activeText },
               ]}
             >
               {data.uthmani[verseKey] ?? ''}{' '}
@@ -235,12 +262,12 @@ export function MushafPage({
             </Text>
           );
         })}
-      </View>
+      </PageSurface>
     );
   }
 
   return (
-    <View style={[styles.page, { backgroundColor: theme.pageBg }]}>
+    <PageSurface>
       {renderedLines.map(({ line, runs }) => {
         if (line.kind === 'surahName') {
           return (
@@ -287,14 +314,23 @@ export function MushafPage({
             glyphSize={glyphSize}
             fontFamily={fontFamily}
             color={theme.text}
-            highlight={theme.highlight}
+            activeColor={theme.activeText}
             activeVerseKey={activeVerseKey}
             onPressVerse={onPressVerse}
           />
         );
       })}
-    </View>
+    </PageSurface>
   );
+}
+
+/**
+ * The script sits on the parchment the screen paints behind the whole reading
+ * area, so the page itself stays transparent — a card with its own background
+ * is exactly what made the mushaf look unlike the verse reader.
+ */
+function PageSurface({ children }: { children: React.ReactNode }) {
+  return <View style={styles.page}>{children}</View>;
 }
 
 /** Small tap target used by the page-style switcher. */
@@ -328,10 +364,11 @@ export function PageStyleSwatch({
 
 const styles = StyleSheet.create({
   page: {
-    borderRadius: radius.md,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.md,
+    overflow: 'hidden',
   },
+
   line: {
     textAlign: 'center',
     writingDirection: 'rtl',

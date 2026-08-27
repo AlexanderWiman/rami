@@ -43,6 +43,32 @@ import { hapticLight } from '../../../utils/haptics';
 
 const ARABIC_FONT = 'Amiri_400Regular';
 
+/**
+ * Some entries are whole book passages rather than short narrations — the
+ * longest run past 16,000 characters. Android's native text layout cannot lay
+ * out a single Text node that large and takes the app down with it, so the body
+ * is always split into paragraph-sized nodes, and a long one starts collapsed.
+ */
+const CHUNK_CHARS = 900;
+const INITIAL_CHUNKS = 3;
+
+/** Splits on word boundaries so no word is broken across two nodes. */
+function chunkText(text: string, size: number): string[] {
+  const chunks: string[] = [];
+  let index = 0;
+  while (index < text.length) {
+    let end = Math.min(index + size, text.length);
+    if (end < text.length) {
+      const space = text.lastIndexOf(' ', end);
+      if (space > index + size / 2) end = space;
+    }
+    const chunk = text.slice(index, end).trim();
+    if (chunk) chunks.push(chunk);
+    index = end;
+  }
+  return chunks;
+}
+
 type State =
   | { kind: 'loading' }
   | { kind: 'ok'; data: HadithDetail }
@@ -72,6 +98,7 @@ export function HadithDetailScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const hadithId = Number(params.id);
   const [state, setState] = useState<State>({ kind: 'loading' });
+  const [textExpanded, setTextExpanded] = useState(false);
   const [fontsLoaded] = useFonts({ Amiri_400Regular });
 
   const t = (key: Parameters<typeof getString>[1]) => getString(language, key);
@@ -105,6 +132,11 @@ export function HadithDetailScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const textChunks = useMemo(
+    () => (state.kind === 'ok' ? chunkText(state.data.text ?? '', CHUNK_CHARS) : []),
+    [state]
+  );
 
   const openRawi = useCallback(
     async (rawiId: number) => {
@@ -250,15 +282,31 @@ export function HadithDetailScreen() {
         ) : (
           <>
             <GlassCard padding="lg" rounded="lg">
-              <Text
-                style={[
-                  styles.hadithText,
-                  { color: textPrimary },
-                  fontsLoaded && { fontFamily: ARABIC_FONT },
-                ]}
-              >
-                {state.data.text ?? ''}
-              </Text>
+              {(textExpanded ? textChunks : textChunks.slice(0, INITIAL_CHUNKS)).map(
+                (chunk, index) => (
+                  <Text
+                    key={`t-${index}`}
+                    style={[
+                      styles.hadithText,
+                      { color: textPrimary },
+                      fontsLoaded && { fontFamily: ARABIC_FONT },
+                    ]}
+                  >
+                    {chunk}
+                  </Text>
+                )
+              )}
+              {!textExpanded && textChunks.length > INITIAL_CHUNKS ? (
+                <TouchableOpacity
+                  onPress={() => setTextExpanded(true)}
+                  style={[styles.expandButton, { borderColor: colors.border }]}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.expandText, { color: gold }]}>
+                    {t('hadithShowFullText')}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
               {state.data.hukm?.value ? renderRuling(state.data.hukm.value) : null}
             </GlassCard>
 
@@ -285,6 +333,15 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     writingDirection: 'rtl',
   },
+  expandButton: {
+    marginTop: spacing.sm,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignSelf: 'flex-start',
+  },
+  expandText: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold },
   section: { marginTop: spacing.sm },
   sectionLabel: { fontSize: fontSize.xs, fontWeight: fontWeight.semibold },
   rulingBadge: {

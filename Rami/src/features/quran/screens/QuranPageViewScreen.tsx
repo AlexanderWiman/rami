@@ -6,7 +6,7 @@
  * followed as playback moves through the page. Three page styles are offered
  * (paper / night / royal), all free.
  */
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  ImageBackground,
   useWindowDimensions,
 } from 'react-native';
 import Animated, {
@@ -26,6 +27,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { useFonts, Amiri_400Regular } from '@expo-google-fonts/amiri';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../theme/ThemeContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import type { Language } from '../../prayer/types';
@@ -35,11 +37,17 @@ import { getString } from '../../../constants/i18n';
 import { getTotalPages } from '../data/quranPageMapping';
 import { SURAH_LIST } from '../data/surahs';
 import { getMushafPage, type MushafPageData } from '../api/mushafPage';
+import { getSurahPageRanges, type SurahPageRanges } from '../api/surahPages';
+import { QuranSelectModal, type SelectItem } from '../components/QuranSelectModal';
+import { QuranPlayerBar } from '../components/QuranPlayerBar';
+import { QURAN_RECITERS } from '../constants/reciters';
 import { ensurePageFont, prefetchPageFont } from '../utils/qcfFont';
 import { MushafPage, PageStyleSwatch, getMushafTheme } from '../components/MushafPage';
 import {
   loadQuranPageStyle,
   saveQuranPageStyle,
+  loadSelectedReciter,
+  saveSelectedReciter,
   QURAN_PAGE_STYLES,
   type QuranPageStyle,
 } from '../storage/quranStorage';
@@ -47,6 +55,13 @@ import { useQuranAudioContext } from '../context/QuranAudioContext';
 import { hapticLight } from '../../../utils/haptics';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize } from '../../../theme/typography';
+
+/**
+ * Parchment for the whole reading area, painted once behind the pages rather
+ * than behind each page card — the verse reader does the same, and a card with
+ * its own background is what made the two screens look unrelated.
+ */
+const PAGE_TEXTURE = require('../../../../assets/quran_page_bg.jpg');
 
 const TOTAL_PAGES = getTotalPages();
 const SLIDE_DURATION_MS = 280;
@@ -65,6 +80,8 @@ type PanelProps = {
   fontReady: boolean;
   activeVerseKey: string | null;
   language: Language;
+  /** Keeps the last line of the page clear of the system nav bar. */
+  bottomInset: number;
   onPressVerse?: (verseKey: string) => void;
 };
 
@@ -76,14 +93,18 @@ const PagePanel = memo(function PagePanel({
   fontReady,
   activeVerseKey,
   language,
+  bottomInset,
   onPressVerse,
 }: PanelProps) {
-  const contentWidth = windowWidth - PAGE_MARGIN * 2 - spacing.sm * 2;
+  const contentWidth = windowWidth - spacing.sm * 2;
   return (
     <ScrollView
       key={panelKey}
       style={[styles.panelScroll, { width: windowWidth }]}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[
+        styles.scrollContent,
+        { paddingBottom: spacing.xxl + bottomInset },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       <MushafPage
@@ -112,11 +133,21 @@ export function QuranPageViewScreen() {
   const { colors } = useTheme();
   const { language } = useLanguage();
   const { width: windowWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ page?: string }>();
   const initialPage = Math.max(1, Math.min(TOTAL_PAGES, parseInt(params.page ?? '1', 10) || 1));
   const [fontsLoaded] = useFonts({ Amiri_400Regular });
 
-  const { state: audioState, playVerseByVerse, pause, resume, stop } = useQuranAudioContext();
+  const {
+    state: audioState,
+    playVerseByVerse,
+    pause,
+    resume,
+    stop,
+    seekTo,
+    cycleRate,
+    toggleRepeat,
+  } = useQuranAudioContext();
 
   type PageState = {
     displayPage: number;
@@ -135,6 +166,10 @@ export function QuranPageViewScreen() {
   const [error, setError] = useState<string | null>(null);
   const [pageStyle, setPageStyle] = useState<QuranPageStyle>('paper');
   const [showStyles, setShowStyles] = useState(false);
+  const [showSurahs, setShowSurahs] = useState(false);
+  const [showReciters, setShowReciters] = useState(false);
+  const [surahPages, setSurahPages] = useState<SurahPageRanges | null>(null);
+  const [reciterId, setReciterId] = useState<string | null>(null);
   /** Bumped when a font finishes registering, to re-render with real glyphs. */
   const [fontTick, setFontTick] = useState(0);
   const turningRef = useRef(false);
@@ -143,6 +178,9 @@ export function QuranPageViewScreen() {
 
   useEffect(() => {
     loadQuranPageStyle().then(setPageStyle);
+    loadSelectedReciter().then(setReciterId);
+    // Page ranges are needed the moment the surah list opens, so warm them now.
+    void getSurahPageRanges().then(setSurahPages);
   }, []);
 
   const fetchPage = useCallback(async (page: number) => {
@@ -210,6 +248,52 @@ export function QuranPageViewScreen() {
     [incomingPage, incomingX, windowWidth, finishTransition, language]
   );
 
+  /**
+   * Move straight to `page` without remounting the screen, so playback that is
+   * already running survives the jump.
+   */
+  const jumpToPage = useCallback(async (page: number) => {
+    if (page < 1 || page > TOTAL_PAGES) return;
+    setLoading(true);
+    setError(null);
+    const result = await loadPage(page);
+    if (result) {
+      setPageState({ displayPage: page, data: result, incomingPage: null, incomingData: null });
+      setFontTick((n) => n + 1);
+    } else {
+      setError(getString(language, 'quranLoadError'));
+    }
+    setLoading(false);
+  }, [language]);
+
+  /** Picking a surah goes to its first printed page and recites it from verse 1. */
+  const pickSurah = useCallback(
+    async (surahKey: string) => {
+      const surah = Number(surahKey);
+      setShowSurahs(false);
+      await hapticLight();
+      const range = surahPages?.[surah];
+      if (range) await jumpToPage(range[0]);
+      void playVerseByVerse(surah, 1);
+    },
+    [surahPages, jumpToPage, playVerseByVerse]
+  );
+
+  /** Switching reciter restarts the current verse with the new voice. */
+  const pickReciter = useCallback(
+    async (id: string) => {
+      setShowReciters(false);
+      await hapticLight();
+      setReciterId(id);
+      await saveSelectedReciter(id);
+      const { currentSurah, currentAyah } = audioState;
+      if (currentSurah != null && currentAyah != null) {
+        void playVerseByVerse(currentSurah, currentAyah);
+      }
+    },
+    [audioState, playVerseByVerse]
+  );
+
   const pickStyle = useCallback(async (style: QuranPageStyle) => {
     await hapticLight();
     setPageStyle(style);
@@ -250,6 +334,29 @@ export function QuranPageViewScreen() {
       : null;
 
   const isAudioActive = audioState.isPlaying || audioState.isPaused || audioState.isPreparing;
+  const reciter = QURAN_RECITERS.find((r) => r.id === reciterId);
+  const reciterName = reciter ? (language === 'ar' ? reciter.nameAr : reciter.nameEn) : '';
+
+  const surahItems = useMemo<SelectItem[]>(
+    () =>
+      SURAH_LIST.map((surah) => ({
+        key: String(surah.number),
+        badge: String(surah.number),
+        label: language === 'ar' ? surah.nameAr : surah.nameEn,
+        sublabel: `${surah.ayahCount} ${getString(language, 'verses')}`,
+      })),
+    [language]
+  );
+
+  const reciterItems = useMemo<SelectItem[]>(
+    () =>
+      QURAN_RECITERS.map((r) => ({
+        key: r.id,
+        label: language === 'ar' ? r.nameAr : r.nameEn,
+        sublabel: language === 'ar' ? r.nameEn : r.nameAr,
+      })),
+    [language]
+  );
   const playingSurah = SURAH_LIST.find((s) => s.number === audioState.currentSurah);
   const playingLabel = playingSurah
     ? `${language === 'ar' ? playingSurah.nameAr : playingSurah.nameEn} ${audioState.currentAyah ?? ''}`.trim()
@@ -277,8 +384,12 @@ export function QuranPageViewScreen() {
   return (
     <ScreenWrapper>
       <View style={styles.container}>
-        <BackBar />
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        {/* One solid band for back-bar and page controls, so the mushaf reads as
+            the same screen family as the verse reader rather than floating on
+            the app's ornate background. */}
+        <View style={styles.headerBand}>
+          <BackBar />
+          <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity
             onPress={() => void turnTo(displayPage - 1, -1)}
             disabled={displayPage <= 1 || loading || incomingPage != null}
@@ -295,6 +406,14 @@ export function QuranPageViewScreen() {
             {pageLabel} {displayPage} / {TOTAL_PAGES}
           </Text>
           <View style={styles.headerRight}>
+            <TouchableOpacity
+              onPress={() => setShowSurahs(true)}
+              style={styles.navBtn}
+              accessibilityRole="button"
+              accessibilityLabel={getString(language, 'selectSurah')}
+            >
+              <Ionicons name="list-outline" size={22} color={colors.text} />
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowStyles((v) => !v)}
               style={styles.navBtn}
@@ -319,6 +438,7 @@ export function QuranPageViewScreen() {
                 color={displayPage >= TOTAL_PAGES ? colors.textMuted : colors.text}
               />
             </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -356,6 +476,15 @@ export function QuranPageViewScreen() {
           </View>
         ) : data ? (
           <View style={[styles.slider, { width: windowWidth, backgroundColor: theme.pageBg }]}>
+            <ImageBackground
+              source={PAGE_TEXTURE}
+              resizeMode="cover"
+              style={StyleSheet.absoluteFill}
+            >
+              {theme.pageOverlay !== 'transparent' ? (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.pageOverlay }]} />
+              ) : null}
+            </ImageBackground>
             <View key="current" style={[styles.panel, { width: windowWidth }]} collapsable={false}>
               <PagePanel
                 data={data}
@@ -365,6 +494,7 @@ export function QuranPageViewScreen() {
                 fontReady={fontReady}
                 activeVerseKey={activeVerseKey}
                 language={language}
+                bottomInset={insets.bottom}
                 onPressVerse={handlePressVerse}
               />
             </View>
@@ -383,6 +513,7 @@ export function QuranPageViewScreen() {
                   fontReady={fontReadyPages.has(incomingPage) && fontsLoaded}
                   activeVerseKey={activeVerseKey}
                   language={language}
+                  bottomInset={insets.bottom}
                 />
               </Animated.View>
             )}
@@ -390,35 +521,40 @@ export function QuranPageViewScreen() {
         ) : null}
 
         {isAudioActive && (
-          <View style={[styles.playerBar, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
-            <Text style={[styles.playerLabel, { color: colors.text }]} numberOfLines={1}>
-              {playingLabel}
-            </Text>
-            <TouchableOpacity
-              onPress={() => (audioState.isPlaying ? pause() : resume())}
-              style={styles.navBtn}
-              accessibilityRole="button"
-              accessibilityLabel={getString(
-                language,
-                audioState.isPlaying ? 'pauseRecitation' : 'resumeRecitation'
-              )}
-            >
-              <Ionicons
-                name={audioState.isPlaying ? 'pause' : 'play'}
-                size={22}
-                color={colors.text}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => stop()}
-              style={styles.navBtn}
-              accessibilityRole="button"
-              accessibilityLabel={getString(language, 'stopRecitation')}
-            >
-              <Ionicons name="stop" size={22} color={colors.text} />
-            </TouchableOpacity>
-          </View>
+          <QuranPlayerBar
+            bottomInset={insets.bottom}
+            title={playingLabel}
+            reciterName={reciterName}
+            isPlaying={audioState.isPlaying}
+            isPreparing={audioState.isPreparing}
+            position={audioState.position}
+            duration={audioState.duration}
+            rate={audioState.rate}
+            repeatVerse={audioState.repeatVerse}
+            onTogglePlay={() => (audioState.isPlaying ? pause() : resume())}
+            onStop={() => stop()}
+            onSeek={seekTo}
+            onPressReciter={() => setShowReciters(true)}
+            onCycleRate={cycleRate}
+            onToggleRepeat={toggleRepeat}
+          />
         )}
+
+        <QuranSelectModal
+          visible={showSurahs}
+          title={getString(language, 'selectSurah')}
+          items={surahItems}
+          onSelect={(key) => void pickSurah(key)}
+          onClose={() => setShowSurahs(false)}
+        />
+        <QuranSelectModal
+          visible={showReciters}
+          title={getString(language, 'selectReciter')}
+          items={reciterItems}
+          selectedKey={reciterId ?? undefined}
+          onSelect={(key) => void pickReciter(key)}
+          onClose={() => setShowReciters(false)}
+        />
       </View>
     </ScreenWrapper>
   );
@@ -426,6 +562,7 @@ export function QuranPageViewScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  headerBand: { backgroundColor: 'rgba(18,35,28,0.85)' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -446,20 +583,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   styleLabel: { flex: 1, fontSize: fontSize.xs },
-  playerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  playerLabel: { flex: 1, fontSize: fontSize.sm, fontWeight: '600' },
   slider: { flex: 1, overflow: 'hidden' },
   panel: { flex: 1 },
   panelAbsolute: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   panelScroll: { flex: 1 },
-  scrollContent: { padding: PAGE_MARGIN, paddingBottom: spacing.xxl },
+  // Full-bleed, and flush to the header: the parchment behind covers the whole
+  // reading area, so any padding here would show as a strip of app background.
+  scrollContent: { paddingTop: spacing.sm },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { fontSize: fontSize.sm, textAlign: 'center', paddingHorizontal: spacing.lg },
   retryBtn: {

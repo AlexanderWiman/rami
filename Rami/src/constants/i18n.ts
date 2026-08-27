@@ -139,6 +139,7 @@ export const translations: Record<
     customAzanNotificationNote: string;
     customAzanError: string;
     selectReciter: string;
+    selectSurah: string;
     respectSilentMode: string;
     testSound: string;
     stopSound: string;
@@ -316,6 +317,8 @@ export const translations: Record<
     hadithRank: string;
     hadithUnavailable: string;
     hadithSources: string;
+    hadithApproximateMatch: string;
+    hadithShowFullText: string;
     supportUs: string;
     supportUsIntro: string;
     supportUsPaypal: string;
@@ -455,6 +458,7 @@ export const translations: Record<
     customAzanNotificationNote: 'Your own file plays in the app. The prayer notification uses the default notification sound.',
     customAzanError: 'Could not use that file. Try another audio file.',
     selectReciter: 'Select reciter',
+    selectSurah: 'Select surah',
     respectSilentMode: 'Respect silent mode',
     testSound: 'Test sound',
     stopSound: 'Stop sound',
@@ -652,6 +656,8 @@ export const translations: Record<
     hadithRank: 'Grading',
     hadithUnavailable: 'The hadith service is unavailable right now.',
     hadithSources: 'Sources',
+    hadithApproximateMatch: 'Closest matches — your exact wording was not found',
+    hadithShowFullText: 'Show the full text',
     supportUs: 'Support us',
     supportUsIntro: 'This app is developed and run with your help. Any contribution keeps it free of ads and helps us add more.',
     supportUsPaypal: 'Donate with PayPal',
@@ -812,6 +818,7 @@ export const translations: Record<
     customAzanNotificationNote: 'يُشغَّل ملفك داخل التطبيق. أما إشعار الصلاة فيستخدم صوت الإشعار الافتراضي.',
     customAzanError: 'لا يمكن استخدام هذا الملف. جرّب ملفًا صوتيًا آخر.',
     selectReciter: 'اختر القارئ',
+    selectSurah: 'اختر السورة',
     respectSilentMode: 'احترام الوضع الصامت',
     testSound: 'اختبار الصوت',
     stopSound: 'إيقاف الصوت',
@@ -1009,6 +1016,8 @@ export const translations: Record<
     hadithRank: 'الدرجة',
     hadithUnavailable: 'خدمة الحديث غير متاحة حاليًا.',
     hadithSources: 'المصادر',
+    hadithApproximateMatch: 'أقرب النتائج — لم يُعثر على نصك بالحرف',
+    hadithShowFullText: 'إظهار النص كاملًا',
     supportUs: 'ادعمنا',
     supportUsIntro: 'هذا التطبيق يُطوَّر ويعمل بمساعدتكم. أي تبرّع يبقيه خاليًا من الإعلانات ويساعدنا على إضافة المزيد.',
     supportUsPaypal: 'تبرّع عبر باي بال',
@@ -1169,6 +1178,7 @@ export const translations: Record<
     customAzanNotificationNote: 'Kendi dosyan uygulama içinde çalar. Namaz bildirimi varsayılan bildirim sesini kullanır.',
     customAzanError: 'Bu dosya kullanılamadı. Başka bir ses dosyası dene.',
     selectReciter: 'Okuyucu seç',
+    selectSurah: 'Sure seç',
     respectSilentMode: 'Sessiz modu dikkate al',
     testSound: 'Sesi test et',
     stopSound: 'Sesi durdur',
@@ -1366,6 +1376,8 @@ export const translations: Record<
     hadithRank: 'Derece',
     hadithUnavailable: 'Hadis servisi şu anda kullanılamıyor.',
     hadithSources: 'Kaynaklar',
+    hadithApproximateMatch: 'En yakın sonuçlar — tam olarak yazdığınız ifade bulunamadı',
+    hadithShowFullText: 'Metnin tamamını göster',
     supportUs: 'Bize destek ol',
     supportUsIntro: 'Bu uygulama sizin desteğinizle geliştiriliyor. Her katkı, reklamsız kalmasına ve daha fazlasını eklemeye yardımcı olur.',
     supportUsPaypal: 'PayPal ile bağış yap',
@@ -1527,6 +1539,7 @@ export const translations: Record<
     customAzanNotificationNote: 'Votre fichier est joué dans l’application. La notification de prière utilise le son par défaut.',
     customAzanError: 'Ce fichier n’a pas pu être utilisé. Essayez un autre fichier audio.',
     selectReciter: 'Choisir le récitateur',
+    selectSurah: 'Choisir la sourate',
     respectSilentMode: 'Respecter le mode silencieux',
     testSound: 'Tester le son',
     stopSound: 'Arrêter le son',
@@ -1724,6 +1737,8 @@ export const translations: Record<
     hadithRank: 'Degré',
     hadithUnavailable: 'Le service de hadith est indisponible pour le moment.',
     hadithSources: 'Sources',
+    hadithApproximateMatch: 'Résultats les plus proches — votre formulation exacte est introuvable',
+    hadithShowFullText: 'Afficher le texte complet',
     supportUs: 'Nous soutenir',
     supportUsIntro: 'Cette application vit grâce à votre aide. Chaque don la garde sans publicité et nous aide à l’enrichir.',
     supportUsPaypal: 'Faire un don via PayPal',
@@ -1884,6 +1899,7 @@ export const translations: Record<
     customAzanNotificationNote: 'Tu archivo suena en la aplicación. La notificación de oración usa el sonido predeterminado.',
     customAzanError: 'No se pudo usar ese archivo. Prueba otro archivo de audio.',
     selectReciter: 'Seleccionar recitador',
+    selectSurah: 'Elegir la sura',
     respectSilentMode: 'Respetar modo silencio',
     testSound: 'Probar sonido',
     stopSound: 'Detener sonido',
@@ -2081,6 +2097,8 @@ export const translations: Record<
     hadithRank: 'Grado',
     hadithUnavailable: 'El servicio de hadiz no está disponible en este momento.',
     hadithSources: 'Fuentes',
+    hadithApproximateMatch: 'Resultados más cercanos: no se encontró tu redacción exacta',
+    hadithShowFullText: 'Mostrar el texto completo',
     supportUs: 'Apóyanos',
     supportUsIntro: 'Esta aplicación se mantiene con tu ayuda. Cada aportación la mantiene sin anuncios y nos ayuda a mejorarla.',
     supportUsPaypal: 'Donar con PayPal',
@@ -2241,6 +2259,7 @@ export const translations: Record<
     customAzanNotificationNote: 'Din egen fil spelas i appen. Bönenotisen använder standardljudet för notiser.',
     customAzanError: 'Filen kunde inte användas. Prova en annan ljudfil.',
     selectReciter: 'Välj recitator',
+    selectSurah: 'Välj surah',
     respectSilentMode: 'Respektera tyst läge',
     testSound: 'Testa ljud',
     stopSound: 'Stoppa ljud',
@@ -2438,6 +2457,8 @@ export const translations: Record<
     hadithRank: 'Gradering',
     hadithUnavailable: 'Hadithtjänsten är inte tillgänglig just nu.',
     hadithSources: 'Källor',
+    hadithApproximateMatch: 'Närmaste träffar — din exakta formulering hittades inte',
+    hadithShowFullText: 'Visa hela texten',
     supportUs: 'Stöd oss',
     supportUsIntro: 'Appen utvecklas och drivs med din hjälp. Varje bidrag håller den fri från annonser och hjälper oss lägga till mer.',
     supportUsPaypal: 'Donera med PayPal',
@@ -2598,6 +2619,7 @@ export const translations: Record<
     customAzanNotificationNote: 'Deine Datei wird in der App abgespielt. Die Gebetsbenachrichtigung nutzt den Standardton.',
     customAzanError: 'Diese Datei konnte nicht verwendet werden. Probiere eine andere Audiodatei.',
     selectReciter: 'Rezitator wählen',
+    selectSurah: 'Sure wählen',
     respectSilentMode: 'Stummmodus respektieren',
     testSound: 'Sound testen',
     stopSound: 'Sound stoppen',
@@ -2795,6 +2817,8 @@ export const translations: Record<
     hadithRank: 'Bewertung',
     hadithUnavailable: 'Der Hadith-Dienst ist derzeit nicht verfügbar.',
     hadithSources: 'Quellen',
+    hadithApproximateMatch: 'Nächste Treffer — dein genauer Wortlaut wurde nicht gefunden',
+    hadithShowFullText: 'Vollständigen Text anzeigen',
     supportUs: 'Unterstütze uns',
     supportUsIntro: 'Diese App lebt von deiner Hilfe. Jeder Beitrag hält sie werbefrei und hilft beim Ausbau.',
     supportUsPaypal: 'Mit PayPal spenden',

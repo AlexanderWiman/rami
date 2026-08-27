@@ -3,8 +3,8 @@
  * Uses SVG rounded rect so Android corners stay round.
  * Royal theme: dark gold glass with gold border.
  */
-import React from 'react';
-import { View, StyleSheet, ViewStyle, StyleProp, Platform } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, StyleSheet, ViewStyle, StyleProp, Platform, type LayoutChangeEvent } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 import { useTheme } from '../theme/ThemeContext';
 import { spacing, radius } from '../theme/spacing';
@@ -44,15 +44,37 @@ export function GlassCard({
   // Use Royal colors if in Royal mode and no explicit colors provided
   const finalFill = fillColor ?? (isRoyal ? ROYAL_FILL : colors.surfaceGlass);
   const finalStroke = strokeColor ?? (isRoyal ? ROYAL_STROKE : colors.border);
-  
+
+  /**
+   * react-native-svg sizes its canvas once and does not repaint when the parent
+   * grows, so a percentage-sized rect keeps the height the card had at mount —
+   * content that expands afterwards then spills outside the painted box. The
+   * measured size is fed back in as pixels, which does repaint. Percentages are
+   * kept until the first measurement so nothing flickers on the way in.
+   */
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    setSize((prev) =>
+      prev && Math.abs(prev.width - width) < 1 && Math.abs(prev.height - height) < 1
+        ? prev
+        : { width, height }
+    );
+  }, []);
+
   return (
-    <View style={[styles.card, { borderRadius, overflow: 'hidden' }, style]}>
-      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+    <View style={[styles.card, { borderRadius, overflow: 'hidden' }, style]} onLayout={handleLayout}>
+      <Svg
+        style={StyleSheet.absoluteFill}
+        width={size?.width ?? '100%'}
+        height={size?.height ?? '100%'}
+        pointerEvents="none"
+      >
         <Rect
           x="0"
           y="0"
-          width="100%"
-          height="100%"
+          width={size?.width ?? '100%'}
+          height={size?.height ?? '100%'}
           rx={cardRadius}
           ry={cardRadius}
           fill={finalFill}
