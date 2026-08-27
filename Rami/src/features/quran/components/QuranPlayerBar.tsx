@@ -35,6 +35,11 @@ interface Props {
   title: string;
   /** Safe-area inset at the bottom, so the controls clear the system nav bar. */
   bottomInset: number;
+  /**
+   * Drops the panel background and top border so the player can sit inside a
+   * header that already has its own surface, instead of drawing a second one.
+   */
+  embedded?: boolean;
   reciterName: string;
   isPlaying: boolean;
   isPreparing: boolean;
@@ -53,6 +58,7 @@ interface Props {
 export function QuranPlayerBar({
   title,
   bottomInset,
+  embedded = false,
   reciterName,
   isPlaying,
   isPreparing,
@@ -104,11 +110,13 @@ export function QuranPlayerBar({
     <View
       style={[
         styles.bar,
-        {
-          borderTopColor: colors.border,
-          backgroundColor: isRoyal ? 'rgba(6,18,13,0.96)' : colors.surface,
-          paddingBottom: spacing.sm + bottomInset,
-        },
+        embedded
+          ? { borderTopWidth: 0, paddingBottom: spacing.xs }
+          : {
+              borderTopColor: colors.border,
+              backgroundColor: isRoyal ? 'rgba(6,18,13,0.96)' : colors.surface,
+              paddingBottom: spacing.sm + bottomInset,
+            },
       ]}
     >
       <View style={styles.topRow}>
