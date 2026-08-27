@@ -66,7 +66,7 @@ router.post('/register', async (req: Request, res: Response) => {
         timezone ?? 'UTC',
         latitude ?? null,
         longitude ?? null,
-        calculationMethod ?? 'Diyanet',
+        calculationMethod ?? 'MWL',
         asrMethod ?? 'Shafi',
         highLatitudeRule ?? 'MiddleOfNight',
         prayerOffsets ? JSON.stringify(prayerOffsets) : null,

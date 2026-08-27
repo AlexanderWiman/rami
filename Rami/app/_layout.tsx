@@ -1,5 +1,5 @@
 import 'expo-asset';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider as NavigationThemeProvider, DarkTheme, DefaultTheme } from "expo-router/react-navigation";
@@ -16,6 +16,7 @@ import { LanguageProvider } from '../src/contexts/LanguageContext';
 import { AdminProvider } from '../src/features/admin/AdminContext';
 import { QuranAudioProvider } from '../src/features/quran/context/QuranAudioContext';
 import { applyPendingUpdateOnLaunch } from '../src/services/autoUpdate';
+import { UpdateOverlay } from '../src/components/UpdateOverlay';
 
 const TransparentLightTheme = {
   ...DefaultTheme,
@@ -50,8 +51,13 @@ export default function RootLayout() {
 
   // Before anything else on a cold start: take a pending OTA update if one is
   // ready quickly, so it does not wait for a second launch to appear.
+  const [downloadingUpdate, setDownloadingUpdate] = useState(false);
   useEffect(() => {
-    void applyPendingUpdateOnLaunch();
+    // The flag is cleared on the way out for the case where the download did not
+    // finish inside its budget: then there is no reload and the notice must go.
+    void applyPendingUpdateOnLaunch(() => setDownloadingUpdate(true)).finally(() =>
+      setDownloadingUpdate(false)
+    );
   }, []);
 
   useEffect(() => {
@@ -208,11 +214,13 @@ export default function RootLayout() {
               <Stack.Screen name="tasbih" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="adkhar" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="hadith" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
+              <Stack.Screen name="quiz" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="support" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="location-picker" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="prayer-times" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="admin" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
             </Stack>
+            {downloadingUpdate && <UpdateOverlay />}
           </NavigationThemeProvider>
           </QuranAudioProvider>
         </AdminProvider>

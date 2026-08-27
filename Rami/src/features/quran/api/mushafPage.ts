@@ -39,6 +39,8 @@ export type MushafLine =
 
 export interface MushafPageData {
   page: number;
+  /** Juz this page falls in. Absent for pages cached before it was recorded. */
+  juz?: number;
   lines: MushafLine[];
   /** Verse keys on the page in reading order — used to follow the recitation. */
   verseKeys: string[];
@@ -56,6 +58,7 @@ interface ApiVerse {
   verse_key: string;
   verse_number: number;
   text_uthmani?: string;
+  juz_number?: number;
   words?: ApiWord[];
 }
 
@@ -165,7 +168,8 @@ export async function getMushafPage(page: number): Promise<MushafPageData | null
   try {
     const url =
       `${API_BASE}/verses/by_page/${page}` +
-      '?words=true&per_page=50&fields=text_uthmani&word_fields=code_v1,line_number,char_type_name';
+      '?words=true&per_page=50&fields=text_uthmani,juz_number' +
+      '&word_fields=code_v1,line_number,char_type_name';
     const response = await fetchWithTimeout(url);
     if (!response.ok) return null;
     const json = (await response.json()) as { verses?: ApiVerse[] };
@@ -174,6 +178,7 @@ export async function getMushafPage(page: number): Promise<MushafPageData | null
 
     const data: MushafPageData = {
       page,
+      juz: verses[0]?.juz_number,
       lines: buildLines(verses),
       verseKeys: verses.map((v) => v.verse_key),
       uthmani: Object.fromEntries(verses.map((v) => [v.verse_key, v.text_uthmani ?? ''])),

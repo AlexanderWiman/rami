@@ -13,6 +13,7 @@ import asmaRoutes from './routes/asma';
 import pushRoutes from './routes/push';
 import hadithRoutes from './routes/hadith';
 import quranRoutes from './routes/quran';
+import metricsRoutes from './routes/metrics';
 import { startPushScheduler } from './services/pushScheduler';
 
 dotenv.config();
@@ -41,6 +42,7 @@ app.use('/api', asmaRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/hadith', hadithRoutes);
 app.use('/api/quran', quranRoutes);
+app.use('/api/metrics', metricsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

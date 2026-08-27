@@ -34,7 +34,8 @@ export type QuickMenuIconName =
   | 'forum'
   | 'calendar'
   | 'hadith'
-  | 'support';
+  | 'support'
+  | 'quiz';
 
 export type QuickMenuItem = {
   key: string;
@@ -145,6 +146,14 @@ export function QuickMenuIcon({ name, color }: { name: QuickMenuIconName; color:
           <Path d="M3 12v4a5 5 0 0 0 2 4h4M21 12v4a5 5 0 0 1-2 4h-4" {...strokeProps} />
         </Svg>
       );
+    case 'quiz':
+      // Lightbulb — playful learning
+      return (
+        <Svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24">
+          <Path d="M12 3a6 6 0 0 0-3.5 10.9c.32.24.5.61.5 1.01V16h6v-1.09c0-.4.18-.77.5-1.01A6 6 0 0 0 12 3z" {...strokeProps} />
+          <Path d="M9.5 19h5M10.5 21.5h3" {...strokeProps} />
+        </Svg>
+      );
     case 'calendar':
       return (
         <Svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24">
@@ -159,6 +168,7 @@ export function QuickMenuIcon({ name, color }: { name: QuickMenuIconName; color:
 const PANEL_PADDING = 20;
 const GUTTER = 14;
 const BADGE_SIZE = 60;
+const COLUMNS = 4;
 
 type QuickMenuGridProps = {
   items: QuickMenuItem[];
@@ -234,10 +244,11 @@ export function QuickMenuGrid({ items, variant = 'light' }: QuickMenuGridProps) 
 
   const cardRadius = Platform.OS === 'android' ? PANEL_RADIUS + 4 : PANEL_RADIUS;
 
-  // Support up to 3 rows dynamically
-  const row1 = items.slice(0, 4);
-  const row2 = items.slice(4, 8);
-  const row3 = items.slice(8, 12);
+  // Valfritt antal rader; sista raden fylls ut med tomma platser.
+  const rows: QuickMenuItem[][] = [];
+  for (let i = 0; i < items.length; i += COLUMNS) {
+    rows.push(items.slice(i, i + COLUMNS));
+  }
 
   return (
     <View style={[styles.panel, { borderRadius: PANEL_RADIUS }]}>
@@ -255,31 +266,12 @@ export function QuickMenuGrid({ items, variant = 'light' }: QuickMenuGridProps) 
         />
       </Svg>
       <View style={[styles.grid, { padding: PANEL_PADDING }]}>
-        <View style={styles.row}>
-          {row1.map((item) => (
-            <GridItem
-              key={item.key}
-              item={item}
-              badgeBg={badgeBg}
-              badgeRing={badgeRing}
-              labelColor={labelColor}
-            />
-          ))}
-        </View>
-        <View style={[styles.row, row3.length === 0 && styles.rowLast]}>
-          {row2.map((item) => (
-            <GridItem
-              key={item.key}
-              item={item}
-              badgeBg={badgeBg}
-              badgeRing={badgeRing}
-              labelColor={labelColor}
-            />
-          ))}
-        </View>
-        {row3.length > 0 && (
-          <View style={[styles.row, styles.rowLast]}>
-            {row3.map((item) => (
+        {rows.map((row, rowIndex) => (
+          <View
+            key={rowIndex}
+            style={[styles.row, rowIndex === rows.length - 1 && styles.rowLast]}
+          >
+            {row.map((item) => (
               <GridItem
                 key={item.key}
                 item={item}
@@ -288,8 +280,12 @@ export function QuickMenuGrid({ items, variant = 'light' }: QuickMenuGridProps) 
                 labelColor={labelColor}
               />
             ))}
+            {/* En halvfull rad fylls ut så ikonerna står kvar i sin kolumn. */}
+            {Array.from({ length: COLUMNS - row.length }, (_, i) => (
+              <View key={`filler-${i}`} style={styles.item} pointerEvents="none" />
+            ))}
           </View>
-        )}
+        ))}
       </View>
     </View>
   );
@@ -385,6 +381,7 @@ export function getMenuItems(
     { key: 'tasbih', label: getString(language, 'tasbihTitle'), iconName: 'tasbih', route: '/tasbih' },
     { key: 'names', label: getString(language, 'namesOfAllahTitle'), iconName: 'names', route: '/names' },
     { key: 'adkhar', label: getString(language, 'navAdkhar'), iconName: 'adkhar', route: '/adkhar' },
+    { key: 'quiz', label: getString(language, 'quizTitle'), iconName: 'quiz', route: '/quiz' },
     { key: 'forum', label: getString(language, 'doubts'), iconName: 'forum', route: '/forum' },
     { key: 'settings', label: getString(language, 'navSettings'), iconName: 'settings', route: '/settings' },
   ];

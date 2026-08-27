@@ -9,6 +9,8 @@ const CALCULATION_METHOD_TO_ID: Record<string, number> = {
   UmmAlQura: 4,
   Karachi: 1,
   Diyanet: 13,
+  Algeria: 19,
+  Morocco: 21,
 };
 
 const ASR_METHOD_TO_SCHOOL: Record<string, number> = {
@@ -186,7 +188,7 @@ export async function computeScheduledPushes(
     return [];
   }
 
-  const method = CALCULATION_METHOD_TO_ID[device.calculation_method] ?? 13;
+  const method = CALCULATION_METHOD_TO_ID[device.calculation_method] ?? 3;
   const school = ASR_METHOD_TO_SCHOOL[device.asr_method] ?? 0;
   const latAdj = HIGH_LATITUDE_TO_PARAM[device.high_latitude_rule] ?? 1;
   const offsets = device.prayer_offsets ?? {};

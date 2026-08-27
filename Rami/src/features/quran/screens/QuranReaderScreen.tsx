@@ -2,7 +2,7 @@
  * Quran reader — Soft Mushaf Mode (premium look).
  * Tap verse number/ornament to play; long-press opens BottomSheet.
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,7 @@ import { Asset } from 'expo-asset';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Amiri_400Regular } from '@expo-google-fonts/amiri';
 import {
   loadBookmarks,
@@ -46,6 +47,8 @@ import {
   saveSelectedReciter,
 } from '../storage/quranStorage';
 import { SURAH_LIST } from '../data/surahs';
+import { QuranPlayerBar } from '../components/QuranPlayerBar';
+import { QuranSelectModal, type SelectItem } from '../components/QuranSelectModal';
 import { QURAN_RECITERS, type ReciterId } from '../constants/reciters';
 import { useQuranAudioContext } from '../context/QuranAudioContext';
 import { hapticSuccess, hapticLight } from '../../../utils/haptics';
@@ -65,8 +68,8 @@ const GOLD_BORDER = 'rgba(230,194,122,0.22)';
 const GOLD_BORDER_STRONG = 'rgba(230,194,122,0.8)';
 const ARABIC_COLOR = '#1a1a1a';
 /** Colour the recited verse takes, matching the mushaf. No panel behind it. */
-const VERSE_PLAYING_COLOR = '#0F6B4F';
-const VERSE_PLAYING_COLOR_ROYAL = '#F0CE86';
+const VERSE_PLAYING_COLOR = '#1B8A5A';
+const VERSE_PLAYING_COLOR_ROYAL = '#FFD98A';
 const PAGE_BG_ROYAL = 'rgba(10, 25, 18, 0.82)';
 const PAGE_BG_IMAGE = require('../../../../assets/quran_page_bg.jpg');
 const PAGE_LINE_SPACING = 60;
@@ -133,8 +136,18 @@ export function QuranReaderScreen() {
   const surahNum = parseInt(params.surah ?? '1', 10);
   const startAyah = params.ayah ? parseInt(params.ayah, 10) : 1;
   const surah = SURAH_LIST.find((s) => s.number === surahNum) ?? SURAH_LIST[0];
-  const { playAyah, playVerseByVerse, pause, resume, stop, clearError, state: audioState } =
-    useQuranAudioContext();
+  const {
+    playAyah,
+    playVerseByVerse,
+    pause,
+    resume,
+    stop,
+    seekTo,
+    cycleRate,
+    toggleRepeat,
+    clearError,
+    state: audioState,
+  } = useQuranAudioContext();
   const [selectedReciter, setSelectedReciter] = useState<ReciterId | null>(null);
   const [showReciterModal, setShowReciterModal] = useState(false);
   const [bookmarks, setBookmarks] = useState<{ surah: number; ayah: number }[]>([]);
@@ -143,6 +156,27 @@ export function QuranReaderScreen() {
   const [textError, setTextError] = useState<string | null>(null);
   const [sheetAyah, setSheetAyah] = useState<number | null>(null);
   const [showTapHint, setShowTapHint] = useState(false);
+  const [showSurahPicker, setShowSurahPicker] = useState(false);
+  /**
+   * Whether a translation sits under each verse. It decides the page's whole
+   * rhythm: ruled paper works for uniform Arabic rows, not for verse blocks of
+   * differing height, so the two are mutually exclusive.
+   */
+  const showsTranslation = true; // TEMP verify
+
+  /** Measured so the last verse is never hidden behind the fixed player. */
+  const [playerHeight, setPlayerHeight] = useState(150);
+
+  const surahItems = useMemo<SelectItem[]>(
+    () =>
+      SURAH_LIST.map((item) => ({
+        key: String(item.number),
+        badge: String(item.number),
+        label: language === 'ar' ? item.nameAr : item.nameEn,
+        sublabel: `${item.ayahCount} ${getString(language, 'verses')}`,
+      })),
+    [language]
+  );
   const [verseBlockLayout, setVerseBlockLayout] = useState({ top: 0, height: 0 });
   const [pageHeight, setPageHeight] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
@@ -292,6 +326,35 @@ export function QuranReaderScreen() {
     [audioState.currentSurah, audioState.currentAyah, audioState.isPlaying, audioState.isPaused, surahNum, playAyah, pause, resume]
   );
 
+  /**
+   * A tap on the verse plays from it — the brief's main gesture. The sheet with
+   * its other options is not lost, it moves to a long press.
+   */
+  const handleVersePress = useCallback(
+    (ayah: number) => {
+      const isThisVerse = audioState.currentSurah === surahNum && audioState.currentAyah === ayah;
+      if (isThisVerse && audioState.isPlaying) {
+        pause();
+        return;
+      }
+      if (isThisVerse && audioState.isPaused) {
+        resume();
+        return;
+      }
+      void playVerseByVerse(surahNum, ayah);
+    },
+    [
+      audioState.currentSurah,
+      audioState.currentAyah,
+      audioState.isPlaying,
+      audioState.isPaused,
+      surahNum,
+      pause,
+      resume,
+      playVerseByVerse,
+    ]
+  );
+
   const dismissTapHint = useCallback(() => {
     setShowTapHint(false);
     setTapVerseHintShown();
@@ -401,7 +464,7 @@ export function QuranReaderScreen() {
         style={[
           styles.headerWrap,
           {
-            paddingTop: insets.top + 10,
+            paddingTop: insets.top + 4,
           },
           DEBUG_BORDERS && styles.debugHeaderWrap,
         ]}
@@ -413,106 +476,39 @@ export function QuranReaderScreen() {
           <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
         )}
         <View style={styles.headerTint} />
-        <TouchableOpacity
-          style={[styles.reciterChip, { borderColor: GOLD_BORDER, backgroundColor: 'rgba(214,179,106,0.15)' }]}
-          onPress={() => setShowReciterModal(true)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.reciterChipText} numberOfLines={1}>
-            {selectedReciter
-              ? getReciterLabel(language, selectedReciter)
-              : getString(language, 'selectReciter')}
+        {/* One primary control only — play/pause in the player below. Everything
+            here is secondary: a plain back link and a compact surah picker. */}
+        <View style={styles.navRow}>
+          {/* The same back treatment as the mushaf, which reads better than the
+              bare link this replaced. The surah is named by the title below, so
+              the picker only needs its icon. */}
+          <BackBar />
+          <TouchableOpacity
+            onPress={() => setShowSurahPicker(true)}
+            style={styles.surahPickerIcon}
+            accessibilityRole="button"
+            accessibilityLabel={getString(language, 'selectSurah')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="list-outline" size={22} color={HEADER_GOLD} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.titleBlock}>
+          <Text style={[styles.titleArabic, { fontFamily: arabicFontFamily }]} numberOfLines={1}>
+            {surah.nameAr}
           </Text>
-          <Text style={styles.reciterChipChevron}>▾</Text>
-        </TouchableOpacity>
-        <View style={[styles.header, DEBUG_BORDERS && styles.debugHeaderInner]}>
-          <View style={styles.backBtn}>
-            <BackBar />
-          </View>
-          <View style={[styles.headerCenter, DEBUG_BORDERS && styles.debugHeaderCenter]}>
-            <View style={styles.headerOrnament}>
-              <Svg width={16} height={16} viewBox="0 0 24 24">
-                <Path
-                  d="M14.5 2.5a8.5 8.5 0 1 0 0 19 7 7 0 1 1 0-19z"
-                  fill={HEADER_GOLD}
-                />
-              </Svg>
-            </View>
-            <Text style={[styles.headerTitleArabic, { fontFamily: arabicFontFamily }]}>{surah.nameAr}</Text>
-            <Text style={styles.headerTitleLatin}>{surah.nameEn}</Text>
-          </View>
-          <View style={styles.headerSpacer} />
+          {language !== 'ar' && (
+            <Text style={styles.titleLatin} numberOfLines={1}>
+              {surah.nameEn}
+            </Text>
+          )}
+          <Text style={styles.titleMeta}>
+            {getString(language, 'surahLabel')} {surah.number} · {surah.ayahCount}{' '}
+            {getString(language, 'verses')}
+          </Text>
         </View>
-        <View style={[styles.playerBarRow, DEBUG_BORDERS && styles.debugHeaderRight]}>
-          <View style={styles.playerBar}>
-            <TouchableOpacity
-              onPress={() => {
-                if (audioState.isPaused && audioState.currentSurah === surahNum) {
-                  resume();
-                } else {
-                  playVerseByVerse(surahNum, 1);
-                }
-              }}
-              activeOpacity={0.85}
-              style={[
-                styles.playerBtn,
-                { borderColor: isRoyal ? 'rgba(214,179,106,0.35)' : colors.border, backgroundColor: isRoyal ? 'rgba(214,179,106,0.15)' : colors.surfaceGlass },
-                !audioState.isPlaying && (audioState.isPaused && audioState.currentSurah !== surahNum || !audioState.isPaused) && {
-                  backgroundColor: isRoyal ? 'rgba(214,179,106,0.35)' : colors.highlightGlow,
-                  borderColor: isRoyal ? 'rgba(214,179,106,0.6)' : colors.highlight,
-                },
-              ]}
-              disabled={audioState.isPlaying}
-            >
-              <Svg width={18} height={18} viewBox="0 0 24 24" fill={audioState.isPlaying ? (isRoyal ? 'rgba(60,42,18,0.4)' : colors.textMuted) : (isRoyal ? '#3C2A12' : colors.text)}>
-                <Path d="M8 5v14l11-7z" />
-              </Svg>
-              <Text style={[styles.playerBtnText, { color: audioState.isPlaying ? (isRoyal ? 'rgba(60,42,18,0.4)' : colors.textMuted) : (isRoyal ? '#3C2A12' : colors.text) }]}>
-                {audioState.isPlaying ? getString(language, 'playRecitation') : (audioState.isPaused && audioState.currentSurah === surahNum ? getString(language, 'resumeRecitation') : getString(language, 'playRecitation'))}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => pause()}
-              activeOpacity={0.85}
-              style={[
-                styles.playerBtn,
-                { borderColor: isRoyal ? 'rgba(214,179,106,0.35)' : colors.border, backgroundColor: isRoyal ? 'rgba(214,179,106,0.15)' : colors.surfaceGlass },
-                (audioState.isPlaying || audioState.isPaused) && {
-                  backgroundColor: isRoyal ? 'rgba(214,179,106,0.35)' : colors.highlightGlow,
-                  borderColor: isRoyal ? 'rgba(214,179,106,0.6)' : colors.highlight,
-                },
-              ]}
-              disabled={!audioState.isPlaying && !audioState.isPaused}
-            >
-              <Svg width={18} height={18} viewBox="0 0 24 24" fill={audioState.isPlaying || audioState.isPaused ? (isRoyal ? '#3C2A12' : colors.text) : (isRoyal ? 'rgba(60,42,18,0.4)' : colors.textMuted)}>
-                <Path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-              </Svg>
-              <Text style={[styles.playerBtnText, { color: audioState.isPlaying || audioState.isPaused ? (isRoyal ? '#3C2A12' : colors.text) : (isRoyal ? 'rgba(60,42,18,0.4)' : colors.textMuted) }]}>
-                {getString(language, 'pauseRecitation')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => stop()}
-              activeOpacity={0.85}
-              style={[
-                styles.playerBtn,
-                { borderColor: isRoyal ? 'rgba(214,179,106,0.35)' : colors.border, backgroundColor: isRoyal ? 'rgba(214,179,106,0.15)' : colors.surfaceGlass },
-                (audioState.isPlaying || audioState.isPaused) && {
-                  backgroundColor: isRoyal ? 'rgba(214,179,106,0.35)' : colors.highlightGlow,
-                  borderColor: isRoyal ? 'rgba(214,179,106,0.6)' : colors.highlight,
-                },
-              ]}
-              disabled={!audioState.isPlaying && !audioState.isPaused}
-            >
-              <Svg width={18} height={18} viewBox="0 0 24 24" fill={audioState.isPlaying || audioState.isPaused ? (isRoyal ? '#3C2A12' : colors.text) : (isRoyal ? 'rgba(60,42,18,0.4)' : colors.textMuted)}>
-                <Path d="M6 6h12v12H6z" />
-              </Svg>
-              <Text style={[styles.playerBtnText, { color: audioState.isPlaying || audioState.isPaused ? (isRoyal ? '#3C2A12' : colors.text) : (isRoyal ? 'rgba(60,42,18,0.4)' : colors.textMuted) }]}>
-                {getString(language, 'stopRecitation')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+
         <LinearGradient
           colors={['transparent', HEADER_GOLD, 'transparent']}
           start={{ x: 0, y: 0 }}
@@ -524,7 +520,12 @@ export function QuranReaderScreen() {
             style={[styles.headerHint, isRoyal && styles.headerHintRoyal]}
             onPress={dismissTapHint}
           >
-            <Text style={[styles.headerHintText, { color: isRoyal ? 'rgba(245,241,230,0.8)' : colors.textMuted }]}>
+            <Ionicons
+              name="information-circle-outline"
+              size={12}
+              color={isRoyal ? 'rgba(245,241,230,0.7)' : colors.textMuted}
+            />
+            <Text style={[styles.headerHintText, { color: isRoyal ? 'rgba(245,241,230,0.7)' : colors.textMuted }]}>
               {getString(language, 'tapVerseHint')}
             </Text>
           </Pressable>
@@ -537,7 +538,7 @@ export function QuranReaderScreen() {
           styles.scrollContent,
           {
             paddingTop: 0,
-            paddingBottom: 60 + insets.bottom,
+            paddingBottom: playerHeight + insets.bottom + 16,
           },
           DEBUG_BORDERS && styles.debugScrollContent,
         ]}
@@ -573,7 +574,7 @@ export function QuranReaderScreen() {
             ]}
             onLayout={(event) => setPageHeight(event.nativeEvent.layout.height)}
           >
-            {verseBlockLayout.height > 0 && (
+            {verseBlockLayout.height > 0 && !showsTranslation && (
               <View pointerEvents="none" style={[styles.pageLines, DEBUG_BORDERS && styles.debugPageLines]}>
                 {Array.from({
                   length: Math.max(
@@ -659,11 +660,24 @@ export function QuranReaderScreen() {
                       const { y } = e.nativeEvent.layout;
                       verseYRef.current[ayah] = y;
                     }}
-                    style={styles.verseRow}
+                    style={[
+                      styles.verseRow,
+                      showsTranslation && styles.verseRowSpaced,
+                      isThisAyahPlaying && {
+                        // Start edge, which is the right in RTL — a left bar would
+                        // land where the line ends rather than where it begins.
+                        borderRightWidth: 2,
+                        borderRightColor: isRoyal ? VERSE_PLAYING_COLOR_ROYAL : VERSE_PLAYING_COLOR,
+                        paddingRight: 8,
+                      },
+                    ]}
                   >
                     <TouchableOpacity
                       activeOpacity={0.85}
-                      onPress={() => openAyahSheet(ayah)}
+                      onPress={() => handleVersePress(ayah)}
+                      onLongPress={() => openAyahSheet(ayah)}
+                      delayLongPress={300}
+                      accessibilityRole="button"
                     >
                       <Text
                         style={[
@@ -701,6 +715,19 @@ export function QuranReaderScreen() {
                           {`﴿${toArabicIndic(ayah)}﴾`}
                         </Text>
                       </Text>
+                      {/* The translation is why this mode exists next to the
+                          mushaf; it was reachable only by opening the sheet.
+                          Left out when reading in Arabic, where it adds nothing. */}
+                      {showsTranslation && ayahText[ayah]?.en ? (
+                        <Text
+                          style={[
+                            styles.verseTranslation,
+                            { color: isRoyal ? 'rgba(60,45,25,0.75)' : colors.textSecondary },
+                          ]}
+                        >
+                          {ayahText[ayah].en}
+                        </Text>
+                      ) : null}
                     </TouchableOpacity>
                   </View>
                 );
@@ -710,6 +737,40 @@ export function QuranReaderScreen() {
           </View>
         )}
       </ScrollView>
+
+      <View onLayout={(e) => setPlayerHeight(e.nativeEvent.layout.height)}>
+        <QuranPlayerBar
+          bottomInset={insets.bottom}
+          title={
+            audioState.currentSurah === surahNum && audioState.currentAyah != null
+              ? `${getString(language, 'ayah')} ${audioState.currentAyah}`
+              : (language === 'ar' ? surah.nameAr : surah.nameEn)
+          }
+          reciterName={selectedReciter ? getReciterLabel(language, selectedReciter) : ''}
+          isPlaying={audioState.isPlaying}
+          isPreparing={audioState.isPreparing}
+          position={audioState.position}
+          duration={audioState.duration}
+          rate={audioState.rate}
+          repeatVerse={audioState.repeatVerse}
+          onTogglePlay={() => {
+            if (audioState.isPlaying) {
+              pause();
+              return;
+            }
+            if (audioState.isPaused && audioState.currentSurah === surahNum) {
+              resume();
+              return;
+            }
+            playVerseByVerse(surahNum, 1);
+          }}
+          onStop={() => stop()}
+          onSeek={seekTo}
+          onPressReciter={() => setShowReciterModal(true)}
+          onCycleRate={cycleRate}
+          onToggleRepeat={toggleRepeat}
+        />
+      </View>
 
       {/* Ayah BottomSheet */}
       <Modal
@@ -875,14 +936,54 @@ export function QuranReaderScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+      <QuranSelectModal
+        visible={showSurahPicker}
+        title={getString(language, 'selectSurah')}
+        items={surahItems}
+        selectedKey={String(surahNum)}
+        onSelect={(key) => {
+          setShowSurahPicker(false);
+          if (Number(key) !== surahNum) router.replace(`/quran/${Number(key)}` as const);
+        }}
+        onClose={() => setShowSurahPicker(false)}
+      />
     </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
+  // One row of secondary navigation: a plain back link, a compact surah picker.
+  // Deliberately no pills or filled buttons — the only filled control on the
+  // screen is the round play/pause in the player.
+  navRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 32,
+  },
+  backLink: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, flexShrink: 0 },
+  backLinkText: { color: HEADER_GOLD, fontSize: 15, marginHorizontal: 2 },
+  surahPicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
+    maxWidth: '55%',
+    paddingVertical: 4,
+    paddingHorizontal: 9,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GOLD_BORDER,
+  },
+  surahPickerText: { color: HEADER_TITLE, fontSize: 14, flexShrink: 1, marginHorizontal: 5 },
+  surahPickerIcon: { minWidth: 44, minHeight: 38, alignItems: 'flex-end', justifyContent: 'center' },
+  titleBlock: { width: '100%', alignItems: 'center', paddingTop: 0, paddingBottom: 2 },
+  titleArabic: { color: HEADER_TITLE, fontSize: 21, writingDirection: 'rtl' },
+  titleLatin: { color: HEADER_SUBTITLE, fontSize: 12, marginTop: 0 },
+  titleMeta: { color: HEADER_SUBTITLE, fontSize: 10, marginTop: 1, opacity: 0.85 },
   headerWrap: {
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 4,
     overflow: 'hidden',
   },
   reciterChip: {
@@ -944,14 +1045,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   headerHint: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
     alignSelf: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
+    opacity: 0.75,
   },
   headerHintRoyal: {},
   headerHintText: {
-    fontSize: 13,
+    fontSize: 11,
   },
   headerCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerSpacer: { width: 44, minWidth: 44 },
@@ -1076,6 +1181,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 18,
     elevation: 8,
+  },
+  verseRowSpaced: {
+    paddingBottom: 12,
+    marginBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(60,45,25,0.18)',
+  },
+  verseTranslation: {
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'left',
+    writingDirection: 'ltr',
+    marginTop: 6,
+    marginBottom: 2,
+    opacity: 0.9,
   },
   verseRow: {
     marginBottom: 0,

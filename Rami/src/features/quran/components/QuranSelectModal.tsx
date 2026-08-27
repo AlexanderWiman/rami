@@ -68,7 +68,11 @@ export function QuranSelectModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+          <ScrollView
+            style={styles.list}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator
+          >
             {items.map((item) => {
               const selected = item.key === selectedKey;
               return (
@@ -127,7 +131,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, fontFamily: fontFamily.heading },
   closeButton: { padding: spacing.xs, minWidth: 44, minHeight: 44, alignItems: 'flex-end', justifyContent: 'center' },
-  list: { flexGrow: 0 },
+  list: { flexShrink: 1 },
   listContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.md },
   row: {
     flexDirection: 'row',

@@ -54,7 +54,7 @@ import {
 import { useQuranAudioContext } from '../context/QuranAudioContext';
 import { hapticLight } from '../../../utils/haptics';
 import { spacing, radius } from '../../../theme/spacing';
-import { fontSize } from '../../../theme/typography';
+import { fontSize, fontFamily } from '../../../theme/typography';
 
 /**
  * Parchment for the whole reading area, painted once behind the pages rather
@@ -334,6 +334,19 @@ export function QuranPageViewScreen() {
       : null;
 
   const isAudioActive = audioState.isPlaying || audioState.isPaused || audioState.isPreparing;
+
+  /**
+   * The verse this page opens with. Without it the player would have nothing to
+   * start from, which is why the mushaf had no way to begin reciting at all —
+   * tapping a verse was the only route in, and nothing on screen said so.
+   */
+  const pageStart = (() => {
+    const first = data?.verseKeys?.[0];
+    if (!first) return null;
+    const [surah, ayah] = first.split(':').map(Number);
+    return surah && ayah ? { surah, ayah } : null;
+  })();
+  const pageSurah = SURAH_LIST.find((s) => s.number === pageStart?.surah);
   const reciter = QURAN_RECITERS.find((r) => r.id === reciterId);
   const reciterName = reciter ? (language === 'ar' ? reciter.nameAr : reciter.nameEn) : '';
 
@@ -360,7 +373,11 @@ export function QuranPageViewScreen() {
   const playingSurah = SURAH_LIST.find((s) => s.number === audioState.currentSurah);
   const playingLabel = playingSurah
     ? `${language === 'ar' ? playingSurah.nameAr : playingSurah.nameEn} ${audioState.currentAyah ?? ''}`.trim()
-    : getString(language, 'playRecitation');
+    : pageSurah
+      ? language === 'ar'
+        ? pageSurah.nameAr
+        : pageSurah.nameEn
+      : getString(language, 'playRecitation');
 
   // Follow the recitation across page boundaries: when the verse being recited
   // is not on this page but is on the next one, turn the page.
@@ -389,6 +406,20 @@ export function QuranPageViewScreen() {
             the app's ornate background. */}
         <View style={styles.headerBand}>
           <BackBar />
+          {/* Surah name over the page controls, the way the verse reader titles
+              itself — the page number moves down beside the arrows it belongs to. */}
+          {pageSurah && (
+            <View style={styles.headerTitleBlock}>
+              <Text style={[styles.headerSurah, { color: colors.text }]} numberOfLines={1}>
+                {pageSurah.nameAr}
+              </Text>
+              {language !== 'ar' && (
+                <Text style={[styles.headerTranslit, { color: colors.textMuted }]} numberOfLines={1}>
+                  {pageSurah.nameEn}
+                </Text>
+              )}
+            </View>
+          )}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity
             onPress={() => void turnTo(displayPage - 1, -1)}
@@ -403,6 +434,7 @@ export function QuranPageViewScreen() {
             />
           </TouchableOpacity>
           <Text style={[styles.pageTitle, { color: colors.text }]}>
+            {data?.juz ? `${getString(language, 'juzLabel')} ${data.juz}  ·  ` : ''}
             {pageLabel} {displayPage} / {TOTAL_PAGES}
           </Text>
           <View style={styles.headerRight}>
@@ -520,7 +552,7 @@ export function QuranPageViewScreen() {
           </View>
         ) : null}
 
-        {isAudioActive && (
+        {data && (
           <QuranPlayerBar
             bottomInset={insets.bottom}
             title={playingLabel}
@@ -531,7 +563,19 @@ export function QuranPageViewScreen() {
             duration={audioState.duration}
             rate={audioState.rate}
             repeatVerse={audioState.repeatVerse}
-            onTogglePlay={() => (audioState.isPlaying ? pause() : resume())}
+            onTogglePlay={() => {
+              if (audioState.isPlaying) {
+                pause();
+                return;
+              }
+              // Resume only picks up where it left off; with nothing loaded the
+              // button has to actually begin, from this page's first verse.
+              if (audioState.isPaused && audioState.currentSurah != null) {
+                resume();
+                return;
+              }
+              if (pageStart) void playVerseByVerse(pageStart.surah, pageStart.ayah);
+            }}
             onStop={() => stop()}
             onSeek={seekTo}
             onPressReciter={() => setShowReciters(true)}
@@ -563,16 +607,23 @@ export function QuranPageViewScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   headerBand: { backgroundColor: 'rgba(18,35,28,0.85)' },
+  headerTitleBlock: { alignItems: 'center', paddingBottom: 0 },
+  headerSurah: {
+    fontSize: fontSize.lg,
+    fontFamily: fontFamily.heading,
+    writingDirection: 'rtl',
+  },
+  headerTranslit: { fontSize: fontSize.xs, marginTop: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
-  navBtn: { padding: spacing.xs, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  navBtn: { padding: spacing.xxs, minWidth: 44, minHeight: 38, alignItems: 'center', justifyContent: 'center' },
   pageTitle: { fontSize: fontSize.sm, fontWeight: '600' },
   styleRow: {
     flexDirection: 'row',
