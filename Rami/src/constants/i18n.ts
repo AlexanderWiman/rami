@@ -319,6 +319,7 @@ export const translations: Record<
     hadithSources: string;
     hadithApproximateMatch: string;
     hadithShowFullText: string;
+    updateDownloading: string;
     supportUs: string;
     supportUsIntro: string;
     supportUsPaypal: string;
@@ -658,6 +659,7 @@ export const translations: Record<
     hadithSources: 'Sources',
     hadithApproximateMatch: 'Closest matches — your exact wording was not found',
     hadithShowFullText: 'Show the full text',
+    updateDownloading: 'Fetching the latest update',
     supportUs: 'Support us',
     supportUsIntro: 'This app is developed and run with your help. Any contribution keeps it free of ads and helps us add more.',
     supportUsPaypal: 'Donate with PayPal',
@@ -1018,6 +1020,7 @@ export const translations: Record<
     hadithSources: 'المصادر',
     hadithApproximateMatch: 'أقرب النتائج — لم يُعثر على نصك بالحرف',
     hadithShowFullText: 'إظهار النص كاملًا',
+    updateDownloading: 'جارٍ تنزيل آخر تحديث',
     supportUs: 'ادعمنا',
     supportUsIntro: 'هذا التطبيق يُطوَّر ويعمل بمساعدتكم. أي تبرّع يبقيه خاليًا من الإعلانات ويساعدنا على إضافة المزيد.',
     supportUsPaypal: 'تبرّع عبر باي بال',
@@ -1378,6 +1381,7 @@ export const translations: Record<
     hadithSources: 'Kaynaklar',
     hadithApproximateMatch: 'En yakın sonuçlar — tam olarak yazdığınız ifade bulunamadı',
     hadithShowFullText: 'Metnin tamamını göster',
+    updateDownloading: 'En son güncelleme indiriliyor',
     supportUs: 'Bize destek ol',
     supportUsIntro: 'Bu uygulama sizin desteğinizle geliştiriliyor. Her katkı, reklamsız kalmasına ve daha fazlasını eklemeye yardımcı olur.',
     supportUsPaypal: 'PayPal ile bağış yap',
@@ -1739,6 +1743,7 @@ export const translations: Record<
     hadithSources: 'Sources',
     hadithApproximateMatch: 'Résultats les plus proches — votre formulation exacte est introuvable',
     hadithShowFullText: 'Afficher le texte complet',
+    updateDownloading: 'Téléchargement de la dernière mise à jour',
     supportUs: 'Nous soutenir',
     supportUsIntro: 'Cette application vit grâce à votre aide. Chaque don la garde sans publicité et nous aide à l’enrichir.',
     supportUsPaypal: 'Faire un don via PayPal',
@@ -2099,6 +2104,7 @@ export const translations: Record<
     hadithSources: 'Fuentes',
     hadithApproximateMatch: 'Resultados más cercanos: no se encontró tu redacción exacta',
     hadithShowFullText: 'Mostrar el texto completo',
+    updateDownloading: 'Descargando la última actualización',
     supportUs: 'Apóyanos',
     supportUsIntro: 'Esta aplicación se mantiene con tu ayuda. Cada aportación la mantiene sin anuncios y nos ayuda a mejorarla.',
     supportUsPaypal: 'Donar con PayPal',
@@ -2459,6 +2465,7 @@ export const translations: Record<
     hadithSources: 'Källor',
     hadithApproximateMatch: 'Närmaste träffar — din exakta formulering hittades inte',
     hadithShowFullText: 'Visa hela texten',
+    updateDownloading: 'Hämtar senaste uppdatering',
     supportUs: 'Stöd oss',
     supportUsIntro: 'Appen utvecklas och drivs med din hjälp. Varje bidrag håller den fri från annonser och hjälper oss lägga till mer.',
     supportUsPaypal: 'Donera med PayPal',
@@ -2819,6 +2826,7 @@ export const translations: Record<
     hadithSources: 'Quellen',
     hadithApproximateMatch: 'Nächste Treffer — dein genauer Wortlaut wurde nicht gefunden',
     hadithShowFullText: 'Vollständigen Text anzeigen',
+    updateDownloading: 'Neuestes Update wird geladen',
     supportUs: 'Unterstütze uns',
     supportUsIntro: 'Diese App lebt von deiner Hilfe. Jeder Beitrag hält sie werbefrei und hilft beim Ausbau.',
     supportUsPaypal: 'Mit PayPal spenden',

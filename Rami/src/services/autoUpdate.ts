@@ -29,8 +29,12 @@ function withDeadline<T>(work: Promise<T>, ms: number): Promise<T | null> {
 /**
  * Checks for an update and reloads into it when one arrives inside the budget.
  * Resolves quietly in every other case — a failed check must never block launch.
+ *
+ * `onDownloadStart` fires only once an update is known to exist, so the notice
+ * shown to the user appears for a real download rather than flashing up on
+ * every launch while the check comes back empty.
  */
-export async function applyPendingUpdateOnLaunch(): Promise<void> {
+export async function applyPendingUpdateOnLaunch(onDownloadStart?: () => void): Promise<void> {
   // Disabled in Expo Go and in development builds, where there is nothing to fetch.
   if (__DEV__ || !Updates.isEnabled) return;
 
@@ -42,6 +46,7 @@ export async function applyPendingUpdateOnLaunch(): Promise<void> {
     const remaining = UPDATE_BUDGET_MS - (Date.now() - startedAt);
     if (remaining <= 0) return;
 
+    onDownloadStart?.();
     const fetched = await withDeadline(Updates.fetchUpdateAsync(), remaining);
     if (!fetched?.isNew) return;
 
