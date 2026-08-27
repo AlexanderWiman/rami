@@ -176,12 +176,23 @@ function MushafLineText({
 
   const fontSize = Math.max(12, Math.round(glyphSize * scale));
 
+  // The highlight behind a verse is a nested Text background, and that box is
+  // drawn against the font's metrics inside the line box. With a tall lineHeight
+  // the box sits high while the QCF glyphs render low, so the tint misses the
+  // script. Keeping the line tight around the glyphs and moving the mushaf's
+  // line spacing into a margin puts the two back on top of each other.
   return (
     <Text
       onTextLayout={handleTextLayout}
       style={[
         styles.line,
-        { color, fontFamily, fontSize, lineHeight: Math.round(fontSize * 1.7) },
+        {
+          color,
+          fontFamily,
+          fontSize,
+          lineHeight: Math.round(fontSize * 1.15),
+          marginBottom: Math.round(fontSize * 0.55),
+        },
       ]}
       allowFontScaling={false}
     >
