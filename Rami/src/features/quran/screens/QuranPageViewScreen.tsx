@@ -434,6 +434,7 @@ export function QuranPageViewScreen() {
             />
           </TouchableOpacity>
           <Text style={[styles.pageTitle, { color: colors.text }]}>
+            {data?.juz ? `${getString(language, 'juzLabel')} ${data.juz}  ·  ` : ''}
             {pageLabel} {displayPage} / {TOTAL_PAGES}
           </Text>
           <View style={styles.headerRight}>

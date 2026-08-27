@@ -707,6 +707,19 @@ export function QuranReaderScreen() {
                           {`﴿${toArabicIndic(ayah)}﴾`}
                         </Text>
                       </Text>
+                      {/* The translation is why this mode exists next to the
+                          mushaf; it was reachable only by opening the sheet.
+                          Left out when reading in Arabic, where it adds nothing. */}
+                      {language !== 'ar' && ayahText[ayah]?.en ? (
+                        <Text
+                          style={[
+                            styles.verseTranslation,
+                            { color: isRoyal ? 'rgba(60,45,25,0.75)' : colors.textSecondary },
+                          ]}
+                        >
+                          {ayahText[ayah].en}
+                        </Text>
+                      ) : null}
                     </TouchableOpacity>
                   </View>
                 );
@@ -1160,6 +1173,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 18,
     elevation: 8,
+  },
+  verseTranslation: {
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'left',
+    writingDirection: 'ltr',
+    marginTop: 6,
+    marginBottom: 2,
+    opacity: 0.9,
   },
   verseRow: {
     marginBottom: 0,
