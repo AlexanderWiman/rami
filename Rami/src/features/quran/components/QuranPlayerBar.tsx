@@ -33,6 +33,8 @@ function formatTime(seconds: number): string {
 interface Props {
   /** Verse being recited, e.g. "Al-Fatihah 3" */
   title: string;
+  /** Safe-area inset at the bottom, so the controls clear the system nav bar. */
+  bottomInset: number;
   reciterName: string;
   isPlaying: boolean;
   isPreparing: boolean;
@@ -50,6 +52,7 @@ interface Props {
 
 export function QuranPlayerBar({
   title,
+  bottomInset,
   reciterName,
   isPlaying,
   isPreparing,
@@ -101,7 +104,11 @@ export function QuranPlayerBar({
     <View
       style={[
         styles.bar,
-        { borderTopColor: colors.border, backgroundColor: isRoyal ? 'rgba(6,18,13,0.96)' : colors.surface },
+        {
+          borderTopColor: colors.border,
+          backgroundColor: isRoyal ? 'rgba(6,18,13,0.96)' : colors.surface,
+          paddingBottom: spacing.sm + bottomInset,
+        },
       ]}
     >
       <View style={styles.topRow}>

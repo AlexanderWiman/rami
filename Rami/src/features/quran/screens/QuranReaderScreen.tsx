@@ -534,7 +534,7 @@ export function QuranReaderScreen() {
           styles.scrollContent,
           {
             paddingTop: 0,
-            paddingBottom: 60,
+            paddingBottom: 60 + insets.bottom,
           },
           DEBUG_BORDERS && styles.debugScrollContent,
         ]}

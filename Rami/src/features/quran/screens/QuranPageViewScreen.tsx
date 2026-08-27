@@ -27,6 +27,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { useFonts, Amiri_400Regular } from '@expo-google-fonts/amiri';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../theme/ThemeContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import type { Language } from '../../prayer/types';
@@ -79,6 +80,8 @@ type PanelProps = {
   fontReady: boolean;
   activeVerseKey: string | null;
   language: Language;
+  /** Keeps the last line of the page clear of the system nav bar. */
+  bottomInset: number;
   onPressVerse?: (verseKey: string) => void;
 };
 
@@ -90,6 +93,7 @@ const PagePanel = memo(function PagePanel({
   fontReady,
   activeVerseKey,
   language,
+  bottomInset,
   onPressVerse,
 }: PanelProps) {
   const contentWidth = windowWidth - spacing.sm * 2;
@@ -97,7 +101,10 @@ const PagePanel = memo(function PagePanel({
     <ScrollView
       key={panelKey}
       style={[styles.panelScroll, { width: windowWidth }]}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[
+        styles.scrollContent,
+        { paddingBottom: spacing.xxl + bottomInset },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       <MushafPage
@@ -126,6 +133,7 @@ export function QuranPageViewScreen() {
   const { colors } = useTheme();
   const { language } = useLanguage();
   const { width: windowWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ page?: string }>();
   const initialPage = Math.max(1, Math.min(TOTAL_PAGES, parseInt(params.page ?? '1', 10) || 1));
   const [fontsLoaded] = useFonts({ Amiri_400Regular });
@@ -376,9 +384,12 @@ export function QuranPageViewScreen() {
   return (
     <ScreenWrapper>
       <View style={styles.container}>
-        <BackBar />
-
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        {/* One solid band for back-bar and page controls, so the mushaf reads as
+            the same screen family as the verse reader rather than floating on
+            the app's ornate background. */}
+        <View style={styles.headerBand}>
+          <BackBar />
+          <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity
             onPress={() => void turnTo(displayPage - 1, -1)}
             disabled={displayPage <= 1 || loading || incomingPage != null}
@@ -427,6 +438,7 @@ export function QuranPageViewScreen() {
                 color={displayPage >= TOTAL_PAGES ? colors.textMuted : colors.text}
               />
             </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -482,6 +494,7 @@ export function QuranPageViewScreen() {
                 fontReady={fontReady}
                 activeVerseKey={activeVerseKey}
                 language={language}
+                bottomInset={insets.bottom}
                 onPressVerse={handlePressVerse}
               />
             </View>
@@ -500,6 +513,7 @@ export function QuranPageViewScreen() {
                   fontReady={fontReadyPages.has(incomingPage) && fontsLoaded}
                   activeVerseKey={activeVerseKey}
                   language={language}
+                  bottomInset={insets.bottom}
                 />
               </Animated.View>
             )}
@@ -508,6 +522,7 @@ export function QuranPageViewScreen() {
 
         {isAudioActive && (
           <QuranPlayerBar
+            bottomInset={insets.bottom}
             title={playingLabel}
             reciterName={reciterName}
             isPlaying={audioState.isPlaying}
@@ -547,6 +562,7 @@ export function QuranPageViewScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  headerBand: { backgroundColor: 'rgba(18,35,28,0.85)' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -573,7 +589,7 @@ const styles = StyleSheet.create({
   panelScroll: { flex: 1 },
   // Full-bleed, and flush to the header: the parchment behind covers the whole
   // reading area, so any padding here would show as a strip of app background.
-  scrollContent: { paddingTop: spacing.sm, paddingBottom: spacing.xxl },
+  scrollContent: { paddingTop: spacing.sm },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { fontSize: fontSize.sm, textAlign: 'center', paddingHorizontal: spacing.lg },
   retryBtn: {
