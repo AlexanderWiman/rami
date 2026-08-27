@@ -15,7 +15,7 @@ import { getString, formatNumber } from '../../../constants/i18n';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize, fontWeight, fontFamily, lineHeight } from '../../../theme/typography';
 import { hapticLight, hapticSuccess, hapticSelection } from '../../../utils/haptics';
-import { QUIZ_QUESTIONS, type QuizQuestion } from '../data/quizQuestions';
+import { QUIZ_QUESTIONS, quizText, type QuizQuestion, type QuizText } from '../data/quizQuestions';
 import { loadQuizStats, recordQuizRound, EMPTY_STATS, type QuizStats } from '../storage/quizStats';
 
 /** Valbara omgångslängder — korta omgångar gör spelet lätt att plocka upp. */
@@ -36,7 +36,11 @@ function pick<T>(items: readonly T[]): T {
 type Phase = 'intro' | 'playing' | 'result';
 
 /** Fråga med alternativen blandade så rätt svar inte hamnar på samma plats. */
-type RoundQuestion = QuizQuestion & { shuffledOptions: string[] };
+type RoundQuestion = QuizQuestion & {
+  shuffledOptions: QuizText[];
+  /** Rätt alternativ efter blandningen — identitet, inte position. */
+  correctOption: QuizText;
+};
 
 function shuffle<T>(items: readonly T[]): T[] {
   const copy = [...items];
@@ -50,7 +54,11 @@ function shuffle<T>(items: readonly T[]): T[] {
 function buildRound(length: number): RoundQuestion[] {
   return shuffle(QUIZ_QUESTIONS)
     .slice(0, Math.min(length, QUIZ_QUESTIONS.length))
-    .map((q) => ({ ...q, shuffledOptions: shuffle(q.options) }));
+    .map((q) => ({
+      ...q,
+      shuffledOptions: shuffle(q.options),
+      correctOption: q.options[q.answerIndex],
+    }));
 }
 
 export function QuizScreen() {
@@ -66,11 +74,18 @@ export function QuizScreen() {
   const cardTextMuted = isRoyal ? 'rgba(255,255,255,0.62)' : colors.textOnSurfaceMuted;
   const accent = isRoyal ? GOLD : colors.highlight;
 
+  /**
+   * Frågetexten byter läsriktning med språket: arabiskan högerställd, övriga
+   * vänsterställda — annars hamnar svensk text i högerkanten.
+   */
+  const showsArabic = language !== 'sv' && language !== 'en';
+  const textDirectionStyle = showsArabic ? styles.textRtl : styles.textLtr;
+
   const [phase, setPhase] = useState<Phase>('intro');
   const [roundLength, setRoundLength] = useState<number>(DEFAULT_LENGTH);
   const [round, setRound] = useState<RoundQuestion[]>([]);
   const [index, setIndex] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<QuizText | null>(null);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
@@ -99,7 +114,7 @@ export function QuizScreen() {
   const current = round[index];
   const isLast = index === round.length - 1;
   const answered = selected !== null;
-  const wasCorrect = answered && selected === current?.answer;
+  const wasCorrect = answered && selected === current?.correctOption;
 
   const startRound = useCallback(
     (length: number) => {
@@ -118,9 +133,9 @@ export function QuizScreen() {
   );
 
   const onSelect = useCallback(
-    (option: string) => {
+    (option: QuizText) => {
       if (answered || !current) return;
-      const correct = option === current.answer;
+      const correct = option === current.correctOption;
       setSelected(option);
       if (correct) {
         hapticSuccess();
@@ -248,7 +263,7 @@ export function QuizScreen() {
     </Animated.View>
   );
 
-  const optionColors = (option: string) => {
+  const optionColors = (option: QuizText) => {
     if (!answered) {
       return {
         border: isRoyal ? 'rgba(255,255,255,0.18)' : colors.border,
@@ -257,7 +272,7 @@ export function QuizScreen() {
         mark: '',
       };
     }
-    if (option === current?.answer) {
+    if (option === current?.correctOption) {
       return {
         border: CORRECT_GREEN,
         background: 'rgba(47,143,98,0.18)',
@@ -308,15 +323,18 @@ export function QuizScreen() {
 
         <Animated.View key={current.id} entering={FadeInDown.duration(300)}>
           <GlassCard padding="lg" rounded="lg" fillContent={false} style={styles.questionCard}>
-            <Text style={[styles.questionText, { color: cardText }]}>{current.question}</Text>
+            <Text style={[styles.questionText, textDirectionStyle, { color: cardText }]}>
+              {quizText(current.question, language)}
+            </Text>
           </GlassCard>
 
           <View style={styles.options}>
             {current.shuffledOptions.map((option) => {
               const c = optionColors(option);
+              const label = quizText(option, language);
               return (
                 <Pressable
-                  key={option}
+                  key={label}
                   onPress={() => onSelect(option)}
                   disabled={answered}
                   style={({ pressed }) => [
@@ -328,14 +346,16 @@ export function QuizScreen() {
                     },
                   ]}
                   accessibilityRole="button"
-                  accessibilityLabel={option}
+                  accessibilityLabel={label}
                 >
-                  <Text style={[styles.optionText, { color: c.text }]}>{option}</Text>
+                  <Text style={[styles.optionText, textDirectionStyle, { color: c.text }]}>
+                    {label}
+                  </Text>
                   {c.mark !== '' && (
                     <Text
                       style={[
                         styles.optionMark,
-                        { color: option === current.answer ? CORRECT_GREEN : WRONG_RED },
+                        { color: option === current.correctOption ? CORRECT_GREEN : WRONG_RED },
                       ]}
                     >
                       {c.mark}
@@ -358,8 +378,8 @@ export function QuizScreen() {
               {feedbackLine}
             </Text>
             {!wasCorrect && (
-              <Text style={[styles.feedbackAnswer, { color: colors.text }]}>
-                {t('quizCorrectAnswer')}: {current.answer}
+              <Text style={[styles.feedbackAnswer, textDirectionStyle, { color: colors.text }]}>
+                {t('quizCorrectAnswer')}: {quizText(current.correctOption, language)}
               </Text>
             )}
             <Pressable
@@ -528,10 +548,7 @@ const styles = StyleSheet.create({
   questionCard: { marginBottom: spacing.sm },
   questionText: {
     fontSize: fontSize.lg,
-    fontFamily: fontFamily.arabic,
     lineHeight: fontSize.lg * lineHeight.relaxed,
-    textAlign: 'right',
-    writingDirection: 'rtl',
   },
 
   options: { gap: spacing.xs },
@@ -548,10 +565,7 @@ const styles = StyleSheet.create({
   optionText: {
     flex: 1,
     fontSize: fontSize.md,
-    fontFamily: fontFamily.arabic,
     lineHeight: fontSize.md * lineHeight.normal,
-    textAlign: 'right',
-    writingDirection: 'rtl',
   },
   optionMark: { fontSize: fontSize.md, fontWeight: fontWeight.bold },
 
@@ -565,10 +579,18 @@ const styles = StyleSheet.create({
   feedbackAnswer: {
     marginTop: spacing.xs,
     fontSize: fontSize.sm,
-    fontFamily: fontFamily.arabic,
     lineHeight: fontSize.sm * lineHeight.relaxed,
+  },
+
+  textRtl: {
     textAlign: 'right',
     writingDirection: 'rtl',
+    fontFamily: fontFamily.arabic,
+  },
+  textLtr: {
+    textAlign: 'left',
+    writingDirection: 'ltr',
+    fontFamily: fontFamily.body,
   },
 
   resultHeadline: {
