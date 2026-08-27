@@ -472,25 +472,18 @@ export function QuranReaderScreen() {
         {/* One primary control only — play/pause in the player below. Everything
             here is secondary: a plain back link and a compact surah picker. */}
         <View style={styles.navRow}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backLink}
-            accessibilityRole="button"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="chevron-back" size={18} color={HEADER_GOLD} />
-            <Text style={styles.backLinkText}>{getString(language, 'back')}</Text>
-          </TouchableOpacity>
+          {/* The same back treatment as the mushaf, which reads better than the
+              bare link this replaced. The surah is named by the title below, so
+              the picker only needs its icon. */}
+          <BackBar />
           <TouchableOpacity
             onPress={() => setShowSurahPicker(true)}
-            style={styles.surahPicker}
+            style={styles.surahPickerIcon}
             accessibilityRole="button"
             accessibilityLabel={getString(language, 'selectSurah')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.surahPickerText} numberOfLines={1}>
-              {language === 'ar' ? surah.nameAr : surah.nameEn}
-            </Text>
-            <Ionicons name="chevron-down" size={14} color={HEADER_GOLD} />
+            <Ionicons name="list-outline" size={22} color={HEADER_GOLD} />
           </TouchableOpacity>
         </View>
 
@@ -962,6 +955,7 @@ const styles = StyleSheet.create({
     borderColor: GOLD_BORDER,
   },
   surahPickerText: { color: HEADER_TITLE, fontSize: 14, flexShrink: 1, marginHorizontal: 5 },
+  surahPickerIcon: { minWidth: 44, minHeight: 38, alignItems: 'flex-end', justifyContent: 'center' },
   titleBlock: { width: '100%', alignItems: 'center', paddingTop: 0, paddingBottom: 2 },
   titleArabic: { color: HEADER_TITLE, fontSize: 21, writingDirection: 'rtl' },
   titleLatin: { color: HEADER_SUBTITLE, fontSize: 12, marginTop: 0 },
