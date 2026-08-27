@@ -47,7 +47,10 @@ export interface MushafPageTheme {
   /** Border of the surah-name banner */
   banner: string;
   bannerBg: string;
+  /** Ruled line under each line of script, as in the verse reader. */
   lineRule: string;
+  /** Faint second line just beneath, which is what gives the rule its depth. */
+  lineRuleShadow: string;
   /** Wash laid over the parchment; transparent leaves the texture as printed. */
   pageOverlay: string;
 }
@@ -63,7 +66,8 @@ export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
         activeText: '#8FE0B4',
         banner: 'rgba(240,240,235,0.35)',
         bannerBg: 'rgba(255,255,255,0.04)',
-        lineRule: 'rgba(255,255,255,0.06)',
+        lineRule: 'rgba(200,170,95,0.28)',
+        lineRuleShadow: 'rgba(0,0,0,0.18)',
         pageOverlay: 'rgba(12,14,10,0.90)',
       };
     case 'royal':
@@ -75,7 +79,8 @@ export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
         activeText: '#F0CE86',
         banner: 'rgba(230,194,122,0.55)',
         bannerBg: 'rgba(230,194,122,0.10)',
-        lineRule: 'rgba(200,170,95,0.10)',
+        lineRule: 'rgba(200,170,95,0.45)',
+        lineRuleShadow: 'rgba(60,40,15,0.12)',
         pageOverlay: 'rgba(8,22,15,0.88)',
       };
     case 'paper':
@@ -88,7 +93,8 @@ export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
         activeText: '#0F6B4F',
         banner: 'rgba(125,94,10,0.45)',
         bannerBg: 'rgba(125,94,10,0.07)',
-        lineRule: 'rgba(60,45,25,0.10)',
+        lineRule: 'rgba(60,45,25,0.38)',
+        lineRuleShadow: 'rgba(0,0,0,0.10)',
         pageOverlay: 'transparent',
       };
   }
@@ -187,7 +193,6 @@ function MushafLineText({
           fontFamily,
           fontSize,
           lineHeight: Math.round(fontSize * 1.15),
-          marginBottom: Math.round(fontSize * 0.55),
         },
       ]}
       allowFontScaling={false}
@@ -306,6 +311,10 @@ export function MushafPage({
         }
 
         return (
+          <View
+            key={`r-${data.page}-${line.lineNumber}`}
+            style={{ marginBottom: Math.round(glyphSize * 0.55) }}
+          >
           <MushafLineText
             // Page in the key so a reused panel remounts with a fresh measurement.
             key={`w-${data.page}-${line.lineNumber}-${glyphSize}`}
@@ -318,6 +327,9 @@ export function MushafPage({
             activeVerseKey={activeVerseKey}
             onPressVerse={onPressVerse}
           />
+          <View style={[styles.rule, { backgroundColor: theme.lineRule }]} />
+          <View style={[styles.rule, { backgroundColor: theme.lineRuleShadow }]} />
+          </View>
         );
       })}
     </PageSurface>
@@ -369,6 +381,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
+  rule: { height: 1 },
   line: {
     textAlign: 'center',
     writingDirection: 'rtl',
