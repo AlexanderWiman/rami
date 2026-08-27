@@ -104,13 +104,23 @@ export function QuranListScreen() {
    * the mode chips can no longer disagree about which screen you land on.
    */
   const openSurah = useCallback(
-    (surahNumber: number) => {
-      const startPage = surahPages?.[surahNumber]?.[0];
-      if (displayMode === 'page' && startPage) {
-        router.push(`/(tabs)/quran/page/${startPage}` as const);
+    async (surahNumber: number) => {
+      if (displayMode !== 'page') {
+        router.push(`/quran/${surahNumber}` as const);
         return;
       }
-      router.push(`/quran/${surahNumber}` as const);
+
+      // The chosen mode is honoured whatever happens next. This used to require
+      // the page ranges to be loaded already and silently opened the verse
+      // reader when they were not, so picking "by page" on a slow first launch
+      // landed the user in the other mode — translation and all.
+      let ranges = surahPages;
+      if (!ranges?.[surahNumber]) {
+        ranges = await getSurahPageRanges();
+        if (ranges) setSurahPages(ranges);
+      }
+      const startPage = ranges?.[surahNumber]?.[0];
+      router.push(`/(tabs)/quran/page/${startPage ?? 1}` as const);
     },
     [displayMode, surahPages]
   );
@@ -275,7 +285,7 @@ export function QuranListScreen() {
               if (pendingSurah !== null) return;
               setPendingSurah(item.number);
               setTimeout(() => {
-                openSurah(item.number);
+                void openSurah(item.number);
               }, 0);
             }}
             disabled={isPending}
@@ -329,7 +339,7 @@ export function QuranListScreen() {
               if (pendingSurah !== null || isDownloading) return;
               setPendingSurah(item.number);
               setTimeout(() => {
-                openSurah(item.number);
+                void openSurah(item.number);
               }, 0);
             }}
             style={styles.surahTouch}
@@ -678,7 +688,7 @@ export function QuranListScreen() {
                   onPress={() => {
                     setShowSearchModal(false);
                     setPendingSurah(item.number);
-                    setTimeout(() => openSurah(item.number), 0);
+                    setTimeout(() => void openSurah(item.number), 0);
                   }}
                   activeOpacity={0.7}
                 >
