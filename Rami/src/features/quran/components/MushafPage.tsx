@@ -278,7 +278,7 @@ export function MushafPage({
           return (
             <View
               key={`s-${line.lineNumber}`}
-              style={[styles.banner, { borderColor: theme.banner, backgroundColor: theme.bannerBg }]}
+              style={styles.banner}
             >
               <Text
                 style={[
@@ -387,13 +387,11 @@ const styles = StyleSheet.create({
     writingDirection: 'rtl',
   },
   banner: {
-    borderWidth: 1,
-    borderRadius: radius.sm,
     paddingVertical: spacing.xxs,
     marginVertical: spacing.xs,
     alignItems: 'center',
   },
-  bannerText: { fontSize: fontSizeTokens.md, writingDirection: 'rtl' },
+  bannerText: { fontSize: fontSizeTokens.lg, writingDirection: 'rtl' },
   bannerTextLatin: { writingDirection: 'ltr', fontWeight: '600' },
   basmala: {
     fontSize: fontSizeTokens.lg,
