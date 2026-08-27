@@ -157,6 +157,8 @@ export function QuranReaderScreen() {
   const [sheetAyah, setSheetAyah] = useState<number | null>(null);
   const [showTapHint, setShowTapHint] = useState(false);
   const [showSurahPicker, setShowSurahPicker] = useState(false);
+  /** Measured so the last verse is never hidden behind the fixed player. */
+  const [playerHeight, setPlayerHeight] = useState(150);
 
   const surahItems = useMemo<SelectItem[]>(
     () =>
@@ -507,38 +509,6 @@ export function QuranReaderScreen() {
           </Text>
         </View>
 
-        <QuranPlayerBar
-          embedded
-          bottomInset={0}
-          title={
-            audioState.currentSurah === surahNum && audioState.currentAyah != null
-              ? `${getString(language, 'ayah')} ${audioState.currentAyah}`
-              : (language === 'ar' ? surah.nameAr : surah.nameEn)
-          }
-          reciterName={selectedReciter ? getReciterLabel(language, selectedReciter) : ''}
-          isPlaying={audioState.isPlaying}
-          isPreparing={audioState.isPreparing}
-          position={audioState.position}
-          duration={audioState.duration}
-          rate={audioState.rate}
-          repeatVerse={audioState.repeatVerse}
-          onTogglePlay={() => {
-            if (audioState.isPlaying) {
-              pause();
-              return;
-            }
-            if (audioState.isPaused && audioState.currentSurah === surahNum) {
-              resume();
-              return;
-            }
-            playVerseByVerse(surahNum, 1);
-          }}
-          onStop={() => stop()}
-          onSeek={seekTo}
-          onPressReciter={() => setShowReciterModal(true)}
-          onCycleRate={cycleRate}
-          onToggleRepeat={toggleRepeat}
-        />
         <LinearGradient
           colors={['transparent', HEADER_GOLD, 'transparent']}
           start={{ x: 0, y: 0 }}
@@ -568,7 +538,7 @@ export function QuranReaderScreen() {
           styles.scrollContent,
           {
             paddingTop: 0,
-            paddingBottom: 60 + insets.bottom,
+            paddingBottom: playerHeight + insets.bottom + 16,
           },
           DEBUG_BORDERS && styles.debugScrollContent,
         ]}
@@ -753,6 +723,40 @@ export function QuranReaderScreen() {
           </View>
         )}
       </ScrollView>
+
+      <View onLayout={(e) => setPlayerHeight(e.nativeEvent.layout.height)}>
+        <QuranPlayerBar
+          bottomInset={insets.bottom}
+          title={
+            audioState.currentSurah === surahNum && audioState.currentAyah != null
+              ? `${getString(language, 'ayah')} ${audioState.currentAyah}`
+              : (language === 'ar' ? surah.nameAr : surah.nameEn)
+          }
+          reciterName={selectedReciter ? getReciterLabel(language, selectedReciter) : ''}
+          isPlaying={audioState.isPlaying}
+          isPreparing={audioState.isPreparing}
+          position={audioState.position}
+          duration={audioState.duration}
+          rate={audioState.rate}
+          repeatVerse={audioState.repeatVerse}
+          onTogglePlay={() => {
+            if (audioState.isPlaying) {
+              pause();
+              return;
+            }
+            if (audioState.isPaused && audioState.currentSurah === surahNum) {
+              resume();
+              return;
+            }
+            playVerseByVerse(surahNum, 1);
+          }}
+          onStop={() => stop()}
+          onSeek={seekTo}
+          onPressReciter={() => setShowReciterModal(true)}
+          onCycleRate={cycleRate}
+          onToggleRepeat={toggleRepeat}
+        />
+      </View>
 
       {/* Ayah BottomSheet */}
       <Modal
