@@ -39,8 +39,11 @@ export interface MushafPageTheme {
   pageBg: string;
   text: string;
   ornament: string;
-  /** Background behind the verse being recited */
+  /** Background behind the verse being recited, kept for the style swatches */
   highlight: string;
+  /** Colour the verse being recited takes; the script changes colour rather
+   *  than sitting in a box, which is what was asked for. */
+  activeText: string;
   /** Border of the surah-name banner */
   banner: string;
   bannerBg: string;
@@ -57,6 +60,7 @@ export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
         text: 'rgba(240,240,235,0.94)',
         ornament: '#C8B078',
         highlight: 'rgba(31,111,84,0.75)',
+        activeText: '#8FE0B4',
         banner: 'rgba(240,240,235,0.35)',
         bannerBg: 'rgba(255,255,255,0.04)',
         lineRule: 'rgba(255,255,255,0.06)',
@@ -68,6 +72,7 @@ export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
         text: 'rgba(245,236,210,0.96)',
         ornament: '#E6C27A',
         highlight: 'rgba(214,179,106,0.30)',
+        activeText: '#F0CE86',
         banner: 'rgba(230,194,122,0.55)',
         bannerBg: 'rgba(230,194,122,0.10)',
         lineRule: 'rgba(200,170,95,0.10)',
@@ -80,6 +85,7 @@ export function getMushafTheme(style: QuranPageStyle): MushafPageTheme {
         text: '#1A1A1A',
         ornament: '#7D5E0A',
         highlight: 'rgba(31,111,84,0.22)',
+        activeText: '#0F6B4F',
         banner: 'rgba(125,94,10,0.45)',
         bannerBg: 'rgba(125,94,10,0.07)',
         lineRule: 'rgba(60,45,25,0.10)',
@@ -126,7 +132,7 @@ function MushafLineText({
   glyphSize,
   fontFamily,
   color,
-  highlight,
+  activeColor,
   activeVerseKey,
   onPressVerse,
 }: {
@@ -135,7 +141,7 @@ function MushafLineText({
   glyphSize: number;
   fontFamily: string;
   color: string;
-  highlight: string;
+  activeColor: string;
   activeVerseKey: string | null;
   onPressVerse?: (verseKey: string) => void;
 }) {
@@ -168,11 +174,9 @@ function MushafLineText({
 
   const fontSize = Math.max(12, Math.round(glyphSize * scale));
 
-  // The highlight behind a verse is a nested Text background, and that box is
-  // drawn against the font's metrics inside the line box. With a tall lineHeight
-  // the box sits high while the QCF glyphs render low, so the tint misses the
-  // script. Keeping the line tight around the glyphs and moving the mushaf's
-  // line spacing into a margin puts the two back on top of each other.
+  // The line stays tight around the glyphs with the mushaf's spacing carried by
+  // a margin: 1.15 plus 0.55 is the 1.7 it replaces, and keeping the line box
+  // close to the script leaves no room for it to drift within the row.
   return (
     <Text
       onTextLayout={handleTextLayout}
@@ -195,7 +199,7 @@ function MushafLineText({
             key={`${run.verseKey}-${index}`}
             onPress={onPressVerse ? () => onPressVerse(run.verseKey) : undefined}
             suppressHighlighting
-            style={isActive ? { backgroundColor: highlight } : undefined}
+            style={isActive ? { color: activeColor } : undefined}
           >
             {run.glyphs}
           </Text>
@@ -250,7 +254,7 @@ export function MushafPage({
               style={[
                 styles.fallbackVerse,
                 { color: theme.text, fontFamily: AMIRI },
-                isActive && { backgroundColor: theme.highlight },
+                isActive && { color: theme.activeText },
               ]}
             >
               {data.uthmani[verseKey] ?? ''}{' '}
@@ -310,7 +314,7 @@ export function MushafPage({
             glyphSize={glyphSize}
             fontFamily={fontFamily}
             color={theme.text}
-            highlight={theme.highlight}
+            activeColor={theme.activeText}
             activeVerseKey={activeVerseKey}
             onPressVerse={onPressVerse}
           />
