@@ -131,9 +131,20 @@ export async function quranContentGet<T>(
   }
 }
 
-/** Audio comes back as a bare path on some routes and absolute on others. */
+/**
+ * Audio arrives in three shapes: absolute, a path relative to the audio CDN, or
+ * — for some reciters, such as al-Tablawi — a bare host with no scheme like
+ * `mirrors.quranicaudio.com/everyayah/...`. Prefixing that last kind with the
+ * CDN base produces a 404, so a leading hostname is given a scheme instead.
+ */
 export function toAbsoluteAudioUrl(url: string): string {
   if (!url) return url;
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  return `${AUDIO_CDN_BASE}/${url.replace(/^\/+/, '')}`;
+
+  const trimmed = url.replace(/^\/+/, '');
+  const firstSegment = trimmed.split('/')[0] ?? '';
+  if (firstSegment.includes('.') && !firstSegment.endsWith('.mp3')) {
+    return `https://${trimmed}`;
+  }
+  return `${AUDIO_CDN_BASE}/${trimmed}`;
 }
