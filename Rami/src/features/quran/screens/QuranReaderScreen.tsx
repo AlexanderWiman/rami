@@ -157,6 +157,13 @@ export function QuranReaderScreen() {
   const [sheetAyah, setSheetAyah] = useState<number | null>(null);
   const [showTapHint, setShowTapHint] = useState(false);
   const [showSurahPicker, setShowSurahPicker] = useState(false);
+  /**
+   * Whether a translation sits under each verse. It decides the page's whole
+   * rhythm: ruled paper works for uniform Arabic rows, not for verse blocks of
+   * differing height, so the two are mutually exclusive.
+   */
+  const showsTranslation = true; // TEMP verify
+
   /** Measured so the last verse is never hidden behind the fixed player. */
   const [playerHeight, setPlayerHeight] = useState(150);
 
@@ -567,7 +574,7 @@ export function QuranReaderScreen() {
             ]}
             onLayout={(event) => setPageHeight(event.nativeEvent.layout.height)}
           >
-            {verseBlockLayout.height > 0 && (
+            {verseBlockLayout.height > 0 && !showsTranslation && (
               <View pointerEvents="none" style={[styles.pageLines, DEBUG_BORDERS && styles.debugPageLines]}>
                 {Array.from({
                   length: Math.max(
@@ -655,6 +662,7 @@ export function QuranReaderScreen() {
                     }}
                     style={[
                       styles.verseRow,
+                      showsTranslation && styles.verseRowSpaced,
                       isThisAyahPlaying && {
                         // Start edge, which is the right in RTL — a left bar would
                         // land where the line ends rather than where it begins.
@@ -710,7 +718,7 @@ export function QuranReaderScreen() {
                       {/* The translation is why this mode exists next to the
                           mushaf; it was reachable only by opening the sheet.
                           Left out when reading in Arabic, where it adds nothing. */}
-                      {language !== 'ar' && ayahText[ayah]?.en ? (
+                      {showsTranslation && ayahText[ayah]?.en ? (
                         <Text
                           style={[
                             styles.verseTranslation,
@@ -1173,6 +1181,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 18,
     elevation: 8,
+  },
+  verseRowSpaced: {
+    paddingBottom: 12,
+    marginBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(60,45,25,0.18)',
   },
   verseTranslation: {
     fontSize: 14,
