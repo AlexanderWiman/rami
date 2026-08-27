@@ -7,6 +7,7 @@
  * mp3quran full surah: https://serverX.mp3quran.net/{reciter}/{surah}.mp3 (full surah only)
  */
 import { SURAH_LIST } from '../data/surahs';
+import { getAyahAudioUrlFromApi } from '../api/quranAudio';
 import {
   getReciterSource,
   getEveryAyahFolder,
@@ -14,7 +15,7 @@ import {
   type ReciterId,
   isReciterId,
 } from '../constants/reciters';
-import { DEFAULT_RECITER } from '../constants/reciters';
+import { DEFAULT_RECITER, getReciterApiId } from '../constants/reciters';
 
 const CDN_BASE = 'https://cdn.islamic.network/quran/audio';
 const CDN_SURAH_BASE = 'https://cdn.islamic.network/quran/audio-surah';
@@ -63,8 +64,42 @@ export function getAyahAudioUrl(
     return `${server.replace(/\/$/, '')}/${surahPadded}.mp3`;
   }
 
+  // Reciters that exist only in the Quran Foundation API have no identity on the
+  // legacy CDN, so building a URL for them would 404. Fall back to the default
+  // voice instead of handing the player something that cannot play.
+  if (id.startsWith('qf.')) {
+    return getAyahAudioUrl(surahNumber, ayahInSurah, DEFAULT_RECITER, bitrate);
+  }
+
   const global = getGlobalAyahNumber(surahNumber, ayahInSurah);
   return `${CDN_BASE}/${bitrate}/${id}/${global}.mp3`;
+}
+
+/**
+ * The URL to play for one verse, plus a backup to try if it fails.
+ *
+ * Reciters carried by the API resolve through the backend, which returns the
+ * real per-verse URL rather than a guessed pattern; the legacy builder stays on
+ * as the backup. Reciters the API does not carry keep the old path, with the
+ * 64 kbps variant as their backup.
+ */
+export async function resolveAyahAudioUrl(
+  surahNumber: number,
+  ayahInSurah: number,
+  reciterId: string = DEFAULT_RECITER
+): Promise<{ url: string; fallbackUrl: string | null }> {
+  const legacy = getAyahAudioUrl(surahNumber, ayahInSurah, reciterId);
+  const apiId = getReciterApiId(reciterId);
+
+  if (apiId != null) {
+    const fromApi = await getAyahAudioUrlFromApi(apiId, surahNumber, ayahInSurah);
+    if (fromApi) return { url: fromApi, fallbackUrl: legacy };
+  }
+
+  const legacy64 = legacy.includes('/128/')
+    ? getAyahAudioUrl(surahNumber, ayahInSurah, reciterId, 64)
+    : null;
+  return { url: legacy, fallbackUrl: legacy64 };
 }
 
 /** True if reciter has full surah audio (CDN or QuranicAudio). */

@@ -5,7 +5,7 @@
  */
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAyahAudioUrl, getGlobalAyahNumber } from './audio';
+import { getAyahAudioUrl, getGlobalAyahNumber, resolveAyahAudioUrl } from './audio';
 import { getReciterSource } from '../constants/reciters';
 import { SURAH_LIST } from '../data/surahs';
 
@@ -84,8 +84,8 @@ async function downloadOneAyah(
 ): Promise<void> {
   const cacheFileName = `${getCacheKey(reciterId, surahNumber, ayahInSurah)}.mp3`;
   const cachePath = cacheDir + cacheFileName;
-  const url = getAyahAudioUrl(surahNumber, ayahInSurah, reciterId);
-  const url64 = url.includes('/128/') ? getAyahAudioUrl(surahNumber, ayahInSurah, reciterId, 64) : url;
+  const { url, fallbackUrl } = await resolveAyahAudioUrl(surahNumber, ayahInSurah, reciterId);
+  const url64 = fallbackUrl ?? url;
   let result = await FileSystem.downloadAsync(url, cachePath);
   if (result.status !== 200 && url64 !== url) {
     await FileSystem.deleteAsync(cachePath, { idempotent: true });
@@ -142,9 +142,9 @@ export async function getResolvedAyahAudioUri(
     }
   }
 
-  const url = getAyahAudioUrl(surahNumber, ayahInSurah, reciterId);
+  const { url, fallbackUrl } = await resolveAyahAudioUrl(surahNumber, ayahInSurah, reciterId);
   _dbgCache('cache miss, downloading', { url: url.slice(0, 80), reciterId });
-  const url64 = url.includes('/128/') ? getAyahAudioUrl(surahNumber, ayahInSurah, reciterId, 64) : url;
+  const url64 = fallbackUrl ?? url;
   try {
     let result = await FileSystem.downloadAsync(url, cachePath);
     if (result.status !== 200 && url64 !== url) {

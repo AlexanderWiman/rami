@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 const _dbg = (_msg: string, _data?: object) => {};
 import { Platform } from 'react-native';
-import { getAyahAudioUrl, getFullSurahAudioUrls } from '../utils/audio';
+import { getAyahAudioUrl, getFullSurahAudioUrls, resolveAyahAudioUrl } from '../utils/audio';
 import { getResolvedAyahAudioUri } from '../utils/quranAudioCache';
 import { SURAH_LIST } from '../data/surahs';
 import {
@@ -687,11 +687,15 @@ export function useQuranAudio() {
         event: `Queue ${surahNumber}:${ayahInSurah}→${surah.ayahCount}`,
       });
 
+      // The cache layer resolves through the API for reciters it carries; these
+      // fallbacks go through the same resolver so a reciter that exists only in
+      // the API never falls back to a URL built for a CDN that lacks them.
+      const resolved = await resolveAyahAudioUrl(surahNumber, ayahInSurah, reciter);
       let uri: string;
       try {
         uri = await getResolvedAyahAudioUri(surahNumber, ayahInSurah, reciter);
       } catch {
-        uri = getAyahAudioUrl(surahNumber, ayahInSurah, reciter);
+        uri = resolved.url;
       }
       setupPlayer(
         uri,
@@ -700,7 +704,7 @@ export function useQuranAudio() {
         ayahInSurah,
         getEarlyAdvanceSec(reciter),
         reciter,
-        getAyahAudioUrl(surahNumber, ayahInSurah, reciter)
+        resolved.fallbackUrl ?? resolved.url
       );
       startPreloadForNext(surahNumber, ayahInSurah, surah.ayahCount, reciter);
     },
