@@ -214,6 +214,7 @@ export default function RootLayout() {
               <Stack.Screen name="tasbih" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="adkhar" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="hadith" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
+              <Stack.Screen name="quiz" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="support" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="location-picker" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="prayer-times" options={{ contentStyle: { backgroundColor: 'transparent' } }} />
