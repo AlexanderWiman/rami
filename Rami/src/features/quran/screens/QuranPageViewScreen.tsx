@@ -14,6 +14,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  ImageBackground,
   useWindowDimensions,
 } from 'react-native';
 import Animated, {
@@ -52,6 +53,13 @@ import { useQuranAudioContext } from '../context/QuranAudioContext';
 import { hapticLight } from '../../../utils/haptics';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize } from '../../../theme/typography';
+
+/**
+ * Parchment for the whole reading area, painted once behind the pages rather
+ * than behind each page card — the verse reader does the same, and a card with
+ * its own background is what made the two screens look unrelated.
+ */
+const PAGE_TEXTURE = require('../../../../assets/quran_page_bg.jpg');
 
 const TOTAL_PAGES = getTotalPages();
 const SLIDE_DURATION_MS = 280;
@@ -445,6 +453,15 @@ export function QuranPageViewScreen() {
           </View>
         ) : data ? (
           <View style={[styles.slider, { width: windowWidth, backgroundColor: theme.pageBg }]}>
+            <ImageBackground
+              source={PAGE_TEXTURE}
+              resizeMode="cover"
+              style={StyleSheet.absoluteFill}
+            >
+              {theme.pageOverlay !== 'transparent' ? (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.pageOverlay }]} />
+              ) : null}
+            </ImageBackground>
             <View key="current" style={[styles.panel, { width: windowWidth }]} collapsable={false}>
               <PagePanel
                 data={data}
@@ -582,8 +599,9 @@ const styles = StyleSheet.create({
   panel: { flex: 1 },
   panelAbsolute: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   panelScroll: { flex: 1 },
-  // Full-bleed: the printed page reaches both edges, as it does in a mushaf.
-  scrollContent: { paddingTop: PAGE_MARGIN, paddingBottom: spacing.xxl },
+  // Full-bleed, and flush to the header: the parchment behind covers the whole
+  // reading area, so any padding here would show as a strip of app background.
+  scrollContent: { paddingTop: spacing.sm, paddingBottom: spacing.xxl },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { fontSize: fontSize.sm, textAlign: 'center', paddingHorizontal: spacing.lg },
   retryBtn: {

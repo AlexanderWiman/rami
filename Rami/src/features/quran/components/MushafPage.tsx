@@ -18,7 +18,6 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  ImageBackground,
   type TextLayoutEventData,
   type NativeSyntheticEvent,
 } from 'react-native';
@@ -30,13 +29,6 @@ import type { MushafLine, MushafPageData, MushafWord } from '../api/mushafPage';
 import type { QuranPageStyle } from '../storage/quranStorage';
 import { spacing, radius } from '../../../theme/spacing';
 import { fontSize as fontSizeTokens } from '../../../theme/typography';
-
-/**
- * Parchment with a printed border and corner flourishes, stretched to the page
- * card so the frame hugs its edges. The dark styles keep it underneath a tint
- * rather than dropping it, so the border still reads as a printed page.
- */
-const PAGE_TEXTURE = require('../../../../assets/quran_page_bg.jpg');
 
 const BASMALA = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
 const AMIRI = 'Amiri_400Regular';
@@ -248,7 +240,7 @@ export function MushafPage({
   /** Without the page font the glyph codes are meaningless — show Uthmani text. */
   if (!fontReady) {
     return (
-      <PageSurface theme={theme}>
+      <PageSurface>
         {data.verseKeys.map((verseKey) => {
           const isActive = verseKey === activeVerseKey;
           return (
@@ -271,7 +263,7 @@ export function MushafPage({
   }
 
   return (
-    <PageSurface theme={theme}>
+    <PageSurface>
       {renderedLines.map(({ line, runs }) => {
         if (line.kind === 'surahName') {
           return (
@@ -328,27 +320,13 @@ export function MushafPage({
   );
 }
 
-/** The page itself: parchment, an optional wash, then the script on top. */
-function PageSurface({
-  theme,
-  children,
-}: {
-  theme: MushafPageTheme;
-  children: React.ReactNode;
-}) {
-  return (
-    <ImageBackground
-      source={PAGE_TEXTURE}
-      resizeMode="stretch"
-      style={[styles.page, { backgroundColor: theme.pageBg }]}
-      imageStyle={styles.pageImage}
-    >
-      {theme.pageOverlay !== 'transparent' ? (
-        <View style={[styles.pageWash, { backgroundColor: theme.pageOverlay }]} />
-      ) : null}
-      {children}
-    </ImageBackground>
-  );
+/**
+ * The script sits on the parchment the screen paints behind the whole reading
+ * area, so the page itself stays transparent — a card with its own background
+ * is exactly what made the mushaf look unlike the verse reader.
+ */
+function PageSurface({ children }: { children: React.ReactNode }) {
+  return <View style={styles.page}>{children}</View>;
 }
 
 /** Small tap target used by the page-style switcher. */
@@ -386,8 +364,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     overflow: 'hidden',
   },
-  pageImage: {},
-  pageWash: { ...StyleSheet.absoluteFill },
+
   line: {
     textAlign: 'center',
     writingDirection: 'rtl',
